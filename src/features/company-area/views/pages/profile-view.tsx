@@ -16,16 +16,19 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
       id: "plan",
       label: "Plano Atual",
       value: model.companyProfile.plan,
+      detail: "",
     },
     {
       id: "invites",
       label: "Convites Disponíveis",
       value: model.inviteBalance.available.toString(),
+      detail: "",
     },
     {
       id: "cycle",
       label: "Ciclo Ativo",
       value: model.companyProfile.cycle,
+      detail: "",
     },
   ];
 
