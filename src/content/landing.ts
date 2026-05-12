@@ -16,11 +16,8 @@ export const landingContent = {
     ],
     ctas: [
       {
-        label: "Consulte nossas soluções.",
-        href: buildWhatsAppLink({
-          phoneE164: whatsappPhone,
-          text: "Olá! Gostaria de consultar as soluções da Inove ESG.",
-        }),
+        label: "Conheça nossas soluções",
+        href: "#pricing",
         variant: "primary" as const,
       },
       {

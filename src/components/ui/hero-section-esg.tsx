@@ -119,7 +119,7 @@ function HeroHeader() {
     { label: "Problema", href: "#problema" },
     { label: "Features", href: "#features" },
     { label: "Prova social", href: "#prova-social" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "Planos", href: "#pricing" },
     { label: "FAQ", href: "#faq" },
   ] as const;
 
@@ -157,7 +157,7 @@ function HeroHeader() {
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="font-medium text-accent-2 transition-colors duration-200 hover:text-accent"
+                    className="font-medium text-foreground transition-all duration-300 hover:text-accent-2 relative after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 after:bg-accent-2 after:transition-all after:duration-300 hover:after:w-full"
                   >
                     {item.label}
                   </a>
