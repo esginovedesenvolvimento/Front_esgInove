@@ -12,10 +12,12 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   });
 
   if (response.status === 401) {
-    if (typeof window !== "undefined") {
-      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      window.location.href = "/?auth=true";
-      return new Promise(() => {});
+    if (path !== "/auth/login") {
+      if (typeof window !== "undefined") {
+        document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        window.location.href = "/?auth=true";
+        return new Promise(() => {});
+      }
     }
   }
 
