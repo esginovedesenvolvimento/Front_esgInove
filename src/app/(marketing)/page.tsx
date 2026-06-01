@@ -4,14 +4,13 @@ import { Container } from "@/components/container";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { FeatureCard } from "@/components/ui/feature-card";
 import { HeroSectionESG } from "@/components/ui/hero-section-esg";
-import { Pricing2 } from "@/components/ui/pricing-cards";
 import { ClientsSection } from "@/components/ui/testimonial-card";
 import { landingContent } from "@/content/landing";
 import { AlertTriangle, BarChart3, FileWarning, CircleCheck, X } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { AuthModal } from "@/components/ui/auth-modal";
-import { CartModal } from "@/components/ui/cart-modal";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 const painBlocks = [
   {
@@ -75,22 +74,25 @@ const whyUs = [
   },
 ] as const;
 
-export default function Home() {
+function HomeContent() {
   const c = landingContent;
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [cart, setCart] = useState<string[]>([]);
-  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<"login" | "cadastro">("login");
+  const searchParams = useSearchParams();
 
-  const addToCart = (productName: string) => {
-    setCart((prev) => {
-      if (prev.includes(productName)) return prev;
-      return [...prev, productName];
-    });
+  useEffect(() => {
+    if (searchParams.get("auth") === "true") {
+      const timer = setTimeout(() => {
+        setAuthModalTab("login");
+        setIsAuthModalOpen(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
+  const handlePlanClick = () => {
+    setAuthModalTab("cadastro");
     setIsAuthModalOpen(true);
-  };
-
-  const removeFromCart = (productName: string) => {
-    setCart((prev) => prev.filter((item) => item !== productName));
   };
 
   return (
@@ -106,6 +108,10 @@ export default function Home() {
             ctaPrimary: { label: c.hero.ctas[0].label, href: c.hero.ctas[0].href },
             ctaSecondary: { label: c.hero.ctas[1].label, href: c.hero.ctas[1].href },
             trust: c.hero.trust,
+          }}
+          onLoginClick={() => {
+            setAuthModalTab("login");
+            setIsAuthModalOpen(true);
           }}
         />
 
@@ -282,7 +288,7 @@ export default function Home() {
                   <li className="flex items-center gap-2"><CircleCheck className="size-4 text-accent flex-shrink-0" /> Relatório com Selo</li>
                 </ul>
                 <button 
-                  onClick={() => addToCart("Diagnóstico Estratégico")}
+                  onClick={handlePlanClick}
                   className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-sm h-auto py-2.5 px-4 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                 >
                   Solicitar
@@ -305,7 +311,7 @@ export default function Home() {
                   <li className="flex items-center gap-2"><CircleCheck className="size-4 text-accent flex-shrink-0" /> Apoio à Decisão</li>
                 </ul>
                 <button 
-                  onClick={() => addToCart("Diagnóstico + Consultoria")}
+                  onClick={handlePlanClick}
                   className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-sm h-auto py-2.5 px-4 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                 >
                   Solicitar
@@ -330,7 +336,7 @@ export default function Home() {
                   <li className="flex items-center gap-2"><CircleCheck className="size-4 text-accent flex-shrink-0" /> Acompanhamento Mensal</li>
                 </ul>
                 <button 
-                  onClick={() => addToCart("Assessoria ESG Completa")}
+                  onClick={handlePlanClick}
                   className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-sm h-auto py-2.5 px-4 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                 >
                   Falar com Especialista
@@ -430,7 +436,7 @@ export default function Home() {
                           <div className="text-xs text-foreground/70 mb-0.5">A partir de</div>
                           <div className="text-base font-bold text-foreground mb-2">R$ 6.000</div>
                           <button 
-                            onClick={() => addToCart("Diagnóstico Estratégico")}
+                            onClick={handlePlanClick}
                             className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                           >
                             Solicitar
@@ -440,7 +446,7 @@ export default function Home() {
                           <div className="text-xs text-foreground/70 mb-0.5">A partir de</div>
                           <div className="text-base font-bold text-foreground mb-2">R$ 7.500</div>
                           <button 
-                            onClick={() => addToCart("Diagnóstico + Consultoria")}
+                            onClick={handlePlanClick}
                             className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                           >
                             Solicitar
@@ -449,7 +455,7 @@ export default function Home() {
                         <td className="p-4 text-center bg-accent/10">
                           <div className="text-base font-bold text-foreground mb-2">Sob Orçamento</div>
                           <button 
-                            onClick={() => addToCart("Assessoria ESG Completa")}
+                            onClick={handlePlanClick}
                             className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                           >
                             Falar com Especialista
@@ -478,7 +484,7 @@ export default function Home() {
                     <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
                       <span className="font-bold text-sm text-foreground">R$ 250</span>
                       <button 
-                        onClick={() => addToCart("Pré-Diagnóstico ESG")}
+                        onClick={handlePlanClick}
                         className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 flex justify-center items-center whitespace-nowrap rounded-full"
                       >
                         Contratar
@@ -499,7 +505,7 @@ export default function Home() {
                     <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
                       <span className="font-bold text-sm text-foreground">R$ 500</span>
                       <button 
-                        onClick={() => addToCart("Pré-Diagnóstico + Consultoria")}
+                        onClick={handlePlanClick}
                         className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 flex justify-center items-center whitespace-nowrap rounded-full"
                       >
                         Contratar
@@ -520,7 +526,7 @@ export default function Home() {
                     <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
                       <span className="font-bold text-sm text-foreground">Sob Orçamento</span>
                       <button 
-                        onClick={() => addToCart("Avaliação de Fornecedores")}
+                        onClick={handlePlanClick}
                         className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 flex justify-center items-center whitespace-nowrap rounded-full"
                       >
                         Orçar
@@ -541,7 +547,7 @@ export default function Home() {
                     <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
                       <span className="font-bold text-sm text-foreground">Sob Orçamento</span>
                       <button 
-                        onClick={() => addToCart("Capacitação")}
+                        onClick={handlePlanClick}
                         className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 flex justify-center items-center whitespace-nowrap rounded-full"
                       >
                         Orçar
@@ -562,7 +568,7 @@ export default function Home() {
                     <div className="flex justify-between items-center mt-2 border-t border-gray-100 pt-2">
                       <span className="font-bold text-sm text-foreground">R$ 41,90</span>
                       <button 
-                        onClick={() => addToCart("Livro Bioeconomia & ESG")}
+                        onClick={handlePlanClick}
                         className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 flex justify-center items-center whitespace-nowrap rounded-full"
                       >
                         Comprar
@@ -658,9 +664,15 @@ export default function Home() {
                   <a href="#hero" className="hover:text-white">
                     Empresa
                   </a>
-                  <a href="#hero" className="hover:text-white">
+                  <button 
+                    onClick={() => {
+                      setAuthModalTab("login");
+                      setIsAuthModalOpen(true);
+                    }} 
+                    className="text-left hover:text-white"
+                  >
                     Login
-                  </a>
+                  </button>
                   <p className="pt-6 text-xs text-accent-foreground/70">{c.footer.copyright}</p>
                   <p className="text-xs text-accent-foreground/70">{c.footer.note}</p>
                 </footer>
@@ -671,20 +683,17 @@ export default function Home() {
       </main>
       <AuthModal 
         isOpen={isAuthModalOpen} 
-        onClose={() => {
-          setIsAuthModalOpen(false);
-          if (cart.length > 0) {
-            setIsCartModalOpen(true);
-          }
-        }} 
-        defaultTab="cadastro" 
-      />
-      <CartModal 
-        isOpen={isCartModalOpen} 
-        onClose={() => setIsCartModalOpen(false)} 
-        items={cart} 
-        onRemoveItem={removeFromCart}
+        onClose={() => setIsAuthModalOpen(false)} 
+        defaultTab={authModalTab} 
       />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

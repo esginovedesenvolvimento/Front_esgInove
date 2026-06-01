@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { deleteCookie } from 'cookies-next';
 import { 
   Home, 
   User, 
@@ -43,6 +45,7 @@ export function Sidebar({ className = "" }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState("dashboard");
+  const router = useRouter();
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -257,7 +260,10 @@ export function Sidebar({ className = "" }: SidebarProps) {
           {/* Logout Button */}
           <div className="p-3">
             <button
-              onClick={() => handleItemClick("logout")}
+              onClick={() => {
+                deleteCookie("inoveesg_token");
+                router.push("/?auth=true");
+              }}
               className={`
                 w-full flex items-center rounded-md text-left transition-all duration-200 group
                 text-red-600 hover:bg-red-50 hover:text-red-700

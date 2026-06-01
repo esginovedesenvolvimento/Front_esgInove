@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Truck,
+  Briefcase,
 } from "lucide-react";
 
 export const companyNavItems = [
@@ -12,6 +13,11 @@ export const companyNavItems = [
     href: "/app",
     label: "Painel",
     icon: LayoutDashboard,
+  },
+  {
+    href: "/app/meus-servicos",
+    label: "Meus Serviços",
+    icon: Briefcase,
   },
   {
     href: "/app/diagnostico",

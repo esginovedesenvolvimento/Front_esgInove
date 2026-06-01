@@ -1,27 +1,56 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "../components/section-heading";
 import { KpiStrip } from "../components/kpi-strip";
 import type { getProfileViewModel } from "../../controllers/profile.controller";
 import { Building2, CreditCard, Mail, MapPin, Phone, Users, ShieldCheck } from "lucide-react";
+import { InvitePurchaseModal } from "../components/invite-purchase-modal";
+import { useCompany } from "@/features/company-area/context/company-context";
+import { getCookie } from "cookies-next";
+import { inviteService } from "@/features/company-area/services/invite.service";
 
 type ProfileViewModel = ReturnType<typeof getProfileViewModel>;
 
 export function ProfileView({ model }: { model: ProfileViewModel }) {
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const { company } = useCompany();
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const token = getCookie("inoveesg_token") as string;
+      if (token) {
+        try {
+          const res = await inviteService.getStats(token);
+          setStats(res);
+        } catch (err) {
+          console.error("Failed to fetch invite stats", err);
+        }
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const acquired = stats?.totalInvitesPurchased ?? model.inviteBalance.acquired;
+  const available = stats?.availableInvites ?? model.inviteBalance.available;
+  const used = acquired - available;
+
+  const activeSub = company?.subscriptions?.[0];
+
   const kpis = [
     {
       id: "plan",
       label: "Plano Atual",
-      value: model.companyProfile.plan,
+      value: activeSub?.plan?.product?.name || "Plano Pro",
       detail: "",
     },
     {
       id: "invites",
       label: "Convites Disponíveis",
-      value: model.inviteBalance.available.toString(),
+      value: available.toString(),
       detail: "",
     },
     {
@@ -31,6 +60,28 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
       detail: "",
     },
   ];
+
+  const billingHistory = company?.orders?.map((order) => {
+    const itemName = order.items?.[0]?.product?.name || (order.orderType === "INVITE_PACK" ? "Pacote de Convites" : "Serviço InoveESG");
+    const quantity = order.items?.[0]?.quantity;
+    const displayName = order.orderType === "INVITE_PACK" 
+      ? `${itemName} (${quantity} convites)` 
+      : itemName;
+
+    return {
+      id: order.id,
+      displayName,
+      date: order.paidAt 
+        ? new Date(order.paidAt).toLocaleDateString("pt-BR") 
+        : new Date(order.createdAt).toLocaleDateString("pt-BR"),
+      amount: `R$ ${(order.totalCents / 100).toFixed(2).replace(".", ",")}`,
+    };
+  }) || [];
+
+  const nextBilling = activeSub ? {
+    amount: activeSub.plan ? `R$ ${(activeSub.plan.priceCents / 100).toFixed(2).replace(".", ",")}` : "R$ 450,00",
+    date: activeSub.renewalAt ? new Date(activeSub.renewalAt).toLocaleDateString("pt-BR") : "N/A"
+  } : null;
 
   return (
     <div className="space-y-7">
@@ -58,19 +109,19 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
           <div className="space-y-3 pt-2">
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-sm text-slate-500">Razão Social</span>
-              <span className="text-sm font-medium text-slate-800">{model.companyProfile.name}</span>
+              <span className="text-sm font-medium text-slate-800">{company?.legalName || model.companyProfile.name}</span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-sm text-slate-500">Setor de Atuação</span>
-              <span className="text-sm font-medium text-slate-800">{model.companyProfile.sector}</span>
+              <span className="text-sm font-medium text-slate-800">{company?.industrySegment || "Alimentos & Bebidas"}</span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-sm text-slate-500">CNPJ</span>
-              <span className="text-sm font-medium text-slate-800">12.345.678/0001-90</span>
+              <span className="text-sm font-medium text-slate-800">{company?.cnpj || "12.345.678/0001-90"}</span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-sm text-slate-500">Email de Contato</span>
-              <span className="text-sm font-medium text-slate-800">contato@inovealimentos.com.br</span>
+              <span className="text-sm font-medium text-slate-800">{company?.primaryEmail || "contato@inovealimentos.com.br"}</span>
             </div>
           </div>
         </article>
@@ -90,8 +141,12 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
           <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 flex justify-between items-center">
             <div>
               <p className="text-xs text-emerald-600 uppercase font-medium tracking-wider">Plano Atual</p>
-              <h3 className="text-xl font-bold text-emerald-700">{model.companyProfile.plan}</h3>
-              <p className="text-xs text-emerald-600/80 mt-0.5">Renova em: 12 Dez 2026</p>
+              <h3 className="text-xl font-bold text-emerald-700">{activeSub?.plan?.product?.name || "Plano Pro"}</h3>
+              <p className="text-xs text-emerald-600/80 mt-0.5">
+                {activeSub?.renewalAt 
+                  ? `Renova em: ${new Date(activeSub.renewalAt).toLocaleDateString("pt-BR")}` 
+                  : "Assinatura Ativa"}
+              </p>
             </div>
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
               Fazer Upgrade
@@ -129,35 +184,38 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
           <div className="grid md:grid-cols-3 gap-4 pt-2">
             <div className="border border-slate-100 bg-slate-50/50 p-4 rounded-lg">
               <p className="text-xs text-slate-500 uppercase font-medium">Adquiridos</p>
-              <p className="text-2xl font-semibold text-slate-800 mt-1">{model.inviteBalance.acquired}</p>
+              <p className="text-2xl font-semibold text-slate-800 mt-1">{acquired}</p>
             </div>
             <div className="border border-slate-100 bg-slate-50/50 p-4 rounded-lg">
               <p className="text-xs text-slate-500 uppercase font-medium">Utilizados</p>
-              <p className="text-2xl font-semibold text-slate-800 mt-1">{model.inviteBalance.used}</p>
+              <p className="text-2xl font-semibold text-slate-800 mt-1">{used}</p>
             </div>
             <div className="border border-slate-100 bg-emerald-50/50 p-4 rounded-lg">
               <p className="text-xs text-emerald-600 uppercase font-medium">Disponíveis</p>
-              <p className="text-2xl font-semibold text-emerald-600 mt-1">{model.inviteBalance.available}</p>
+              <p className="text-2xl font-semibold text-emerald-600 mt-1">{available}</p>
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Uso do limite de convites</span>
-              <span className="font-medium text-slate-800">{Math.round((model.inviteBalance.used / model.inviteBalance.acquired) * 100)}%</span>
+              <span className="font-medium text-slate-800">{acquired > 0 ? Math.round((used / acquired) * 100) : 0}%</span>
             </div>
             <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-600 rounded-full" 
-                style={{ width: `${(model.inviteBalance.used / model.inviteBalance.acquired) * 100}%` }}
+                style={{ width: `${acquired > 0 ? (used / acquired) * 100 : 0}%` }}
               />
             </div>
           </div>
 
           <div className="flex justify-between items-center pt-2">
             <p className="text-sm text-slate-500">Precisa de mais convites para homologar novos fornecedores?</p>
-            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              <Link href="/app/convites/comprar">Contratar mais convites</Link>
+            <Button 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => setIsPurchaseModalOpen(true)}
+            >
+              Contratar mais convites
             </Button>
           </div>
         </article>
@@ -174,38 +232,55 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-slate-500 uppercase font-medium tracking-wider">Próxima Cobrança</p>
-              <h3 className="text-xl font-bold text-slate-800">{model.nextBilling.amount}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Vencimento em: {model.nextBilling.date}</p>
+          {nextBilling ? (
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex justify-between items-center">
+              <div>
+                <p className="text-xs text-slate-500 uppercase font-medium tracking-wider">Próxima Cobrança</p>
+                <h3 className="text-xl font-bold text-slate-800">{nextBilling.amount}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Vencimento em: {nextBilling.date}</p>
+              </div>
+              <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                Processando
+              </span>
             </div>
-            <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
-              Processando
-            </span>
-          </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
+              <p className="text-sm text-slate-500">Nenhuma assinatura recorrente ativa no momento.</p>
+            </div>
+          )}
 
           <div className="space-y-3 pt-2">
             <p className="text-sm font-medium text-slate-700">Últimas Faturas</p>
             <div className="space-y-2">
-              {model.billingHistory.map((invoice) => (
-                <div key={invoice.id} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0 last:pb-0">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{invoice.id}</p>
-                    <p className="text-xs text-slate-500">{invoice.date}</p>
+              {billingHistory.length > 0 ? (
+                billingHistory.map((invoice) => (
+                  <div key={invoice.id} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{invoice.displayName}</p>
+                      <p className="text-xs text-slate-500">{invoice.date}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-slate-800">{invoice.amount}</span>
+                      <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                        Paga
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-800">{invoice.amount}</span>
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                      Paga
-                    </span>
-                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-slate-500 py-2">
+                  Nenhuma fatura paga encontrada no histórico.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </article>
       </div>
+
+      <InvitePurchaseModal 
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+      />
     </div>
   );
 }

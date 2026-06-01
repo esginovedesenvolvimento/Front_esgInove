@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { FileCheck2, ShieldCheck, ShoppingCart, Truck, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { getDashboardViewModel } from "../../controllers/dashboard.controller";
+import { useCompany } from "../../context/company-context";
+
+import { PurchaseView } from "./purchase-view";
+import { PreDiagnosticResultsView } from "./pre-diagnostic-results-view";
 
 type DashboardViewModel = ReturnType<typeof getDashboardViewModel>;
 
@@ -20,6 +26,38 @@ const stageIcons = {
 } as const;
 
 export function DashboardView({ model }: { model: DashboardViewModel }) {
+  const { user, company, isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, isLoading } = useCompany();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Se não tem plano e não tem nenhum entitlement (recém cadastrado)
+  if (isUnpaid) {
+    return (
+      <PurchaseView />
+    );
+  }
+
+  // Se só tem o pré-diagnóstico concluído (ou em andamento)
+  if (hasOnlyPreDiagnostic) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">
+            Olá, {user?.fullName?.split(" ")[0] || "Empresa"}! 👋
+          </h1>
+          <p className="text-sm text-slate-500">Aqui estão os resultados da sua avaliação inicial.</p>
+        </div>
+        <PreDiagnosticResultsView />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
 
@@ -27,11 +65,12 @@ export function DashboardView({ model }: { model: DashboardViewModel }) {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-widest text-slate-400">
-            {model.companyProfile.name} · {model.companyProfile.cycle}
+            {company?.tradeName || model.companyProfile.name} · {model.companyProfile.cycle}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-800">
-            Painel ESG
+            Olá, {user?.fullName?.split(" ")[0] || "Empresa"}! 👋
           </h1>
+          <p className="text-sm text-slate-500">Bem-vindo ao seu Painel ESG.</p>
         </div>
         <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto">
           <Link href="/app/diagnostico/preencher">Continuar diagnóstico</Link>
@@ -68,7 +107,7 @@ export function DashboardView({ model }: { model: DashboardViewModel }) {
         <article className="flex flex-col justify-between gap-1 border border-border bg-white/70 p-3 sm:p-4 rounded-xl shadow-sm">
           <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-widest text-slate-400">Plano</p>
           <p className="text-lg sm:text-2xl font-semibold text-emerald-600 truncate">{model.companyProfile.plan}</p>
-          <p className="text-[10px] sm:text-xs text-slate-400 truncate">{model.companyProfile.sector}</p>
+          <p className="text-[10px] sm:text-xs text-slate-400 truncate">{company?.industrySegment || model.companyProfile.sector}</p>
         </article>
 
       </section>

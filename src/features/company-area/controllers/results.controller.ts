@@ -7,7 +7,12 @@ export function getResultsViewModel() {
 
   return {
     globalScore,
-    axisScores: scoreByAxis,
+    globalProvenScore: 0,
+    isPreDiagnostic: true,
+    axisScores: scoreByAxis.map(item => ({
+      ...item,
+      provenScore: 0,
+    })),
     actions: priorityActions,
   };
 }

@@ -6,28 +6,41 @@ export interface LoginInput {
 export interface RegisterInput {
   email: string;
   password: string;
-  fullName?: string;
-  companyName?: string;
+  fullName: string;
+  phone: string;
+  companyName: string;
+  cnpj: string;
+  industrySegment?: string;
+  size?: string;
+  numberOfSuppliers?: string;
+  annualRevenue?: string;
+  ref?: string;
+}
+
+export interface AuthOrganization {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  cnpj: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string | null;
 }
 
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
-  user: {
-    id: string;
-    email: string;
-    fullName: string | null;
-    companyName: string | null;
-  } | null;
+  user: AuthUser | null;
 }
 
 export interface RegisterResponse {
-  user: {
-    id: string;
-    email: string;
-    fullName: string | null;
-    companyName: string | null;
-  };
-  supabaseUserId: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: AuthUser;
+  organization: AuthOrganization;
 }

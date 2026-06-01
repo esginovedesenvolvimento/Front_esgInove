@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { cn } from "@/lib/utils";
-import { AuthModal } from "@/components/ui/auth-modal";
 
 type HeroSectionESGProps = {
   hero: {
@@ -21,12 +20,13 @@ type HeroSectionESGProps = {
     ctaSecondary: { label: string; href: string };
     trust: string;
   };
+  onLoginClick: () => void;
 };
 
-export function HeroSectionESG({ hero }: HeroSectionESGProps) {
+export function HeroSectionESG({ hero, onLoginClick }: HeroSectionESGProps) {
   return (
     <section id="hero" className="relative overflow-hidden border-b border-border bg-surface">
-      <HeroHeader />
+      <HeroHeader onLoginClick={onLoginClick} />
 
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0 [background:radial-gradient(1000px_circle_at_18%_-8%,color-mix(in_oklab,var(--accent)_22%,transparent)_0%,transparent_58%),radial-gradient(900px_circle_at_85%_25%,color-mix(in_oklab,var(--accent-2)_18%,transparent)_0%,transparent_62%),linear-gradient(180deg,var(--surface-2)_0%,var(--surface)_45%,var(--background)_100%)]" />
@@ -112,9 +112,8 @@ function ProgressRow({
   );
 }
 
-function HeroHeader() {
+function HeroHeader({ onLoginClick }: { onLoginClick: () => void }) {
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const navItems = [
     { label: "Problema", href: "#problema" },
     { label: "Features", href: "#features" },
@@ -166,7 +165,7 @@ function HeroHeader() {
             </ul>
 
             <button
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={onLoginClick}
               aria-label="Login"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-accent/25 bg-accent/[0.08] text-accent-2 transition-colors duration-200 hover:bg-accent/15 hover:text-accent"
             >
@@ -175,8 +174,6 @@ function HeroHeader() {
           </div>
         </div>
       </nav>
-
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </header>
   );
 }

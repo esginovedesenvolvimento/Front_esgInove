@@ -38,6 +38,7 @@ export interface DiagnosticQuestion {
   id: string;
   sectionId: string;
   axis: Axis;
+  category: string;
   prompt: string;
   hint: string;
   answer: string;
@@ -106,8 +107,9 @@ export interface WorkspaceTask {
 export interface InvitePackage {
   id: string;
   name: string;
-  invites: number;
-  price: number;
+  minInvites: number;
+  maxInvites: number;
+  pricePerInvite: number;
   highlight?: boolean;
 }
 

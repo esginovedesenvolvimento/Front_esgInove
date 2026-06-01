@@ -11,6 +11,14 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     },
   });
 
+  if (response.status === 401) {
+    if (typeof window !== "undefined") {
+      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      window.location.href = "/?auth=true";
+      return new Promise(() => {});
+    }
+  }
+
   const data = await response.json();
 
   if (!response.ok) {
@@ -32,6 +40,15 @@ export const authService = {
     return request<RegisterResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+  
+  getMe(token: string) {
+    return request<any>("/auth/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   },
 };
