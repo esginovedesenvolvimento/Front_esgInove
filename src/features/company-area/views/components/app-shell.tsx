@@ -29,9 +29,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     // Se o usuário tem apenas pré-diagnóstico e tentar acessar qualquer rota bloqueada
     if (hasOnlyPreDiagnostic) {
-      const allowedPaths = ["/app", "/app/diagnostico", "/app/perfil", "/app/upgrade", "/app/checkout", "/app/meus-servicos"];
+      const allowedPaths = [
+        "/app",
+        "/app/diagnostico",
+        "/app/perfil",
+        "/app/upgrade",
+        "/app/checkout",
+        "/app/meus-servicos",
+        "/app/fornecedores", // Exceção temporária para teste do fluxo da cadeia
+        "/app/evidencias", // Exceção temporária para testes do fluxo de evidências
+      ];
       if (hasInviteAccess) {
-        allowedPaths.push("/app/fornecedores");
         allowedPaths.push("/app/convites");
       }
       const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));

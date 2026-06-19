@@ -1,8 +1,5 @@
-import { getEvidencesViewModel } from "@/features/company-area/controllers/evidences.controller";
-import { EvidencesView } from "@/features/company-area/views/pages/evidences-view";
+import { EvidencesView } from "@/features/company-area/views/pages/evidencias/evidences-view";
 
 export default function EvidencesPage() {
-  const model = getEvidencesViewModel();
-
-  return <EvidencesView model={model} />;
+  return <EvidencesView />;
 }

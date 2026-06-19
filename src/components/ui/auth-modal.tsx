@@ -68,7 +68,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-white/20 bg-white/80 p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-white/20 bg-white/80 p-6 sm:p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button 
           onClick={onClose}

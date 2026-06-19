@@ -4,18 +4,22 @@ import { useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import { getDiagnosticOverviewViewModel } from "@/features/company-area/controllers/diagnostic.controller";
-import { DiagnosticOverviewView } from "@/features/company-area/views/pages/diagnostic-overview-view";
-import { DiagnosticStartView } from "@/features/company-area/views/pages/diagnostic-start-view";
+import { DiagnosticOverviewView } from "@/features/company-area/views/pages/diagnostico/diagnostic-overview-view";
+import { DiagnosticStartView } from "@/features/company-area/views/pages/diagnostico/diagnostic-start-view";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
+import { diagnosticService, type DiagnosticCurrentResponse } from "@/features/company-area/services/diagnostic.service";
+
+const DIAGNOSTIC_START_CACHE_KEY = "inoveesg:diagnostic-start";
 
 export default function DiagnosticPage() {
-  const { company, user, isLoading, refreshProfile } = useCompany();
+  const { company, user, isLoading, hasActivePlan } = useCompany();
   const router = useRouter();
   
-  const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
+  const [dbDiagnostic, setDbDiagnostic] = useState<DiagnosticCurrentResponse["diagnostic"]>(null);
   const [isFetchingDiag, setIsFetchingDiag] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+
+  const isCompletedDiagnostic = dbDiagnostic?.status === "COMPLETED";
 
   useEffect(() => {
     async function loadCurrentDiagnostic() {
@@ -26,12 +30,8 @@ export default function DiagnosticPage() {
       }
       try {
         const res = await diagnosticService.getCurrentDiagnostic(token);
-        if (res.hasDiagnostic) {
+        if (res.hasDiagnostic && res.diagnostic) {
           setDbDiagnostic(res.diagnostic);
-          if (res.diagnostic.status === "COMPLETED") {
-            router.push("/app/resultados");
-            return;
-          }
         }
       } catch (err) {
         console.error("Failed to load current diagnostic:", err);
@@ -47,7 +47,13 @@ export default function DiagnosticPage() {
     }
   }, [isLoading, company]);
 
-  if (isLoading || isFetchingDiag) {
+  useEffect(() => {
+    if (!isLoading && !isFetchingDiag && isCompletedDiagnostic) {
+      router.replace("/app/resultados");
+    }
+  }, [isLoading, isFetchingDiag, isCompletedDiagnostic, router]);
+
+  if (isLoading || isFetchingDiag || isCompletedDiagnostic) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
@@ -56,24 +62,26 @@ export default function DiagnosticPage() {
   }
 
   const hasDiagnostic = !!dbDiagnostic;
-  const hasResponses = hasDiagnostic && dbDiagnostic._count?.responses > 0;
+  const hasResponses = hasDiagnostic && (dbDiagnostic?._count?.responses ?? 0) > 0;
 
   const handleStart = async () => {
     setIsStarting(true);
     try {
       const token = getCookie("inoveesg_token") as string;
-      
-      if (hasDiagnostic) {
-        router.push(`/app/diagnostico/preencher?id=${dbDiagnostic.id}`);
-        return;
+
+      const session = await diagnosticService.startDiagnostic(token);
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(DIAGNOSTIC_START_CACHE_KEY, JSON.stringify(session));
       }
 
-      const session = await diagnosticService.simulatePreDiagnosticPurchase(token);
-      await refreshProfile();
-      
-      router.push(`/app/checkout/simulate?id=${session.diagnosticId}`);
+      router.push(`/app/diagnostico/preencher?id=${session.diagnosticId}`);
     } catch (err) {
       console.error("Failed to start diagnostic:", err);
+      const message = err instanceof Error ? err.message.toLowerCase() : "";
+      if (message.includes("consultoria")) {
+        router.push("/app/upgrade");
+      }
     } finally {
       setIsStarting(false);
     }
@@ -86,6 +94,12 @@ export default function DiagnosticPage() {
         industrySegment={company?.industrySegment || "Geral"}
         onStart={handleStart}
         isStarting={isStarting}
+        eyebrow="Diagnóstico ESG"
+        title={<>Olá, <span className="text-emerald-700">{user?.fullName || "Usuário"}</span>!</>}
+        description={<>Seu questionário de diagnóstico ESG está pronto para ser preenchido. Esta avaliação foi adaptada especificamente para o segmento de</>}
+        buttonLabel="Iniciar Diagnóstico"
+        statusLabel="Status: Não Iniciado"
+        summaryLabel="Estrutura das 29 Questões"
       />
     );
   }

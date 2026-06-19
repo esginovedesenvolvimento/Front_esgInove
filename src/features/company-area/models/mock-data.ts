@@ -61,6 +61,15 @@ export const diagnosticSections: DiagnosticSection[] = [
     updatedAt: "15 abr 2026",
   },
   {
+    id: "bioeconomy-circular",
+    title: "Bioeconomia circular e cadeia de valor",
+    axis: "B",
+    status: "em_andamento",
+    answered: 6,
+    total: 12,
+    updatedAt: "14 abr 2026",
+  },
+  {
     id: "social-people",
     title: "Capital humano e impacto social",
     axis: "S",
@@ -510,6 +519,11 @@ export const scoreByAxis: ScoreAxis[] = [
     interpretation: "Estrutura inicial sólida, faltam metas formais de longo prazo.",
   },
   {
+    axis: "B",
+    score: 74,
+    interpretation: "Bioeconomia circular em evolução, com práticas já adotadas na cadeia e espaço para escalonamento.",
+  },
+  {
     axis: "S",
     score: 81,
     interpretation: "Boas práticas já consolidadas em saúde e desenvolvimento humano.",
@@ -701,10 +715,12 @@ export const reportSummary: ReportSummary = {
   strengths: [
     "Governança de saúde e segurança com rituais trimestrais",
     "Monitoramento de consumo energético por unidade operacional",
+    "Iniciativas de bioeconomia circular com reaproveitamento de insumos",
     "Engajamento inicial da cadeia de fornecedores acima de 60%",
   ],
   gaps: [
     "Ausência de meta formal e aprovada de emissões",
+    "Formalização insuficiente do pilar de bioeconomia circular",
     "Canal de denúncias sem SLA público",
     "Padronização incompleta de evidências por resposta",
   ],

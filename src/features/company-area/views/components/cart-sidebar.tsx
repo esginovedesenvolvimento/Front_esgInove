@@ -45,7 +45,10 @@ export function CartSidebar() {
         // Cria a sessão de checkout no backend
         const session = await diagnosticService.simulatePreDiagnosticPurchase(token);
 
-        // Redireciona o usuário para o Checkout Simulado
+        if (!session?.checkoutUrl) {
+          throw new Error("Não foi possível iniciar o checkout.");
+        }
+
         window.location.href = session.checkoutUrl;
       } catch (err: any) {
         setError(err?.message ?? "Falha ao gerar link de pagamento.");

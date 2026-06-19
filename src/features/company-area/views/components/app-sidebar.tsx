@@ -135,13 +135,17 @@ export function AppSidebar() {
               const Icon = item.icon;
               const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
               
-              const isInviteRelated = item.href === "/app/fornecedores" || item.href === "/app/convites/comprar";
+              const isEvidenceRoute = item.href === "/app/evidencias";
+              const isChainRoute = item.href === "/app/fornecedores";
+              const isInvitePurchaseRoute = item.href === "/app/convites/comprar";
               const isLocked = isUnpaid 
                 ? (item.href !== "/app" && item.href !== "/app/meus-servicos")
                 : hasOnlyPreDiagnostic 
-                  ? (isInviteRelated && hasInviteAccess)
-                    ? false
-                    : (item.href !== "/app" && item.href !== "/app/diagnostico" && item.href !== "/app/meus-servicos" && !(item.href === "/app/resultados" && hasCompletedDiagnostic))
+                  ? (isChainRoute
+                      ? false
+                      : isInvitePurchaseRoute && !hasInviteAccess
+                        ? true
+                        : (item.href !== "/app" && item.href !== "/app/diagnostico" && item.href !== "/app/meus-servicos" && !isEvidenceRoute && !(item.href === "/app/resultados" && hasCompletedDiagnostic)))
                   : false;
 
               const href = isLocked 

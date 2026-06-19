@@ -15,6 +15,20 @@ export interface RegisterInput {
   numberOfSuppliers?: string;
   annualRevenue?: string;
   ref?: string;
+  cpf: string;
+  cargoFuncao: string;
+  grauParticipacao: string;
+  tradeName: string;
+  enderecoCompleto: string;
+  municipioEstado: string;
+  site: string;
+  redesSociais?: string;
+  naturezaJuridica: string;
+  porte: string;
+  tempoOperacao: string;
+  alcanceMercado: string;
+  esgJaPossui: string[];
+  esgInteresse: string[];
 }
 
 export interface AuthOrganization {

@@ -1,4 +1,4 @@
-export type Axis = "E" | "S" | "G";
+export type Axis = "E" | "B" | "S" | "G";
 
 export type SectionStatus = "nao_iniciado" | "em_andamento" | "concluido";
 
@@ -39,6 +39,7 @@ export interface DiagnosticQuestion {
   sectionId: string;
   axis: Axis;
   category: string;
+  weight?: number;
   prompt: string;
   hint: string;
   answer: string;

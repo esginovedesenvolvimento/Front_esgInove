@@ -260,9 +260,10 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
                 <label className="text-[11px] font-bold text-slate-700">
                   Áreas prioritárias para o diagnóstico/assessoria:
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {[
                     { id: "environmental", label: "Ambiental (E)" },
+                    { id: "bioeconomy-circular", label: "Bioeconomia Circular (B)" },
                     { id: "social", label: "Social (S)" },
                     { id: "governance", label: "Governança (G)" },
                   ].map((area) => {

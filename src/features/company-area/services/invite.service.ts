@@ -52,6 +52,7 @@ export interface SupplierDiagnostic {
   score?: {
     overallScore: number;
     environmentalScore?: number | null;
+    bioeconomyCircularScore?: number | null;
     socialScore?: number | null;
     governanceScore?: number | null;
   } | null;

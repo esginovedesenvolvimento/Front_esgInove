@@ -68,6 +68,9 @@ interface UserProfile {
   email: string;
   fullName: string;
   phone?: string | null;
+  cpf?: string | null;
+  cargoFuncao?: string | null;
+  grauParticipacao?: string | null;
   organizationUsers: Array<{
     membershipRole: string;
     organization: {
@@ -78,6 +81,14 @@ interface UserProfile {
       phone?: string | null;
       primaryEmail?: string;
       industrySegment?: string;
+      enderecoCompleto?: string | null;
+      municipioEstado?: string | null;
+      redesSociais?: string | null;
+      naturezaJuridica?: string | null;
+      porte?: string | null;
+      tempoOperacao?: string | null;
+      alcanceMercado?: string | null;
+      site?: string | null;
       roles: OrganizationRole[];
       subscriptions: Subscription[];
       entitlements: OrganizationEntitlement[];

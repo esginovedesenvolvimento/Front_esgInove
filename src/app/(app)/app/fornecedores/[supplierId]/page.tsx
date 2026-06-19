@@ -1,5 +1,5 @@
 import { getSupplierDetailViewModel } from "@/features/company-area/controllers/suppliers.controller";
-import { SupplierDetailView } from "@/features/company-area/views/pages/supplier-detail-view";
+import { SupplierDetailView } from "@/features/company-area/views/pages/fornecedores/supplier-detail-view";
 
 interface SupplierDetailPageProps {
   params: Promise<{

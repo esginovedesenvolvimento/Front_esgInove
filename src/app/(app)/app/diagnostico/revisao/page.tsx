@@ -1,7 +1,7 @@
 "use client";
 
 import { getDiagnosticReviewViewModel } from "@/features/company-area/controllers/diagnostic.controller";
-import { DiagnosticReviewView } from "@/features/company-area/views/pages/diagnostic-review-view";
+import { DiagnosticReviewView } from "@/features/company-area/views/pages/diagnostico/diagnostic-review-view";
 import { useCompany } from "@/features/company-area/context/company-context";
 
 export default function DiagnosticReviewPage() {

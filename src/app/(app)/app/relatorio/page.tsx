@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCookie } from "cookies-next";
 import { getReportViewModel } from "@/features/company-area/controllers/report.controller";
-import { ReportView } from "@/features/company-area/views/pages/report-view";
+import { ReportView } from "@/features/company-area/views/pages/relatorio/report-view";
 import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
 
 export default function ReportPage() {
@@ -51,11 +51,13 @@ export default function ReportPage() {
     // Obter notas reais ou fallback para mocks
     const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 64;
     const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 58;
+    const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 61;
     const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 81;
     const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 62;
 
     const provenOverall = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenOverallScore || 0));
     const envProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenEnvironmentalScore || 0));
+    const bioProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenBioeconomyCircularScore || 0));
     const socProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenSocialScore || 0));
     const govProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenGovernanceScore || 0));
 
@@ -65,6 +67,12 @@ export default function ReportPage() {
         axis: "E",
         score: envScore,
         provenScore: envProven,
+        interpretation: "",
+      },
+      {
+        axis: "B",
+        score: bioScore,
+        provenScore: bioProven,
         interpretation: "",
       },
       {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart, CartItem } from "@/features/company-area/context/cart-context";
 import { useCompany } from "@/features/company-area/context/company-context";
 import { BudgetModal } from "@/features/company-area/views/components/budget-modal";
+import { HorizontalServiceRail } from "@/features/company-area/views/components/horizontal-service-rail";
 import { getCookie } from "cookies-next";
 import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
 import Link from "next/link";
@@ -138,6 +139,7 @@ export default function UpgradePage() {
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
+  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/+$/, "") ?? "";
 
   const handleOpenBudget = (plan: UpgradePlan) => {
     clearCart();
@@ -194,13 +196,12 @@ export default function UpgradePage() {
       if (service.id === "pre-diag" || service.id === "pre-diag-plus") {
         const response = await diagnosticService.simulatePreDiagnosticPurchase(token);
         if (response.checkoutUrl) {
-          const amount = service.id === "pre-diag" ? 250 : 500;
-          window.location.href = `/app/checkout/simulate?id=${response.diagnosticId}&amount=${amount}`;
+          window.location.href = response.checkoutUrl;
         } else {
           throw new Error("Falha ao gerar link de checkout.");
         }
       } else if (service.id === "livro-esg") {
-        window.location.href = `/app/checkout/simulate?id=fake-livro-esg&amount=41.90`;
+        window.location.href = `${frontendUrl}/app/checkout/simulate?id=fake-livro-esg&amount=41.90`;
       }
     } catch (err: any) {
       console.error("Erro ao iniciar compra:", err);
@@ -235,104 +236,61 @@ export default function UpgradePage() {
         </div>
       </div>
 
-      {/* Marquee de Serviços sob Demanda Horizontal no lugar do desconto de fidelidade */}
-      <div className="bg-slate-900 rounded-3xl p-5 md:p-6 shadow-xl overflow-hidden relative group">
+      {/* Serviços sob demanda com navegação manual */}
+      <div className="bg-slate-900 rounded-3xl p-5 md:p-6 shadow-xl relative group">
         <div className="flex items-center justify-between mb-4 shrink-0 px-2 text-white">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
             <h3 className="text-xs md:text-sm font-bold tracking-tight">Serviços Sob Demanda e Adicionais</h3>
           </div>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider hidden sm:block">Passe o mouse para pausar</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-wider hidden sm:block">Use as setas ou arraste no mobile</span>
         </div>
 
-        <div className="flex overflow-hidden relative w-full pause-hover">
-          <div className="flex gap-4 animate-horizontal-scroll py-2 min-w-max">
-            {/* Original Items */}
-            {demandServices.map((service, idx) => {
-              const Icon = service.icon;
-              return (
-                <div key={`${service.id}-${idx}`} className="w-[280px] rounded-2xl border border-slate-800 bg-slate-950 p-4 flex flex-col justify-between shadow-lg shrink-0 hover:border-emerald-500/50 transition-colors duration-350">
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-2 text-white">
-                      <div className="p-1.5 rounded-lg bg-slate-900 text-emerald-400">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <h4 className="text-xs font-bold truncate max-w-[190px]">{service.name}</h4>
+        <HorizontalServiceRail
+          ariaLabel="Lista de serviços sob demanda"
+          railClassName="pb-2"
+          className="relative"
+          items={demandServices}
+          renderItem={(service, idx) => {
+            const Icon = service.icon;
+            return (
+              <div key={`${service.id}-${idx}`} className="w-[280px] snap-start rounded-2xl border border-slate-800 bg-slate-950 p-4 flex flex-col justify-between shadow-lg shrink-0 hover:border-emerald-500/50 transition-colors duration-350">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2 text-white">
+                    <div className="p-1.5 rounded-lg bg-slate-900 text-emerald-400">
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-tight mb-2.5 min-h-[30px]">{service.description}</p>
-                    <ul className="text-[9px] text-slate-500 space-y-1">
-                      {service.features.map((f, fIdx) => (
-                        <li key={fIdx} className="flex items-center gap-1.5"><CircleCheck className="size-2.5 text-emerald-500" /> {f}</li>
-                      ))}
-                    </ul>
+                    <h4 className="text-xs font-bold truncate max-w-[190px]">{service.name}</h4>
                   </div>
-                  <div className="flex justify-between items-center mt-4 border-t border-slate-900/60 pt-3">
-                    <span className="font-bold text-xs text-white">{service.priceFormatted}</span>
-                    <Button 
-                      onClick={() => handleDemandServiceClick(service)}
-                      disabled={checkoutLoadingId !== null}
-                      size="sm"
-                      className="rounded-full px-3.5 h-7 text-[9px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1"
-                    >
-                      {checkoutLoadingId === service.id ? (
-                        <>
-                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                          Processando
-                        </>
-                      ) : (
-                        service.requiresBudget ? "Solicitar" : "Comprar"
-                      )}
-                    </Button>
-                  </div>
+                  <p className="text-[10px] text-slate-400 leading-tight mb-2.5 min-h-[30px]">{service.description}</p>
+                  <ul className="text-[9px] text-slate-500 space-y-1">
+                    {service.features.map((f, fIdx) => (
+                      <li key={fIdx} className="flex items-center gap-1.5"><CircleCheck className="size-2.5 text-emerald-500" /> {f}</li>
+                    ))}
+                  </ul>
                 </div>
-              );
-            })}
-            {/* Duplicated Items for Loop */}
-            {demandServices.map((service, idx) => {
-              const Icon = service.icon;
-              return (
-                <div key={`${service.id}-dup-${idx}`} className="w-[280px] rounded-2xl border border-slate-800 bg-slate-950 p-4 flex flex-col justify-between shadow-lg shrink-0 hover:border-emerald-500/50 transition-colors duration-350">
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-2 text-white">
-                      <div className="p-1.5 rounded-lg bg-slate-900 text-emerald-400">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <h4 className="text-xs font-bold truncate max-w-[190px]">{service.name}</h4>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-tight mb-2.5 min-h-[30px]">{service.description}</p>
-                    <ul className="text-[9px] text-slate-500 space-y-1">
-                      {service.features.map((f, fIdx) => (
-                        <li key={fIdx} className="flex items-center gap-1.5"><CircleCheck className="size-2.5 text-emerald-500" /> {f}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="flex justify-between items-center mt-4 border-t border-slate-900/60 pt-3">
-                    <span className="font-bold text-xs text-white">{service.priceFormatted}</span>
-                    <Button 
-                      onClick={() => handleDemandServiceClick(service)}
-                      disabled={checkoutLoadingId !== null}
-                      size="sm"
-                      className="rounded-full px-3.5 h-7 text-[9px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1"
-                    >
-                      {checkoutLoadingId === service.id ? (
-                        <>
-                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                          Processando
-                        </>
-                      ) : (
-                        service.requiresBudget ? "Solicitar" : "Comprar"
-                      )}
-                    </Button>
-                  </div>
+                <div className="flex justify-between items-center mt-4 border-t border-slate-900/60 pt-3">
+                  <span className="font-bold text-xs text-white">{service.priceFormatted}</span>
+                  <Button 
+                    onClick={() => handleDemandServiceClick(service)}
+                    disabled={checkoutLoadingId !== null}
+                    size="sm"
+                    className="rounded-full px-3.5 h-7 text-[9px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1"
+                  >
+                    {checkoutLoadingId === service.id ? (
+                      <>
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        Processando
+                      </>
+                    ) : (
+                      service.requiresBudget ? "Solicitar" : "Comprar"
+                    )}
+                  </Button>
                 </div>
-              );
-            })}
-          </div>
-          
-          {/* Fade overlays for marquee */}
-          <div className="absolute top-0 bottom-0 left-0 w-12 bg-gradient-to-r from-slate-900 to-transparent pointer-events-none z-10" />
-          <div className="absolute top-0 bottom-0 right-0 w-12 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none z-10" />
-        </div>
+              </div>
+            );
+          }}
+        />
       </div>
 
       {/* Cards de Planos */}
