@@ -15,6 +15,7 @@ function SupplierInvitePage() {
   const [loadingCompany, setLoadingCompany] = useState(false);
   const [resolvedRef, setResolvedRef] = useState<string | null>(null);
   const [resolvedEmail, setResolvedEmail] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
 
   useEffect(() => {
     if (ref) {
@@ -28,6 +29,7 @@ function SupplierInvitePage() {
 
     async function fetchCompany() {
       setLoadingCompany(true);
+      setErrorState(null);
       try {
         const query = token ? `token=${token}` : `ref=${ref}`;
         const res = await fetch(`${API_URL}/invite/public-info?${query}`);
@@ -40,9 +42,13 @@ function SupplierInvitePage() {
           if (data.email) {
             setResolvedEmail(data.email);
           }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          setErrorState(errData.message || "Este convite é inválido ou expirou.");
         }
       } catch (err) {
         console.error("Erro ao buscar empresa de indicação:", err);
+        setErrorState("Não foi possível carregar as informações do convite no momento.");
       } finally {
         setLoadingCompany(false);
       }
@@ -65,7 +71,7 @@ function SupplierInvitePage() {
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-800">
             Cadastro de Homologação ESG
           </h2>
-          {hasInviteContext && !loadingCompany && referringCompanyName && (
+          {hasInviteContext && !loadingCompany && referringCompanyName && !errorState && (
             <p className="mt-3 text-sm text-slate-600 max-w-md mx-auto">
               Você foi convidado pela empresa <span className="font-semibold text-emerald-700">{referringCompanyName}</span> para realizar seu diagnóstico e homologação na plataforma.
             </p>
@@ -85,11 +91,33 @@ function SupplierInvitePage() {
 
       <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-2xl relative z-10">
         <div className="bg-white/80 backdrop-blur-xl border border-white/40 py-8 px-6 shadow-xl rounded-2xl sm:px-10">
-          <RegisterForm 
-            refCode={resolvedRef || undefined} 
-            initialEmail={resolvedEmail || undefined}
-            submitButtonText="Criar Conta e Iniciar Diagnóstico"
-          />
+          {errorState ? (
+            <div className="text-center py-6 space-y-4">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900">Convite Indisponível</h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto">
+                {errorState}
+              </p>
+              <div className="pt-4">
+                <a
+                  href="/"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                >
+                  Voltar para o site
+                </a>
+              </div>
+            </div>
+          ) : (
+            <RegisterForm 
+              refCode={resolvedRef || undefined} 
+              initialEmail={resolvedEmail || undefined}
+              submitButtonText="Criar Conta e Iniciar Diagnóstico"
+            />
+          )}
         </div>
       </div>
     </div>

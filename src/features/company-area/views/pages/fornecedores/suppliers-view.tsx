@@ -19,12 +19,33 @@ export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliers
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [availableInvites, setAvailableInvites] = useState<number | null>(null);
 
    const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [isTerminating, setIsTerminating] = useState<string | null>(null);
+
+  const handleTerminate = async (supplierOrganizationId: string) => {
+    const reason = prompt("Por favor, informe o motivo do encerramento do vínculo (opcional):");
+    if (reason === null) return; // User canceled
+
+    const token = getCookie("inoveesg_token") as string;
+    if (!token) return;
+
+    setIsTerminating(supplierOrganizationId);
+    try {
+      await inviteService.terminateRelationship(token, supplierOrganizationId, reason || "Encerrado pelo comprador");
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      console.error("Error terminating relationship:", err);
+      alert(err.message || "Erro ao encerrar relacionamento");
+    } finally {
+      setIsTerminating(null);
+    }
+  };
 
   // Dynamic invitation links
   const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/+$/, "") ?? "";
@@ -50,6 +71,9 @@ Agradecemos a parceria de sempre!`;
       try {
         const data = await inviteService.listInvites(token);
         setInvites(data);
+
+        const statsData = await inviteService.getStats(token);
+        setAvailableInvites(statsData.availableInvites);
       } catch (err: any) {
         console.error("Error loading invites:", err);
       } finally {
@@ -104,12 +128,14 @@ Agradecemos a parceria de sempre!`;
             >
               Comprar convites
             </Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold"
-              onClick={() => setIsInviteModalOpen(true)}
-            >
-              Convidar fornecedor
-            </Button>
+            {!(availableInvites !== null && availableInvites <= 0) && (
+              <Button 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold"
+                onClick={() => setIsInviteModalOpen(true)}
+              >
+                Convidar fornecedor
+              </Button>
+            )}
           </div>
         }
       />
@@ -131,18 +157,20 @@ Agradecemos a parceria de sempre!`;
             Você ainda não convidou nenhum fornecedor para realizar o diagnóstico ESG. Comece a monitorar a conformidade de seus parceiros agora mesmo.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 font-semibold"
-              onClick={() => setIsInviteModalOpen(true)}
-            >
-              Enviar Primeiro Convite
-            </Button>
+            {!(availableInvites !== null && availableInvites <= 0) && (
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 font-semibold"
+                onClick={() => setIsInviteModalOpen(true)}
+              >
+                Enviar Primeiro Convite
+              </Button>
+            )}
             <Button
               variant="outline"
               className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 rounded-full px-6 font-semibold"
               onClick={() => setIsPurchaseModalOpen(true)}
             >
-              Comprar mais convites
+              {availableInvites !== null && availableInvites <= 0 ? "Comprar convites" : "Comprar mais convites"}
             </Button>
           </div>
         </div>
@@ -229,6 +257,37 @@ Agradecemos a parceria de sempre!`;
                           : "Este fornecedor ainda não concluiu o diagnóstico. As pontuações estarão disponíveis após o envio."}
                       </div>
                     )}
+
+                    {/* Relationship Details & Action */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/60 text-xs md:text-sm mt-3">
+                      <div>
+                        <span className="font-semibold text-slate-700">Status do Relacionamento:</span>{" "}
+                        {invite.relationship?.status === "INACTIVE" ? (
+                          <span className="text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                            Inativo (Fim: {new Date(invite.relationship.endedAt!).toLocaleDateString("pt-BR")} - {invite.relationship.endedReason})
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                            Ativo (Início: {invite.relationship?.startedAt || invite.acceptedAt ? new Date(invite.relationship?.startedAt || invite.acceptedAt!).toLocaleDateString("pt-BR") : new Date(invite.createdAt).toLocaleDateString("pt-BR")})
+                          </span>
+                        )}
+                      </div>
+                      {(!invite.relationship || invite.relationship.status === "ACTIVE") && invite.supplierOrganizationId && (
+                        <button
+                          onClick={() => handleTerminate(invite.supplierOrganizationId!)}
+                          disabled={isTerminating === invite.supplierOrganizationId}
+                          className="text-rose-600 hover:text-white border border-rose-200 hover:bg-rose-600 px-3 py-1 rounded-full text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {isTerminating === invite.supplierOrganizationId ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" /> Inativando...
+                            </>
+                          ) : (
+                            "Inativar Fornecedor"
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </article>

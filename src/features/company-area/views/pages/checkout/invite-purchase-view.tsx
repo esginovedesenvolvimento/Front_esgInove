@@ -45,55 +45,22 @@ export function InvitePurchaseView({ model }: { model: InvitePurchaseViewModel }
         </section>
       ) : null}
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {model.packages.map((item) => {
-          const isRange = item.minInvites !== item.maxInvites;
-          const minPrice = item.minInvites * item.pricePerInvite;
-          const maxPrice = item.maxInvites * item.pricePerInvite;
-          
-          return (
-            <article
-              key={item.id}
-              className={`space-y-4 border p-5 rounded-2xl shadow-sm transition-all hover:shadow-md flex flex-col justify-between ${
-                item.highlight ? "border-foreground bg-slate-900 text-white" : "border-border bg-white/75"
-              }`}
-            >
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.1em] opacity-70">{item.name}</p>
-                  <p className="mt-2 text-3xl font-semibold leading-none">
-                    {isRange ? `${item.minInvites} a ${item.maxInvites}` : `${item.minInvites}`}
-                  </p>
-                  <p className="mt-1.5 text-xs opacity-85">convites</p>
-                </div>
+      <section className="border border-slate-100 bg-white shadow-sm rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[30%] h-[150%] bg-gradient-to-l from-emerald-600/5 to-transparent blur-2xl pointer-events-none" />
+        
+        <div className="space-y-2 flex-1">
+          <h3 className="text-lg font-bold text-slate-800">Adquirir Convites Adicionais</h3>
+          <p className="text-slate-500 text-sm max-w-xl leading-relaxed">
+            Selecione a quantidade de convites desejada para monitorar novos parceiros, enviar questionários e receber análises de conformidade ESG da sua cadeia.
+          </p>
+        </div>
 
-                <div className="pt-2 border-t border-dashed border-slate-200/40">
-                  <p className="text-lg font-semibold leading-snug">
-                    {isRange ? (
-                      <>
-                        <span className="text-[10px] block opacity-75 font-normal">Faixa de preço</span>
-                        {currency.format(minPrice)} a {currency.format(maxPrice)}
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-[10px] block opacity-75 font-normal">Preço único</span>
-                        {currency.format(minPrice)}
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <Button 
-                variant={item.highlight ? "secondary" : "outline"} 
-                className="w-full rounded-full font-bold mt-2"
-                onClick={() => handleOpenModal(item.minInvites, item.maxInvites)}
-              >
-                Selecionar
-              </Button>
-            </article>
-          );
-        })}
+        <Button 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl h-12 px-8 shadow-md transition-all duration-300 hover:scale-[1.02] shrink-0"
+          onClick={() => handleOpenModal(15, 30)}
+        >
+          Comprar Convites
+        </Button>
       </section>
 
       <InvitePurchaseModal 

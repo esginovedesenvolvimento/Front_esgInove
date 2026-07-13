@@ -11,6 +11,8 @@ export interface RegisterInput {
   companyName: string;
   cnpj: string;
   industrySegment?: string;
+  businessCategoryCode?: string;
+  businessSegmentCode?: string;
   size?: string;
   numberOfSuppliers?: string;
   annualRevenue?: string;

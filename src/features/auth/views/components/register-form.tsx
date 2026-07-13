@@ -42,6 +42,17 @@ const interesseOptions = [
   "Exportação sustentável"
 ];
 
+const BUSINESS_CATEGORIES = [
+  { code: "AGRONEGOCIO", name: "Agronegócio" }
+];
+
+const BUSINESS_SEGMENTS: Record<string, { code: string; name: string }[]> = {
+  AGRONEGOCIO: [
+    { code: "AGROINDUSTRIA", name: "Agroindústria" },
+    { code: "PRODUCAO", name: "Produção" }
+  ]
+};
+
 export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar Conta", onSuccess }: RegisterFormProps) {
   const router = useRouter();
   const { register, status, errorMessage, reset } = useAuthController();
@@ -71,6 +82,8 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
   const [tempoOperacao, setTempoOperacao] = useState("");
   const [alcanceMercado, setAlcanceMercado] = useState("");
   const [industrySegment, setIndustrySegment] = useState("");
+  const [businessCategoryCode, setBusinessCategoryCode] = useState("");
+  const [businessSegmentCode, setBusinessSegmentCode] = useState("");
   const [numberOfSuppliers, setNumberOfSuppliers] = useState("");
   const [annualRevenue, setAnnualRevenue] = useState("");
 
@@ -150,7 +163,9 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
     porte !== "" &&
     size !== "" &&
     tempoOperacao !== "" &&
-    alcanceMercado !== "";
+    alcanceMercado !== "" &&
+    businessCategoryCode !== "" &&
+    businessSegmentCode !== "";
 
   const isStep3Valid = esgJaPossui.length > 0 && esgInteresse.length > 0;
 
@@ -201,6 +216,8 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
         companyName,
         cnpj,
         industrySegment: industrySegment || undefined,
+        businessCategoryCode: businessCategoryCode || undefined,
+        businessSegmentCode: businessSegmentCode || undefined,
         size: size || undefined,
         numberOfSuppliers: numberOfSuppliers || undefined,
         annualRevenue: annualRevenue || undefined,
@@ -626,29 +643,58 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label htmlFor="industrySegment" className="text-xs font-medium text-slate-700">
-                  Segmento de Atuação
+                <label htmlFor="businessCategory" className="text-xs font-medium text-slate-700">
+                  Categoria de Negócio *
                 </label>
                 <select
-                  id="industrySegment"
-                  value={industrySegment}
-                  onChange={(e) => setIndustrySegment(e.target.value)}
+                  id="businessCategory"
+                  required
+                  value={businessCategoryCode}
+                  onChange={(e) => {
+                    const catCode = e.target.value;
+                    setBusinessCategoryCode(catCode);
+                    setBusinessSegmentCode("");
+                    setIndustrySegment("");
+                  }}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value="">Selecione...</option>
-                  <option value="Alimentos & Bebidas">Alimentos & Bebidas</option>
-                  <option value="Agronegócio">Agronegócio</option>
-                  <option value="Logística & Transportes">Logística & Transportes</option>
-                  <option value="Indústria Metal-Mecânica">Indústria Metal-Mecânica</option>
-                  <option value="Química & Plásticos">Química & Plásticos</option>
-                  <option value="Construção Civil">Construção Civil</option>
-                  <option value="Tecnologia & Serviços">Tecnologia & Serviços</option>
-                  <option value="Outros">Outros</option>
+                  {BUSINESS_CATEGORIES.map((cat) => (
+                    <option key={cat.code} value={cat.code}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
 
+              <div className="space-y-1.5">
+                <label htmlFor="businessSegment" className="text-xs font-medium text-slate-700">
+                  Segmento de Atuação *
+                </label>
+                <select
+                  id="businessSegment"
+                  required
+                  disabled={!businessCategoryCode}
+                  value={businessSegmentCode}
+                  onChange={(e) => {
+                    const segCode = e.target.value;
+                    setBusinessSegmentCode(segCode);
+                    const segName = BUSINESS_SEGMENTS[businessCategoryCode]?.find((s) => s.code === segCode)?.name || "";
+                    setIndustrySegment(segName);
+                  }}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                >
+                  <option value="">Selecione...</option>
+                  {businessCategoryCode &&
+                    BUSINESS_SEGMENTS[businessCategoryCode]?.map((seg) => (
+                      <option key={seg.code} value={seg.code}>{seg.name}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label htmlFor="numberOfSuppliers" className="text-xs font-medium text-slate-700">
                   Nº Fornecedores na Cadeia

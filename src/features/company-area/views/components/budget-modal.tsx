@@ -62,7 +62,8 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
 
       // Salva a solicitação localmente para a lista de Meus Serviços
       try {
-        const existingRequested = localStorage.getItem("inoveesg_requested_budgets");
+        const companyId = company?.id || "anonymous";
+        const existingRequested = localStorage.getItem(`inoveesg_requested_budgets_${companyId}`);
         const requestedList = existingRequested ? JSON.parse(existingRequested) : [];
         
         const newRequests = items.map(item => ({
@@ -74,7 +75,7 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
           status: "EM_ANALISE"
         }));
 
-        localStorage.setItem("inoveesg_requested_budgets", JSON.stringify([...requestedList, ...newRequests]));
+        localStorage.setItem(`inoveesg_requested_budgets_${companyId}`, JSON.stringify([...requestedList, ...newRequests]));
       } catch (e) {
         console.error("Failed to save requested budgets", e);
       }

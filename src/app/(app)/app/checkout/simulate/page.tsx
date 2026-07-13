@@ -241,7 +241,7 @@ function CheckoutSimulateContent() {
                   disabled={loading}
                   variant="outline"
                   onClick={() => handleSimulatePayment("failure")}
-                  className="w-full rounded-xl font-bold h-11 border-red-200 hover:border-red-300 text-red-650 hover:bg-red-50/50 flex items-center justify-center gap-2 transition-all"
+                  className="w-full rounded-xl font-bold h-11 border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50/50 flex items-center justify-center gap-2 transition-all"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

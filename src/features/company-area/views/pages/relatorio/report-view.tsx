@@ -30,19 +30,19 @@ interface ReportViewProps {
 export function ReportView({ model, reportType, dbDiagnostic }: ReportViewProps) {
   const router = useRouter();
 
-  // If there are verified scores from DB, we use them, otherwise mock defaults
+  // If there are verified scores from DB, we use them, otherwise 0
   const isPre = reportType === "pre";
-  const globalScore = model.globalScore || 69;
-  const provenScore = isPre ? 0 : Math.round(Number(dbDiagnostic?.score?.provenOverallScore || 65));
+  const globalScore = model.globalScore || 0;
+  const provenScore = isPre ? 0 : Math.round(Number(dbDiagnostic?.score?.provenOverallScore || 0));
   
-  const envScore = model.axisScores?.[0]?.score || 72;
-  const envProven = isPre ? 0 : model.axisScores?.[0]?.provenScore || 68;
-  const bioScore = model.axisScores?.[1]?.score || 64;
-  const bioProven = isPre ? 0 : model.axisScores?.[1]?.provenScore || 60;
-  const socScore = model.axisScores?.[2]?.score || 71;
-  const socProven = isPre ? 0 : model.axisScores?.[2]?.provenScore || 67;
-  const govScore = model.axisScores?.[3]?.score || 58;
-  const govProven = isPre ? 0 : model.axisScores?.[3]?.provenScore || 55;
+  const envScore = model.axisScores?.[0]?.score || 0;
+  const envProven = isPre ? 0 : model.axisScores?.[0]?.provenScore || 0;
+  const bioScore = model.axisScores?.[1]?.score || 0;
+  const bioProven = isPre ? 0 : model.axisScores?.[1]?.provenScore || 0;
+  const socScore = model.axisScores?.[2]?.score || 0;
+  const socProven = isPre ? 0 : model.axisScores?.[2]?.provenScore || 0;
+  const govScore = model.axisScores?.[3]?.score || 0;
+  const govProven = isPre ? 0 : model.axisScores?.[3]?.provenScore || 0;
 
   const handlePrint = () => {
     window.print();

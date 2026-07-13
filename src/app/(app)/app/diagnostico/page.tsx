@@ -62,7 +62,6 @@ export default function DiagnosticPage() {
   }
 
   const hasDiagnostic = !!dbDiagnostic;
-  const hasResponses = hasDiagnostic && (dbDiagnostic?._count?.responses ?? 0) > 0;
 
   const handleStart = async () => {
     setIsStarting(true);
@@ -75,7 +74,11 @@ export default function DiagnosticPage() {
         window.sessionStorage.setItem(DIAGNOSTIC_START_CACHE_KEY, JSON.stringify(session));
       }
 
-      router.push(`/app/diagnostico/preencher?id=${session.diagnosticId}`);
+      // Fetch the diagnostic immediately after starting it to update status & render overview
+      const res = await diagnosticService.getCurrentDiagnostic(token);
+      if (res.hasDiagnostic && res.diagnostic) {
+        setDbDiagnostic(res.diagnostic);
+      }
     } catch (err) {
       console.error("Failed to start diagnostic:", err);
       const message = err instanceof Error ? err.message.toLowerCase() : "";
@@ -87,7 +90,7 @@ export default function DiagnosticPage() {
     }
   };
 
-  if (!hasResponses) {
+  if (!hasDiagnostic) {
     return (
       <DiagnosticStartView
         userName={user?.fullName || "Usuário"}
@@ -104,7 +107,5 @@ export default function DiagnosticPage() {
     );
   }
 
-  const model = getDiagnosticOverviewViewModel(company?.industrySegment || undefined);
-
-  return <DiagnosticOverviewView model={model} />;
+  return <DiagnosticOverviewView dbDiagnostic={dbDiagnostic} />;
 }

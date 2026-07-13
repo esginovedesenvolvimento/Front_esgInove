@@ -1,4 +1,5 @@
 export type Axis = "E" | "B" | "S" | "G";
+export type QuestionPriority = "ESSENTIAL" | "STRATEGIC" | "DIFFERENTIAL" | "COMPLEMENTARY";
 
 export type SectionStatus = "nao_iniciado" | "em_andamento" | "concluido";
 
@@ -40,6 +41,7 @@ export interface DiagnosticQuestion {
   axis: Axis;
   category: string;
   weight?: number;
+  type?: QuestionPriority;
   prompt: string;
   hint: string;
   answer: string;

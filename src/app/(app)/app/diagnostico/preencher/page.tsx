@@ -15,6 +15,7 @@ type DiagnosticRunModel = {
     axis: "E" | "B" | "S" | "G";
     category: string;
     weight: number;
+    type?: "ESSENTIAL" | "STRATEGIC" | "DIFFERENTIAL" | "COMPLEMENTARY";
     prompt: string;
     hint: string;
     answer: string;
@@ -43,31 +44,47 @@ function mapAxis(axis: DiagnosticStartPayload["questions"][number]["axis"]): "E"
   return "G";
 }
 
-function mapPayloadToRunModel(payload: DiagnosticStartPayload): DiagnosticRunModel {
+function mapPayloadToRunModel(
+  payload: DiagnosticStartPayload,
+  filterAxis?: string | null,
+  savedAnswers: Record<string, string> = {}
+): DiagnosticRunModel {
   const segmentSlug = slugify(payload.industrySegment || "diagnostico");
-  const questions = payload.questions.map((question) => ({
-    id: `q-${question.number}`,
-    sectionId: `${segmentSlug}-${mapAxis(question.axis).toLowerCase()}`,
-    axis: mapAxis(question.axis),
-    category: question.category,
-    weight: question.weight ?? 1,
-    prompt: question.prompt,
-    hint: "Selecione a alternativa que melhor representa a situação atual da empresa.",
-    answer: "",
-    hasEvidence: false,
-    options: question.options.map((option) => option.text),
-  }));
+  
+  let allQuestions = payload.questions.map((question) => {
+    const qId = `q-${question.number}`;
+    return {
+      id: qId,
+      sectionId: `${segmentSlug}-${mapAxis(question.axis).toLowerCase()}`,
+      axis: mapAxis(question.axis),
+      category: question.category,
+      weight: question.weight ?? 1,
+      type: question.type,
+      prompt: question.prompt,
+      hint: "Selecione a alternativa que melhor representa a situação atual da empresa.",
+      answer: savedAnswers[qId] || "",
+      hasEvidence: false,
+      options: question.options.map((option) => option.text),
+    };
+  });
+
+  if (filterAxis) {
+    allQuestions = allQuestions.filter((q) => q.axis === filterAxis);
+  }
 
   return {
-    questions,
-    total: questions.length,
-    answered: 0,
+    questions: allQuestions,
+    total: allQuestions.length,
+    answered: allQuestions.filter((q) => q.answer.trim().length > 0).length,
   };
 }
 
 function DiagnosticRunContent() {
   const searchParams = useSearchParams();
   const diagnosticIdFromUrl = searchParams.get("id");
+  const axisFromUrl = searchParams.get("axis");
+  const isFinalFromUrl = searchParams.get("final") === "true";
+
   const [resolvedDiagnosticId, setResolvedDiagnosticId] = useState<string | null>(diagnosticIdFromUrl);
   const [model, setModel] = useState<DiagnosticRunModel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,15 +94,15 @@ function DiagnosticRunContent() {
   useEffect(() => {
     async function loadDiagnostic() {
       try {
+        let payload: DiagnosticStartPayload | null = null;
+
         if (typeof window !== "undefined") {
           const cached = window.sessionStorage.getItem(DIAGNOSTIC_START_CACHE_KEY);
           if (cached) {
             try {
               const parsed = JSON.parse(cached) as DiagnosticStartPayload;
               if (!diagnosticIdFromUrl || parsed.diagnosticId === diagnosticIdFromUrl) {
-                setModel(mapPayloadToRunModel(parsed));
-                setResolvedDiagnosticId(parsed.diagnosticId);
-                return;
+                payload = parsed;
               }
             } catch {
               window.sessionStorage.removeItem(DIAGNOSTIC_START_CACHE_KEY);
@@ -93,18 +110,33 @@ function DiagnosticRunContent() {
           }
         }
 
-        const token = getCookie("inoveesg_token") as string;
-        if (!token) {
-          setError("Nenhum token de autenticação encontrado.");
-          return;
+        if (!payload) {
+          const token = getCookie("inoveesg_token") as string;
+          if (!token) {
+            setError("Nenhum token de autenticação encontrado.");
+            return;
+          }
+
+          payload = await diagnosticService.startDiagnostic(token);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(DIAGNOSTIC_START_CACHE_KEY, JSON.stringify(payload));
+          }
         }
 
-        const payload = await diagnosticService.startDiagnostic(token);
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(DIAGNOSTIC_START_CACHE_KEY, JSON.stringify(payload));
+        // Carregar respostas salvas do sessionStorage
+        let savedAnswers: Record<string, string> = {};
+        if (typeof window !== "undefined" && payload.diagnosticId) {
+          const saved = window.sessionStorage.getItem(`inoveesg:diagnostic-answers-${payload.diagnosticId}`);
+          if (saved) {
+            try {
+              savedAnswers = JSON.parse(saved);
+            } catch (e) {
+              console.error("Erro ao parsear respostas salvas:", e);
+            }
+          }
         }
 
-        setModel(mapPayloadToRunModel(payload));
+        setModel(mapPayloadToRunModel(payload, axisFromUrl, savedAnswers));
         setResolvedDiagnosticId(payload.diagnosticId);
       } catch (err) {
         console.error("Failed to load diagnostic questions:", err);
@@ -117,7 +149,7 @@ function DiagnosticRunContent() {
     }
 
     loadDiagnostic();
-  }, [diagnosticIdFromUrl]);
+  }, [diagnosticIdFromUrl, axisFromUrl]);
 
   if (isLoading) {
     return (
@@ -154,7 +186,14 @@ function DiagnosticRunContent() {
     );
   }
 
-  return <DiagnosticRunView model={model} diagnosticId={resolvedDiagnosticId} />;
+  return (
+    <DiagnosticRunView
+      model={model}
+      diagnosticId={resolvedDiagnosticId}
+      axis={axisFromUrl}
+      isFinalFlow={isFinalFromUrl}
+    />
+  );
 }
 
 export default function DiagnosticRunPage() {

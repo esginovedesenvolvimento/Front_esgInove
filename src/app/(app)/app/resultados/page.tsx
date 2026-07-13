@@ -4,21 +4,35 @@ import { useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
 import { getResultsViewModel } from "@/features/company-area/controllers/results.controller";
 import { ResultsView } from "@/features/company-area/views/pages/resultados/results-view";
-import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
+import { diagnosticService, type DiagnosticHistoryItem } from "@/features/company-area/services/diagnostic.service";
+
+import { useRouter } from "next/navigation";
 
 export default function ResultsPage() {
+  const router = useRouter();
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
+  const [history, setHistory] = useState<DiagnosticHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadResults() {
       try {
         const token = getCookie("inoveesg_token") as string;
-        if (!token) return;
-        const res = await diagnosticService.getCurrentDiagnostic(token);
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+        const [res, hist] = await Promise.all([
+          diagnosticService.getCurrentDiagnostic(token),
+          diagnosticService.getDiagnosticHistory(token).catch(err => {
+            console.error("Failed to load diagnostic history:", err);
+            return [];
+          })
+        ]);
         if (res.hasDiagnostic && res.diagnostic) {
           setDbDiagnostic(res.diagnostic);
         }
+        setHistory(hist);
       } catch (err) {
         console.error("Failed to load results:", err);
       } finally {
@@ -28,7 +42,13 @@ export default function ResultsPage() {
     loadResults();
   }, []);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && (!dbDiagnostic || dbDiagnostic.status !== "COMPLETED")) {
+      router.replace("/app/diagnostico");
+    }
+  }, [isLoading, dbDiagnostic, router]);
+
+  if (isLoading || !dbDiagnostic || dbDiagnostic.status !== "COMPLETED") {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
@@ -45,11 +65,11 @@ export default function ResultsPage() {
     const isPreDiagnostic = dbDiagnostic.kind === "PRE_DIAGNOSTIC";
     
     // Obter notas reais ou fallback para mocks
-    const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 64;
-    const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 58;
-    const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 61;
-    const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 81;
-    const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 62;
+    const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 0;
+    const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 0;
+    const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 0;
+    const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
+    const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
     const globalProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenOverallScore || 0));
     const envProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenEnvironmentalScore || 0));
@@ -103,5 +123,5 @@ export default function ResultsPage() {
     ];
   }
 
-  return <ResultsView model={baseModel} />;
+  return <ResultsView model={baseModel} history={history} />;
 }

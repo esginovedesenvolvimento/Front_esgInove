@@ -4,6 +4,10 @@
   --background: #ffffff;
   --foreground: #101712;
 
+  --font-stack-sans: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-stack-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  --font-stack-display: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
+
   --surface: #f6f9f2;
   --surface-2: #edf5e7;
   --card: #ffffff;
@@ -32,9 +36,9 @@
   --color-accent: var(--accent);
   --color-accent-2: var(--accent-2);
   --color-accent-foreground: var(--accent-foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-outfit);
+  --font-display: var(--font-stack-display);
+  --font-sans: var(--font-stack-sans);
+  --font-mono: var(--font-stack-mono);
 }
 
 html {
@@ -50,7 +54,7 @@ body {
     radial-gradient(700px 420px at -5% 8%, color-mix(in oklab, var(--accent-2) 12%, transparent), transparent 60%),
     linear-gradient(180deg, var(--surface) 0%, var(--background) 42%, var(--background) 100%);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-stack-sans);
   min-height: 100vh;
   max-width: 100%;
   overflow-x: clip;

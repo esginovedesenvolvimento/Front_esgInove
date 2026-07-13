@@ -58,13 +58,13 @@ export function PreDiagnosticResultsView() {
 
   const isCompleted = dbDiagnostic && dbDiagnostic.status === "COMPLETED";
 
-  // Obter notas reais ou fallback para mocks
+  // Obter notas reais ou fallback para 0 se incompleto
   const scoreObj = dbDiagnostic?.score;
-  const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 64;
-  const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 58;
-  const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 74;
-  const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 81;
-  const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 62;
+  const overallScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 0;
+  const envScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 0;
+  const bioScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 0;
+  const socScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
+  const govScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
   const getPillarDescription = (score: number, pillar: "E" | "B" | "S" | "G") => {
     if (pillar === "E") {
@@ -89,200 +89,161 @@ export function PreDiagnosticResultsView() {
   return (
     <div className="space-y-8 py-4 animate-in fade-in duration-500">
       
-      {isCompleted ? (
-        <>
-          {/* ── Banner Principal / Pontuação Geral ─────────────────────────────────────── */}
-          <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
-            <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
-            
-            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="space-y-2">
-                <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full">
-                  Módulo Pago Ativo
-                </span>
-                <h3 className="text-xl sm:text-2xl font-bold">Diagnóstico Piloto ESG</h3>
-                <p className="text-slate-400 text-sm max-w-lg leading-relaxed">
-                  Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado.
-                </p>
+      {/* ── Banner Principal / Pontuação Geral ─────────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
+        <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+        
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3 flex-1">
+            <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+              {isCompleted ? "Diagnóstico Concluído" : "Pré-Diagnóstico ESG Pendente"}
+            </span>
+            <h3 className="text-xl sm:text-2xl font-bold">
+              {isCompleted ? "Diagnóstico Piloto ESG" : "Faça seu Pré-Diagnóstico ESG"}
+            </h3>
+            <p className="text-slate-400 text-sm max-w-xl leading-relaxed">
+              {isCompleted 
+                ? "Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado."
+                : "Você ainda não concluiu o seu Pré-Diagnóstico. Responda o formulário para calcular a maturidade ESG da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança."
+              }
+            </p>
+            {!isCompleted && (
+              <div className="pt-2">
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
+                  <Link href="/app/diagnostico" className="flex items-center gap-1.5">
+                    Realizar Pré-Diagnóstico
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </div>
-              <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
-                <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
-                  <span className="text-sm font-semibold text-slate-500">/ 100</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-
-          {/* ── Detalhamento dos Quatro Pilares (E, B, S, G) ─────────────────────────────────── */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Distribuição por Pilar ESG
-            </h4>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Pilar E - Ambiental */}
-              <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-600">
-                        <Leaf className="h-4 w-4" />
-                      </div>
-                      <CardTitle className="text-sm font-bold text-slate-800">Ambiental (E)</CardTitle>
-                    </div>
-                    <span className="text-sm font-bold text-slate-800 font-mono">{envScore}/100</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${envScore}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                    {getPillarDescription(envScore, "E")}
-                  </p>
-                  <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                    🎯 Foco de Ação: Inventário de Emissões de Carbono.
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Pilar B - Bioeconomia Circular */}
-              <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-amber-50 p-1.5 rounded-lg text-amber-600">
-                        <Recycle className="h-4 w-4" />
-                      </div>
-                      <CardTitle className="text-sm font-bold text-slate-800">Bioeconomia Circular (B)</CardTitle>
-                    </div>
-                    <span className="text-sm font-bold text-slate-800 font-mono">{bioScore}/100</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${bioScore}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                    {getPillarDescription(bioScore, "B")}
-                  </p>
-                  <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                    🎯 Foco de Ação: Circularidade de insumos e logística reversa.
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Pilar S - Social */}
-              <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <CardTitle className="text-sm font-bold text-slate-800">Social (S)</CardTitle>
-                    </div>
-                    <span className="text-sm font-bold text-slate-800 font-mono">{socScore}/100</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${socScore}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                    {getPillarDescription(socScore, "S")}
-                  </p>
-                  <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                    🎯 Foco de Ação: Programa de diversidade formalizado.
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Pilar G - Governança */}
-              <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
-                <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-purple-50 p-1.5 rounded-lg text-purple-600">
-                        <Scale className="h-4 w-4" />
-                      </div>
-                      <CardTitle className="text-sm font-bold text-slate-800">Governança (G)</CardTitle>
-                    </div>
-                    <span className="text-sm font-bold text-slate-800 font-mono">{govScore}/100</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${govScore}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                    {getPillarDescription(govScore, "G")}
-                  </p>
-                  <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                    🎯 Foco de Ação: Canal de Ouvidoria com reporte independente.
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* ── Banner explicativo levando para preenchimento ─────────────────────────────────── */
-        <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 text-white shadow-xl">
-          <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/30 to-transparent blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[30%] h-[80%] bg-gradient-to-r from-teal-600/15 to-transparent blur-2xl" />
-          
-          <div className="relative space-y-6">
-            <div className="space-y-2">
-              <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full">
-                Módulo Ativo
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Avaliação de Maturidade ESG</h3>
-              <p className="text-slate-400 text-sm sm:text-base max-w-2xl leading-relaxed">
-                Inicie a avaliação de maturidade da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança para identificar gargalos regulatórios, calcular sua pontuação consolidada e gerar o relatório piloto.
-              </p>
-            </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-4 border-y border-slate-800/80">
-              <div className="space-y-1">
-                <span className="text-emerald-400 font-bold text-sm">Eixo E (Ambiental)</span>
-                <p className="text-xs text-slate-500 leading-snug">Avalie emissões de carbono, energia e descarte de resíduos.</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-amber-400 font-bold text-sm">Eixo B (Bioeconomia Circular)</span>
-                <p className="text-xs text-slate-500 leading-snug">Analise circularidade de insumos, logística reversa e reaproveitamento.</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-blue-400 font-bold text-sm">Eixo S (Social)</span>
-                <p className="text-xs text-slate-500 leading-snug">Analise SST, saúde ocupacional e diversidade corporativa.</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-purple-400 font-bold text-sm">Eixo G (Governança)</span>
-                <p className="text-xs text-slate-500 leading-snug">Verifique canais de ética, conformidade LGPD e comitês.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 h-11 shadow-md transition-all duration-300 hover:scale-[1.02]">
-                <Link href="/app/diagnostico">
-                  {dbDiagnostic ? "Continuar Diagnóstico" : "Iniciar Avaliação Gratuita"}
-                </Link>
-              </Button>
-              <Button asChild className="bg-transparent border border-slate-700 hover:bg-slate-800 hover:text-white text-slate-300 font-semibold text-sm px-6 h-11 transition-all">
-                <Link href="/app/meus-servicos">
-                  Ver Meus Serviços
-                </Link>
-              </Button>
+          <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
+            <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
+              <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
+              <span className="text-sm font-semibold text-slate-500">/ 100</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* ── Detalhamento dos Quatro Pilares (E, B, S, G) ─────────────────────────────────── */}
+      <div className="space-y-4">
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          Distribuição por Pilar ESG
+        </h4>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Pilar E - Ambiental */}
+          <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-55 p-1.5 rounded-lg text-emerald-600">
+                    <Leaf className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-bold text-slate-800">Ambiental (E)</CardTitle>
+                </div>
+                <span className="text-sm font-bold text-slate-800 font-mono">{envScore}/100</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${envScore}%` }} />
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
+                {getPillarDescription(envScore, "E")}
+              </p>
+              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
+                🎯 Foco de Ação: Inventário de Emissões de Carbono.
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pilar B - Bioeconomia Circular */}
+          <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="bg-amber-50 p-1.5 rounded-lg text-amber-600">
+                    <Recycle className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-bold text-slate-800">Bioeconomia Circular (B)</CardTitle>
+                </div>
+                <span className="text-sm font-bold text-slate-800 font-mono">{bioScore}/100</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${bioScore}%` }} />
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
+                {getPillarDescription(bioScore, "B")}
+              </p>
+              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
+                🎯 Foco de Ação: Circularidade de insumos e logística reversa.
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pilar S - Social */}
+          <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-bold text-slate-800">Social (S)</CardTitle>
+                </div>
+                <span className="text-sm font-bold text-slate-800 font-mono">{socScore}/100</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${socScore}%` }} />
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
+                {getPillarDescription(socScore, "S")}
+              </p>
+              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
+                🎯 Foco de Ação: Programa de diversidade formalizado.
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pilar G - Governança */}
+          <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="bg-purple-50 p-1.5 rounded-lg text-purple-600">
+                    <Scale className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-bold text-slate-800">Governança (G)</CardTitle>
+                </div>
+                <span className="text-sm font-bold text-slate-800 font-mono">{govScore}/100</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${govScore}%` }} />
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
+                {getPillarDescription(govScore, "G")}
+              </p>
+              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
+                🎯 Foco de Ação: Canal de Ouvidoria com reporte independente.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* ── Análise de Evidências & Ações da Cadeia ─────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -333,7 +294,7 @@ export function PreDiagnosticResultsView() {
               </p>
               <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-6 shadow-sm">
                 <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
-                  Fazer Upgrade Corporativo <ArrowUpRight className="h-3.5 w-3.5" />
+                  Fazer Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             </div>
@@ -455,7 +416,7 @@ export function PreDiagnosticResultsView() {
               </div>
               <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 shadow-sm">
                 <Link href="/app/upgrade" className="flex items-center justify-center gap-1">
-                  Fazer Upgrade Corporativo <ArrowUpRight className="h-3.5 w-3.5" />
+                  Fazer Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             </CardContent>

@@ -1,5 +1,3 @@
-import { getCookie } from "cookies-next";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {
@@ -48,7 +46,7 @@ export interface SupplierOrganization {
 export interface SupplierDiagnostic {
   id: string;
   status: string;
-  percentageCompletion: number;
+  percentageCompletion?: number;
   score?: {
     overallScore: number;
     environmentalScore?: number | null;
@@ -56,6 +54,14 @@ export interface SupplierDiagnostic {
     socialScore?: number | null;
     governanceScore?: number | null;
   } | null;
+}
+
+export interface RelationshipHistory {
+  id: string;
+  status: "ACTIVE" | "INACTIVE";
+  startedAt: string;
+  endedAt?: string | null;
+  endedReason?: string | null;
 }
 
 export interface SupplierInvite {
@@ -70,6 +76,7 @@ export interface SupplierInvite {
   acceptedAt?: string | null;
   supplierOrganization?: SupplierOrganization | null;
   requestedDiagnostics: SupplierDiagnostic[];
+  relationship?: RelationshipHistory | null;
 }
 
 export const inviteService = {
@@ -82,13 +89,13 @@ export const inviteService = {
     });
   },
 
-  simulateInvitePurchase(token: string, quantity: number, option: "standard" | "evidence") {
-    return request<{ checkoutUrl: string; orderId: string; totalCents: number }>("/invite/simulate-purchase", {
+  simulateInvitePurchase(token: string, quantity: number) {
+    return request<{ checkoutUrl: string; orderId: string; totalCents: number; productCode: string }>("/checkout/preference", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ quantity, option }),
+      body: JSON.stringify({ productCode: "INVITE_PACK", quantity }),
     });
   },
 
@@ -118,6 +125,16 @@ export const inviteService = {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ supplierEmail, message }),
+    });
+  },
+
+  terminateRelationship(token: string, supplierOrganizationId: string, endedReason?: string) {
+    return request<any>("/invite/relationship/terminate", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ supplierOrganizationId, endedReason }),
     });
   },
 };

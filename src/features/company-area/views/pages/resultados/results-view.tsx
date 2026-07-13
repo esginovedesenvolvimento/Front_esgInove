@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
 import { getCookie } from "cookies-next";
 import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import type { getResultsViewModel } from "../../../controllers/results.controller";
+import { type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
 import { SectionHeading } from "../../components/section-heading";
 import {
   Download,
@@ -31,6 +32,8 @@ import {
   Building2,
   Loader2,
   Plus,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type ResultsViewModel = ReturnType<typeof getResultsViewModel>;
@@ -108,13 +111,36 @@ function getMaturityLabelFromStars(stars: number) {
   return "Nível 1 — Elementar";
 }
 
-export function ResultsView({ model }: { model: ResultsViewModel }) {
+function getMaturityLabel(level?: string | null) {
+  if (!level) return "Não calculado";
+  switch (level.toUpperCase()) {
+    case "NASCENT":
+      return "Nível 1 — Elementar";
+    case "DEVELOPING":
+      return "Nível 2 — Não Integrado";
+    case "ESTABLISHED":
+      return "Nível 3 — Gerencial";
+    case "MANAGED":
+      return "Nível 4 — Estratégico";
+    case "OPTIMIZED":
+      return "Nível 5 — Transformador";
+    default:
+      return level;
+  }
+}
+
+export function ResultsView({ model, history = [] }: { model: ResultsViewModel; history?: DiagnosticHistoryItem[] }) {
   const { globalScore, globalProvenScore, isPreDiagnostic, axisScores } = model;
   const hasVerifiedScore = !isPreDiagnostic && globalProvenScore > 0;
 
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [errorInvites, setErrorInvites] = useState(false);
+  const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedDiagnosticId(prev => prev === id ? null : id);
+  };
 
   useEffect(() => {
     async function fetchInvites() {
@@ -186,7 +212,7 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
         description="Diagnóstico completo do desempenho ESG da sua empresa por eixo, evidências e recomendações."
         action={
           hasVerifiedScore ? (
-            <Button asChild className="bg-emerald-650 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm">
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm">
               <Link href="/app/relatorio?type=audited">
                 <FileCheck className="w-4 h-4" /> Baixar Relatório Auditado
               </Link>
@@ -311,7 +337,7 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
                 <p className="text-3xl font-extrabold text-emerald-700 mt-1">{globalProvenScore}%</p>
                 <p className="text-xs text-emerald-600/80 mt-1">Evidências validadas e auditadas</p>
                 <span className="mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-55 text-emerald-850 border border-emerald-200">
-                  <ShieldCheck className="w-2.5 h-2.5 text-emerald-650" /> Verificado InoveESG
+                  <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" /> Verificado InoveESG
                 </span>
               </>
             ) : (
@@ -383,12 +409,288 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
         </div>
       </section>
 
+      {/* ── Histórico de Desempenho ── */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            Histórico de Desempenho
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Acompanhe a evolução histórica da maturidade e pontuação ESG da sua empresa.</p>
+        </div>
+
+        {(!history || history.length === 0) ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
+            <FileText className="h-8 w-8 text-slate-300 mb-2" />
+            <p className="text-xs font-bold text-slate-700">Nenhum histórico disponível</p>
+            <p className="text-[11px] text-slate-500 mt-1">Conclua diagnósticos para visualizar sua evolução aqui.</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="w-10 px-5 py-3"></th>
+                    <th className="px-5 py-3">Data de Conclusão</th>
+                    <th className="px-5 py-3">Tipo</th>
+                    <th className="px-5 py-3 text-center">Ambiental (E)</th>
+                    <th className="px-5 py-3 text-center">Bioeconomia (B)</th>
+                    <th className="px-5 py-3 text-center">Social (S)</th>
+                    <th className="px-5 py-3 text-center">Governança (G)</th>
+                    <th className="px-5 py-3 text-center">Maturidade</th>
+                    <th className="px-5 py-3 text-right">Nota Geral</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {history.map((item) => {
+                    const score = item.score;
+                    const overall = score ? Math.round(Number(score.overallScore || 0)) : 0;
+                    const env = score?.environmentalScore != null ? Math.round(Number(score.environmentalScore)) : null;
+                    const bio = score?.bioeconomyCircularScore != null ? Math.round(Number(score.bioeconomyCircularScore)) : null;
+                    const soc = score?.socialScore != null ? Math.round(Number(score.socialScore)) : null;
+                    const gov = score?.governanceScore != null ? Math.round(Number(score.governanceScore)) : null;
+
+                    const dateStr = item.completedAt
+                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.completedAt))
+                      : item.createdAt
+                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))
+                      : "—";
+
+                    const isExpanded = expandedDiagnosticId === item.id;
+                    
+                    // Grouping responses compliance metrics
+                    const totalResponses = item.responses?.length || 0;
+                    const highCount = item.responses?.filter(r => (r.score ?? 0) >= 80).length || 0;
+                    const mediumCount = item.responses?.filter(r => (r.score ?? 0) > 0 && (r.score ?? 0) < 80).length || 0;
+                    const lowCount = item.responses?.filter(r => (r.score ?? 0) === 0 || r.score === null).length || 0;
+
+                    return (
+                      <Fragment key={item.id}>
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => toggleExpand(item.id)}
+                              className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                              title={isExpanded ? "Recolher detalhes" : "Expandir detalhes"}
+                            >
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                          </td>
+                          <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">
+                            {dateStr}
+                          </td>
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                              item.kind === "PRE_DIAGNOSTIC"
+                                ? "bg-amber-50 text-amber-800 border-amber-200"
+                                : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            }`}>
+                              {item.kind === "PRE_DIAGNOSTIC" ? "Pré-Diagnóstico" : "Completo"}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
+                            {env !== null ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                                <Leaf className="w-3 h-3" /> {env}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
+                            {bio !== null ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
+                                <Recycle className="w-3 h-3" /> {bio}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
+                            {soc !== null ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
+                                <Heart className="w-3 h-3" /> {soc}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
+                            {gov !== null ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-violet-600">
+                                <Scale className="w-3 h-3" /> {gov}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td className="px-5 py-4 text-center font-medium text-slate-800 whitespace-nowrap">
+                            {score?.maturityLevel ? getMaturityLabel(score.maturityLevel) : "—"}
+                          </td>
+                          <td className="px-5 py-4 text-right whitespace-nowrap">
+                            <span className="font-extrabold text-slate-900 text-sm bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                              {overall}%
+                            </span>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="bg-slate-50/30">
+                            <td colSpan={9} className="px-8 py-6 border-b border-slate-200">
+                              <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {/* Left Panel: Pontuação por Pilar (Bar Chart) */}
+                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                    <Target className="w-4 h-4 text-emerald-600" />
+                                    Desempenho por Eixo
+                                  </h3>
+                                  <div className="space-y-3 pt-1">
+                                    {/* Ambiental */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs font-medium text-slate-600">
+                                        <span className="flex items-center gap-1.5"><Leaf className="w-3.5 h-3.5 text-emerald-600" /> Ambiental (E)</span>
+                                        <span>{env !== null ? `${env}%` : "—"}</span>
+                                      </div>
+                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${env ?? 0}%` }} />
+                                      </div>
+                                    </div>
+                                    {/* Bioeconomia */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs font-medium text-slate-600">
+                                        <span className="flex items-center gap-1.5"><Recycle className="w-3.5 h-3.5 text-amber-600" /> Bioeconomia (B)</span>
+                                        <span>{bio !== null ? `${bio}%` : "—"}</span>
+                                      </div>
+                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${bio ?? 0}%` }} />
+                                      </div>
+                                    </div>
+                                    {/* Social */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs font-medium text-slate-600">
+                                        <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-blue-600" /> Social (S)</span>
+                                        <span>{soc !== null ? `${soc}%` : "—"}</span>
+                                      </div>
+                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${soc ?? 0}%` }} />
+                                      </div>
+                                    </div>
+                                    {/* Governança */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs font-medium text-slate-600">
+                                        <span className="flex items-center gap-1.5"><Scale className="w-3.5 h-3.5 text-violet-600" /> Governança (G)</span>
+                                        <span>{gov !== null ? `${gov}%` : "—"}</span>
+                                      </div>
+                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                        <div className="h-full rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${gov ?? 0}%` }} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Right Panel: Resumo das Respostas */}
+                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                    Resumo de Conformidade das Respostas
+                                  </h3>
+                                  {totalResponses === 0 ? (
+                                    <p className="text-xs text-slate-500 italic py-6 text-center">Nenhuma resposta detalhada registrada para este diagnóstico.</p>
+                                  ) : (
+                                    <div className="space-y-4 pt-1">
+                                      <div className="flex items-center justify-between text-xs text-slate-600">
+                                        <span>Total de Questões Respondidas</span>
+                                        <span className="font-semibold text-slate-900">{totalResponses}</span>
+                                      </div>
+                                      
+                                      {/* Compliance Progress Bars */}
+                                      <div className="space-y-2">
+                                        <div className="space-y-0.5">
+                                          <div className="flex justify-between text-[11px] text-slate-500">
+                                            <span>Conformidade Alta (score ≥ 80%)</span>
+                                            <span className="font-medium text-slate-700">{highCount} ({Math.round((highCount / totalResponses) * 100)}%)</span>
+                                          </div>
+                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(highCount / totalResponses) * 100}%` }} />
+                                          </div>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <div className="flex justify-between text-[11px] text-slate-500">
+                                            <span>Conformidade Parcial (0 &lt; score &lt; 80%)</span>
+                                            <span className="font-medium text-slate-700">{mediumCount} ({Math.round((mediumCount / totalResponses) * 100)}%)</span>
+                                          </div>
+                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                            <div className="h-full rounded-full bg-amber-500" style={{ width: `${(mediumCount / totalResponses) * 100}%` }} />
+                                          </div>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <div className="flex justify-between text-[11px] text-slate-500">
+                                            <span>Sem Conformidade (score = 0%)</span>
+                                            <span className="font-medium text-slate-700">{lowCount} ({Math.round((lowCount / totalResponses) * 100)}%)</span>
+                                          </div>
+                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                            <div className="h-full rounded-full bg-rose-500" style={{ width: `${(lowCount / totalResponses) * 100}%` }} />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Detailed Response List */}
+                                {totalResponses > 0 && (
+                                  <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+                                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                      <FileText className="w-4 h-4 text-slate-500" />
+                                      Questões e Respostas Registradas
+                                    </h3>
+                                    <div className="max-h-60 overflow-y-auto border border-slate-100 rounded-lg divide-y divide-slate-100 scrollbar-thin">
+                                      {item.responses?.map((res, idx) => {
+                                        const axisName = res.axis === "ENVIRONMENTAL" ? "Ambiental" : res.axis === "BIOECONOMY_CIRCULAR" ? "Bioeconomia" : res.axis === "SOCIAL" ? "Social" : "Governança";
+                                        const axisColor = res.axis === "ENVIRONMENTAL" ? "text-emerald-600 bg-emerald-50 border-emerald-100" : res.axis === "BIOECONOMY_CIRCULAR" ? "text-amber-600 bg-amber-50 border-amber-100" : res.axis === "SOCIAL" ? "text-blue-600 bg-blue-50 border-blue-100" : "text-violet-600 bg-violet-50 border-violet-100";
+                                        return (
+                                          <div key={res.id || idx} className="p-3 text-[11px] flex flex-col sm:flex-row sm:items-start justify-between gap-3 hover:bg-slate-50/50">
+                                            <div className="space-y-1 max-w-[80%]">
+                                              <div className="flex items-center gap-2">
+                                                <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${axisColor}`}>
+                                                  {axisName}
+                                                </span>
+                                                <span className="text-slate-400 font-semibold">Questão {idx + 1}</span>
+                                              </div>
+                                              <p className="font-medium text-slate-800">{res.questionText}</p>
+                                              <p className="text-slate-600 mt-1">
+                                                Resposta: <span className="font-semibold text-slate-900">{res.answerText || "—"}</span>
+                                              </p>
+                                            </div>
+                                            <div className="shrink-0 flex items-center gap-2 self-end sm:self-start">
+                                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                (res.score ?? 0) >= 80 
+                                                  ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                                                  : (res.score ?? 0) > 0 
+                                                    ? "bg-amber-50 border-amber-200 text-amber-800" 
+                                                    : "bg-rose-50 border-rose-200 text-rose-800"
+                                              }`}>
+                                                Pontuação: {res.score ?? 0}%
+                                              </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* ── Cadeia de Fornecedores Section ── */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-650" />
+              <Users className="w-5 h-5 text-indigo-600" />
               Monitoramento ESG da Cadeia de Valor
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">Mapeie o risco socioambiental dos seus parceiros de negócios e obtenha a média da cadeia.</p>
@@ -463,7 +765,7 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
               <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Respondidos</span>
-                  <p className="text-xl font-black text-emerald-650 font-display">
+                  <p className="text-xl font-black text-emerald-600 font-display">
                     {invites.filter(i => i.requestedDiagnostics.some(d => d.status === "COMPLETED")).length}
                   </p>
                 </div>
@@ -581,7 +883,7 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
           <Button
             asChild
             className={`shrink-0 gap-2 font-semibold ${hasVerifiedScore
-              ? "bg-emerald-650 hover:bg-emerald-700 text-white shadow-sm"
+              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
               : "bg-white hover:bg-slate-50 border border-slate-200 text-slate-700"}`}
           >
             <Link href={hasVerifiedScore ? "/app/relatorio?type=audited" : "/app/relatorio?type=pre"}>
@@ -615,7 +917,7 @@ export function ResultsView({ model }: { model: ResultsViewModel }) {
 
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-650 shrink-0">
+                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
                       <IconComponent className="w-4.5 h-4.5" />
                     </div>
                     <div>

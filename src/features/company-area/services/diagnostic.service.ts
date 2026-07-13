@@ -1,5 +1,32 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
+export interface DiagnosticHistoryItem {
+  id: string;
+  kind: "PRE_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "SUPPLIER_DIAGNOSTIC";
+  status: string;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  score?: {
+    id: string;
+    diagnosticId: string;
+    overallScore: string | number;
+    environmentalScore: string | number | null;
+    bioeconomyCircularScore: string | number | null;
+    socialScore: string | number | null;
+    governanceScore: string | number | null;
+    maturityLevel: string | null;
+  } | null;
+  responses?: {
+    id: string;
+    axis: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE";
+    questionText: string;
+    answerText: string | null;
+    score: number | null;
+  }[];
+}
+
 export interface DiagnosticStartOption {
   value: number;
   text: string;
@@ -11,6 +38,7 @@ export interface DiagnosticStartQuestion {
   axis: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE";
   category: string;
   weight?: number;
+  type?: "ESSENTIAL" | "STRATEGIC" | "DIFFERENTIAL" | "COMPLEMENTARY";
   options: DiagnosticStartOption[];
 }
 
@@ -25,6 +53,7 @@ export interface DiagnosticCurrentResponse {
   diagnostic: {
     id: string;
     status: string;
+    percentageCompletion?: number | null;
     completedAt?: string | null;
     score?: {
       overallScore?: number | null;
@@ -42,6 +71,11 @@ export interface DiagnosticCurrentResponse {
     _count?: {
       responses: number;
     };
+    responses?: Array<{
+      questionOrder: number;
+      axis: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE";
+      answerText?: string | null;
+    }>;
     evidences?: Array<{
       id: string;
       verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
@@ -105,11 +139,12 @@ export const diagnosticService = {
   },
 
   simulatePreDiagnosticPurchase(token: string) {
-    return request<{ checkoutUrl: string; diagnosticId: string }>("/diagnostic/simulate-pre-diag", {
+    return request<{ checkoutUrl: string; diagnosticId?: string; orderId: string; productCode: string; totalCents: number }>("/checkout/preference", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({ productCode: "PRE_DIAGNOSTIC", quantity: 1 }),
     });
   },
 
@@ -132,11 +167,21 @@ export const diagnosticService = {
     });
   },
 
+  getDiagnosticHistory(token: string) {
+    return request<DiagnosticHistoryItem[]>("/diagnostic/history", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   submitDiagnostic(
     token: string,
     diagnosticId: string,
     responsibilityDeclarationAccepted: boolean,
-    responses: Array<{
+    finalize = true,
+    responses?: Array<{
       questionCode: string;
       questionOrder: number;
       axis: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE";
@@ -151,7 +196,11 @@ export const diagnosticService = {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ responses, responsibilityDeclarationAccepted }),
+      body: JSON.stringify({
+        ...(responses ? { responses } : {}),
+        responsibilityDeclarationAccepted,
+        finalize,
+      }),
     });
   },
 };

@@ -48,12 +48,12 @@ export default function ReportPage() {
     const scoreObj = dbDiagnostic.score;
     const isPreDiagnostic = dbDiagnostic.kind === "PRE_DIAGNOSTIC";
     
-    // Obter notas reais ou fallback para mocks
-    const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 64;
-    const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 58;
-    const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 61;
-    const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 81;
-    const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 62;
+    // Obter notas reais ou fallback para 0 se incompleto
+    const overallScore = scoreObj ? Math.round(Number(scoreObj.overallScore || 0)) : 0;
+    const envScore = scoreObj ? Math.round(Number(scoreObj.environmentalScore || 0)) : 0;
+    const bioScore = scoreObj ? Math.round(Number(scoreObj.bioeconomyCircularScore || 0)) : 0;
+    const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
+    const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
     const provenOverall = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenOverallScore || 0));
     const envProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenEnvironmentalScore || 0));

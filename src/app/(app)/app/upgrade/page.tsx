@@ -7,8 +7,8 @@ import { useCart, CartItem } from "@/features/company-area/context/cart-context"
 import { useCompany } from "@/features/company-area/context/company-context";
 import { BudgetModal } from "@/features/company-area/views/components/budget-modal";
 import { HorizontalServiceRail } from "@/features/company-area/views/components/horizontal-service-rail";
+import { checkoutService } from "@/features/company-area/services/checkout.service";
 import { getCookie } from "cookies-next";
-import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
 import Link from "next/link";
 
 interface UpgradePlan extends CartItem {
@@ -194,14 +194,20 @@ export default function UpgradePage() {
       localStorage.setItem("inoveesg_pending_purchase", JSON.stringify([pendingItem]));
 
       if (service.id === "pre-diag" || service.id === "pre-diag-plus") {
-        const response = await diagnosticService.simulatePreDiagnosticPurchase(token);
+        const productCode = service.id === "pre-diag" ? "PRE_DIAGNOSTIC" : "PRE_DIAGNOSTIC_PLUS";
+        const response = await checkoutService.createPreference(token, productCode);
         if (response.checkoutUrl) {
           window.location.href = response.checkoutUrl;
         } else {
           throw new Error("Falha ao gerar link de checkout.");
         }
       } else if (service.id === "livro-esg") {
-        window.location.href = `${frontendUrl}/app/checkout/simulate?id=fake-livro-esg&amount=41.90`;
+        const response = await checkoutService.createPreference(token, "LIVRO_ESG");
+        if (response.checkoutUrl) {
+          window.location.href = response.checkoutUrl;
+        } else {
+          throw new Error("Falha ao gerar link de checkout.");
+        }
       }
     } catch (err: any) {
       console.error("Erro ao iniciar compra:", err);

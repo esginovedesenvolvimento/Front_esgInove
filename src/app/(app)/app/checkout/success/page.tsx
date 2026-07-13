@@ -9,7 +9,7 @@ import { useCart } from "@/features/company-area/context/cart-context";
 
 export default function CheckoutSuccessPage() {
   const router = useRouter();
-  const { refreshProfile } = useCompany();
+  const { company, refreshProfile } = useCompany();
   const { clearCart } = useCart();
   const [purchasedItem, setPurchasedItem] = useState<{ name: string; price: string } | null>(null);
 
@@ -17,9 +17,14 @@ export default function CheckoutSuccessPage() {
     // Limpa o carrinho e atualiza o perfil no login/session do usuário para destravar o diagnóstico
     clearCart();
     refreshProfile();
+  }, []);
+
+  useEffect(() => {
+    if (!company) return;
 
     // Processa compras pendentes para a lista de Meus Serviços
     try {
+      const companyId = company.id;
       const pendingStr = localStorage.getItem("inoveesg_pending_purchase");
       if (pendingStr) {
         const pendingItems = JSON.parse(pendingStr);
@@ -30,7 +35,7 @@ export default function CheckoutSuccessPage() {
           });
         }
         
-        const existingStr = localStorage.getItem("inoveesg_purchased_services");
+        const existingStr = localStorage.getItem(`inoveesg_purchased_services_${companyId}`);
         const existingItems = existingStr ? JSON.parse(existingStr) : [];
         
         const updatedItems = [...existingItems];
@@ -46,13 +51,13 @@ export default function CheckoutSuccessPage() {
             });
           }
         });
-        localStorage.setItem("inoveesg_purchased_services", JSON.stringify(updatedItems));
+        localStorage.setItem(`inoveesg_purchased_services_${companyId}`, JSON.stringify(updatedItems));
         localStorage.removeItem("inoveesg_pending_purchase");
       }
     } catch (e) {
       console.error("Failed to process purchased services", e);
     }
-  }, []);
+  }, [company]);
 
   const handleGoToDashboard = async () => {
     await refreshProfile();

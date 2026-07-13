@@ -7,14 +7,26 @@ import { Button } from "@/components/ui/button";
 import type { getDiagnosticRunViewModel } from "../../../controllers/diagnostic.controller";
 import { diagnosticService } from "../../../services/diagnostic.service";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDashed, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDashed, ShieldCheck } from "lucide-react";
 
 type DiagnosticRunViewModel = ReturnType<typeof getDiagnosticRunViewModel>;
 
-export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRunViewModel; diagnosticId: string }) {
+export function DiagnosticRunView({
+  model,
+  diagnosticId,
+  axis,
+  isFinalFlow = false,
+}: {
+  model: DiagnosticRunViewModel;
+  diagnosticId: string;
+  axis?: string | null;
+  isFinalFlow?: boolean;
+}) {
   const { refreshProfile } = useCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    return isFinalFlow ? model.questions.length : 0;
+  });
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
   const [selectedOption, setSelectedOption] = useState<{ questionId: string; option: string } | null>(null);
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
@@ -22,14 +34,27 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
   const router = useRouter();
 
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
+    let saved: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      const cached = window.sessionStorage.getItem(`inoveesg:diagnostic-answers-${diagnosticId}`);
+      if (cached) {
+        try {
+          saved = JSON.parse(cached);
+        } catch (e) {
+          console.error("Erro ao carregar respostas temporarias:", e);
+        }
+      }
+    }
+    // Pre-populate with database answers for the current model questions if not already in saved
     model.questions.forEach((q) => {
-      initial[q.id] = q.answer || "";
+      if (!(q.id in saved)) {
+        saved[q.id] = q.answer || "";
+      }
     });
-    return initial;
+    return saved;
   });
 
-  const answeredCount = Object.values(answers).filter((val) => val.trim().length > 0).length;
+  const answeredCount = model.questions.filter((q) => answers[q.id]?.trim().length > 0).length;
   const isComplete = answeredCount === model.total;
   const lastQuestionIndex = model.questions.length - 1;
   const isDeclarationStep = currentIndex === model.questions.length;
@@ -37,6 +62,12 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
   const currentQuestionId = currentQuestion?.id ?? "";
   const currentAnswer = currentQuestionId ? answers[currentQuestionId] || "" : "";
   const progressPercentage = model.total > 0 ? Math.round((answeredCount / model.total) * 100) : 0;
+  const axisInfo = {
+    E: { label: "Ambiental", next: "B", nextLabel: "Bioeconomia Circular" },
+    B: { label: "Bioeconomia Circular", next: "S", nextLabel: "Social" },
+    S: { label: "Social", next: "G", nextLabel: "Governança" },
+    G: { label: "Governança", next: null, nextLabel: "" },
+  }[axis || "E"] || { label: "Eixo", next: null, nextLabel: "" };
 
   useEffect(() => {
     return () => {
@@ -45,6 +76,13 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
       }
     };
   }, []);
+
+  // Persistir respostas no sessionStorage sempre que mudarem
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(`inoveesg:diagnostic-answers-${diagnosticId}`, JSON.stringify(answers));
+    }
+  }, [answers, diagnosticId]);
 
   const handleRadioChange = (questionId: string, value: string) => {
     if (advanceTimerRef.current) {
@@ -87,6 +125,44 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
     }));
   };
 
+  const buildResponsesPayload = () => {
+    return model.questions.map((question) => {
+      let axisEnum: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE" = "GOVERNANCE";
+      if (question.axis === "E") axisEnum = "ENVIRONMENTAL";
+      else if (question.axis === "B") axisEnum = "BIOECONOMY_CIRCULAR";
+      else if (question.axis === "S") axisEnum = "SOCIAL";
+      const questionOrder = Number(question.id.replace(/^q-/, ""));
+
+      return {
+        questionCode: question.id,
+        questionOrder,
+        axis: axisEnum,
+        questionText: question.prompt,
+        questionType: question.options ? ("MULTIPLE_CHOICE" as const) : ("TEXT" as const),
+        answerText: answers[question.id] || "",
+        options: question.options,
+      };
+    });
+  };
+
+  const saveCurrentAxis = async () => {
+    if (!isComplete || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const token = getCookie("inoveesg_token") as string;
+      const responsesPayload = buildResponsesPayload();
+
+      await diagnosticService.submitDiagnostic(token, diagnosticId, false, false, responsesPayload);
+      await refreshProfile();
+      router.push("/app/diagnostico");
+    } catch (err) {
+      console.error("Failed to save diagnostic axis:", err);
+      alert("Erro ao salvar as respostas. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const goPrevious = () => {
     if (isDeclarationStep) {
       setSlideDirection("prev");
@@ -115,26 +191,11 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
     setIsSubmitting(true);
     try {
       const token = getCookie("inoveesg_token") as string;
-      const responsesPayload = model.questions.map((question, index) => {
-        let axisEnum: "ENVIRONMENTAL" | "BIOECONOMY_CIRCULAR" | "SOCIAL" | "GOVERNANCE" = "GOVERNANCE";
-        if (question.axis === "E") axisEnum = "ENVIRONMENTAL";
-        else if (question.axis === "B") axisEnum = "BIOECONOMY_CIRCULAR";
-        else if (question.axis === "S") axisEnum = "SOCIAL";
 
-        return {
-          questionCode: question.id,
-          questionOrder: index + 1,
-          axis: axisEnum,
-          questionText: question.prompt,
-          questionType: question.options ? ("MULTIPLE_CHOICE" as const) : ("TEXT" as const),
-          answerText: answers[question.id] || "",
-          options: question.options,
-        };
-      });
-
-      await diagnosticService.submitDiagnostic(token, diagnosticId, declarationAccepted, responsesPayload);
+      await diagnosticService.submitDiagnostic(token, diagnosticId, declarationAccepted, true);
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem("inoveesg:diagnostic-start");
+        window.sessionStorage.removeItem(`inoveesg:diagnostic-answers-${diagnosticId}`);
       }
       await refreshProfile();
       router.push("/app/resultados");
@@ -151,7 +212,33 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
       ? "animate-in fade-in slide-in-from-right-6 duration-300"
       : "animate-in fade-in slide-in-from-left-6 duration-300";
 
-  if (isDeclarationStep) {
+    if (isDeclarationStep) {
+    if (!isFinalFlow) {
+      return (
+        <div className="mx-auto max-w-xl text-center space-y-6 py-12 animate-in fade-in zoom-in-95 duration-300">
+          <div className="inline-flex size-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">
+            <CircleCheckBig className="size-10" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Prova Concluída!</h1>
+            <p className="text-base text-slate-600">
+              Você concluiu a prova de <span className="font-semibold text-slate-800">{axisInfo.label}</span>. Salve agora para registrar as respostas no banco.
+            </p>
+          </div>
+
+          <div className="pt-6 border-t border-slate-100 flex justify-center">
+            <Button
+              onClick={saveCurrentAxis}
+              disabled={isSubmitting}
+              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 border-none disabled:opacity-50"
+            >
+              {isSubmitting ? "Salvando..." : "Finalizar e voltar ao painel"}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="space-y-4 border-b border-border/70 pb-5">
@@ -177,15 +264,6 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
               <div className="h-full rounded-full bg-emerald-600 transition-all duration-300" style={{ width: "100%" }} />
             </div>
 
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!isComplete || !declarationAccepted || isSubmitting}
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Concluir diagnóstico"
-            >
-              <CircleCheckBig className="size-4" />
-            </button>
           </div>
         </div>
 
@@ -243,14 +321,14 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
 
           <div className="mt-6 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-foreground/55">
-              Esta é a última etapa antes de salvar e calcular o diagnóstico.
+              Esta é a última etapa antes de enviar as respostas, salvar no banco e calcular o diagnóstico.
             </p>
             <Button
               onClick={handleSubmit}
               disabled={!isComplete || !declarationAccepted || isSubmitting}
               className="h-11 rounded-xl bg-emerald-600 px-6 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? "Enviando..." : "Concluir diagnóstico"}
+              {isSubmitting ? "Enviando..." : "Confirmar envio de respostas"}
             </Button>
           </div>
 
@@ -392,6 +470,23 @@ export function DiagnosticRunView({ model, diagnosticId }: { model: DiagnosticRu
               className="h-11 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Próxima etapa
+            </Button>
+          </div>
+        )}
+
+        {isComplete && currentIndex < lastQuestionIndex && (
+          <div className="mt-6 flex flex-col items-center justify-between border-t border-border/70 pt-4 sm:flex-row gap-3">
+            <p className="text-xs text-foreground/55">
+              Todas as {model.total} perguntas deste diagnóstico já foram respondidas.
+            </p>
+            <Button
+              onClick={() => {
+                setSlideDirection("next");
+                setCurrentIndex(model.questions.length);
+              }}
+              className="h-11 rounded-xl bg-emerald-600 px-6 text-white hover:bg-emerald-700 font-semibold"
+            >
+              Finalizar
             </Button>
           </div>
         )}

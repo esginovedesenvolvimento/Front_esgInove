@@ -53,4 +53,15 @@ export const authService = {
       },
     });
   },
+
+  updateProfile(token: string, payload: any) {
+    return request<any>("/auth/profile", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
 };
+

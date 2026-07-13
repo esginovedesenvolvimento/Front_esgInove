@@ -39,6 +39,7 @@ export interface OrderItem {
   product: {
     name: string;
     code: string;
+    description?: string | null;
   };
   metadata?: any;
 }
@@ -81,6 +82,16 @@ interface UserProfile {
       phone?: string | null;
       primaryEmail?: string;
       industrySegment?: string;
+      businessCategoryId?: string | null;
+      businessSegmentId?: string | null;
+      businessCategory?: {
+        code: string;
+        name: string;
+      } | null;
+      businessSegment?: {
+        code: string;
+        name: string;
+      } | null;
       enderecoCompleto?: string | null;
       municipioEstado?: string | null;
       redesSociais?: string | null;
@@ -89,6 +100,8 @@ interface UserProfile {
       tempoOperacao?: string | null;
       alcanceMercado?: string | null;
       site?: string | null;
+      website?: string | null;
+      createdAt?: string | Date;
       roles: OrganizationRole[];
       subscriptions: Subscription[];
       entitlements: OrganizationEntitlement[];
@@ -164,7 +177,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   
   const hasOnlyPreDiagnostic = (hasActiveDiagnostic && 
     !hasActivePlan && 
-    company?.subjectDiagnostics?.every(d => d.kind === "PRE_DIAGNOSTIC" || d.kind === "SUPPLIER_DIAGNOSTIC")) ?? false;
+    !isSupplierOnly) ?? false;
 
   const isUnpaid = !hasActivePlan && activeEntitlements.length === 0 && !hasActiveDiagnostic && !hasInviteAccess;
 

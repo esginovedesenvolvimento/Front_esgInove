@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, Sparkles, AlertCircle, ShoppingBag, Loader2 } from "lucide-react";
 import { getCookie } from "cookies-next";
 import { inviteService } from "../../services/invite.service";
+import { checkoutService } from "../../services/checkout.service";
 import { SupplierStatsSummary } from "./supplier-stats-summary";
 import { Button } from "@/components/ui/button";
 
@@ -81,7 +82,7 @@ export function InvitePurchaseModal({
         throw new Error("Sessão expirada. Faça login novamente.");
       }
 
-      const response = await inviteService.simulateInvitePurchase(token, quantity, "standard");
+      const response = await checkoutService.createPreference(token, "INVITE_PACK", quantity);
       
       if (response.checkoutUrl) {
         const pendingItem = {
