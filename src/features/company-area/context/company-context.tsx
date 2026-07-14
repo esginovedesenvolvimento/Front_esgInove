@@ -92,6 +92,7 @@ interface UserProfile {
         code: string;
         name: string;
       } | null;
+      specificActivity?: string | null;
       enderecoCompleto?: string | null;
       municipioEstado?: string | null;
       redesSociais?: string | null;

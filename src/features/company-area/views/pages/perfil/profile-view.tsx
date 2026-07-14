@@ -67,6 +67,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
     industrySegment: "",
     businessCategoryCode: "",
     businessSegmentCode: "",
+    specificActivity: "",
     enderecoCompleto: "",
     municipioEstado: "",
     website: "",
@@ -86,6 +87,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
       industrySegment: company?.industrySegment || "",
       businessCategoryCode: company?.businessCategory?.code || "",
       businessSegmentCode: company?.businessSegment?.code || "",
+      specificActivity: company?.specificActivity || "",
       enderecoCompleto: company?.enderecoCompleto || "",
       municipioEstado: company?.municipioEstado || "",
       website: company?.website || "",
@@ -309,7 +311,8 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                       ...companyForm,
                       businessCategoryCode: catCode,
                       businessSegmentCode: "",
-                      industrySegment: ""
+                      industrySegment: "",
+                      specificActivity: ""
                     });
                   }}
                   className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
@@ -331,7 +334,8 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                     setCompanyForm({
                       ...companyForm,
                       businessSegmentCode: segCode,
-                      industrySegment: segName
+                      industrySegment: segName,
+                      specificActivity: ""
                     });
                   }}
                   className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 disabled:opacity-50"
@@ -344,6 +348,17 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                   }
                 </select>
               </div>
+              {companyForm.businessSegmentCode && (
+                <div className="space-y-1 md:col-span-2 animate-fade-in">
+                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Atividade Específica (ex: café, cana-de-açúcar)</span>
+                  <input
+                    type="text"
+                    value={companyForm.specificActivity}
+                    onChange={(e) => setCompanyForm({ ...companyForm, specificActivity: e.target.value })}
+                    className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+              )}
               <div className="space-y-1 md:col-span-2">
                 <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Endereço Completo</span>
                 <input
@@ -454,6 +469,14 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                     : company?.industrySegment || "N/A"}
                 </p>
               </div>
+              {company?.specificActivity && (
+                <div className="space-y-1 md:col-span-2">
+                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Atividade Específica</span>
+                  <p className="text-sm font-semibold text-slate-700 bg-white/40 border border-slate-100 px-3 py-2 rounded-xl">
+                    {company.specificActivity}
+                  </p>
+                </div>
+              )}
               <div className="space-y-1 md:col-span-2">
                 <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Endereço Completo</span>
                 <p className="text-sm font-semibold text-slate-700 bg-white/40 border border-slate-100 px-3 py-2 rounded-xl">

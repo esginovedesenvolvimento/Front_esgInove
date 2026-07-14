@@ -20,6 +20,7 @@ export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliers
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [availableInvites, setAvailableInvites] = useState<number | null>(null);
+  const [hasLoadedInviteBalance, setHasLoadedInviteBalance] = useState(false);
 
    const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -48,8 +49,10 @@ export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliers
   };
 
   // Dynamic invitation links
-  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/+$/, "") ?? "";
-  const inviteUrl = `${frontendUrl || ""}/convite/fornecedor?ref=${company?.id || ""}`;
+  const frontendUrl =
+    process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/+$/, "") ??
+    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+  const inviteUrl = `${frontendUrl}/convite/fornecedor?ref=${company?.id || ""}`;
 
   const readyMessage = `Prezado parceiro,
 
@@ -65,9 +68,11 @@ Agradecemos a parceria de sempre!`;
       const token = getCookie("inoveesg_token") as string;
       if (!token) {
         setIsLoading(false);
+        setHasLoadedInviteBalance(true);
         return;
       }
       setIsLoading(true);
+      setHasLoadedInviteBalance(false);
       try {
         const data = await inviteService.listInvites(token);
         setInvites(data);
@@ -78,6 +83,7 @@ Agradecemos a parceria de sempre!`;
         console.error("Error loading invites:", err);
       } finally {
         setIsLoading(false);
+        setHasLoadedInviteBalance(true);
       }
     }
     loadInvites();
@@ -113,6 +119,8 @@ Agradecemos a parceria de sempre!`;
     return "pendente";
   }
 
+  const canInviteSupplier = hasLoadedInviteBalance && (availableInvites ?? 0) > 0;
+
   return (
     <div className="space-y-7">
       <SectionHeading
@@ -128,7 +136,7 @@ Agradecemos a parceria de sempre!`;
             >
               Comprar convites
             </Button>
-            {!(availableInvites !== null && availableInvites <= 0) && (
+            {canInviteSupplier && (
               <Button 
                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold"
                 onClick={() => setIsInviteModalOpen(true)}
@@ -157,7 +165,7 @@ Agradecemos a parceria de sempre!`;
             Você ainda não convidou nenhum fornecedor para realizar o diagnóstico ESG. Comece a monitorar a conformidade de seus parceiros agora mesmo.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            {!(availableInvites !== null && availableInvites <= 0) && (
+            {canInviteSupplier && (
               <Button
                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 font-semibold"
                 onClick={() => setIsInviteModalOpen(true)}

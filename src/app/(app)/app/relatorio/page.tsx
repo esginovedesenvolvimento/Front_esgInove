@@ -6,10 +6,13 @@ import { getCookie } from "cookies-next";
 import { getReportViewModel } from "@/features/company-area/controllers/report.controller";
 import { ReportView } from "@/features/company-area/views/pages/relatorio/report-view";
 import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
+import { useCompany } from "@/features/company-area/context/company-context";
 
 export default function ReportPage() {
   const searchParams = useSearchParams();
   const reportType = searchParams.get("type") || "pre"; // 'pre' or 'audited'
+  const { company } = useCompany();
+  const isSupplierOrg = company?.roles?.some((role) => role.role === "SUPPLIER") ?? false;
   
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,20 +98,33 @@ export default function ReportPage() {
     const finalScore = reportType === "audited" ? provenOverall : overallScore;
 
     if (maturityEnum) {
-      const map: Record<string, string> = {
-        NASCENT: "Nível 1 - Inicial",
-        DEVELOPING: "Nível 2 - Básico",
-        ESTABLISHED: "Nível 3 - Estruturado",
-        MANAGED: "Nível 4 - Avançado",
-        OPTIMIZED: "Nível 5 - Líder",
-      };
-      maturityLabel = map[maturityEnum] || maturityLabel;
+      if (isSupplierOrg && dbDiagnostic?.supplierDisplay?.maturityLabel) {
+        maturityLabel = dbDiagnostic.supplierDisplay.maturityLabel;
+      } else {
+        const map: Record<string, string> = {
+          NASCENT: "Nível 1 - Inicial",
+          DEVELOPING: "Nível 2 - Básico",
+          ESTABLISHED: "Nível 3 - Estruturado",
+          MANAGED: "Nível 4 - Avançado",
+          OPTIMIZED: "Nível 5 - Líder",
+        };
+        maturityLabel = map[maturityEnum] || maturityLabel;
+      }
     } else {
-      if (finalScore >= 85) maturityLabel = "Nível 5 - Líder";
-      else if (finalScore >= 70) maturityLabel = "Nível 4 - Avançado";
-      else if (finalScore >= 50) maturityLabel = "Nível 3 - Estruturado";
-      else if (finalScore >= 30) maturityLabel = "Nível 2 - Básico";
-      else maturityLabel = "Nível 1 - Inicial";
+      if (isSupplierOrg) {
+        const supplierStars = Math.max(0, Math.min(2, Math.round((finalScore / 20) * 2) / 2));
+        if (supplierStars >= 2) maturityLabel = "Nível 2 — Avançado";
+        else if (supplierStars >= 1.5) maturityLabel = "Nível 1,5 — Estruturado";
+        else if (supplierStars >= 1) maturityLabel = "Nível 1 — Em evolução";
+        else if (supplierStars >= 0.5) maturityLabel = "Nível 0,5 — Básico";
+        else maturityLabel = "Nível 0 — Inicial";
+      } else {
+        if (finalScore >= 85) maturityLabel = "Nível 5 - Líder";
+        else if (finalScore >= 70) maturityLabel = "Nível 4 - Avançado";
+        else if (finalScore >= 50) maturityLabel = "Nível 3 - Estruturado";
+        else if (finalScore >= 30) maturityLabel = "Nível 2 - Básico";
+        else maturityLabel = "Nível 1 - Inicial";
+      }
     }
 
     baseModel.summary.maturity = maturityLabel;

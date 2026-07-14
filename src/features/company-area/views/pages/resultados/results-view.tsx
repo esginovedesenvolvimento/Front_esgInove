@@ -111,6 +111,14 @@ function getMaturityLabelFromStars(stars: number) {
   return "Nível 1 — Elementar";
 }
 
+function getSupplierRiskLabelFromStars(stars: number) {
+  if (stars >= 2) return "Nível 2 — Básico";
+  if (stars >= 1.5) return "Nível 1,5 — Risco moderado";
+  if (stars >= 1) return "Nível 1 — Risco alto";
+  if (stars >= 0.5) return "Nível 0,5 — Risco muito alto";
+  return "Nível 0 — Altíssimo risco";
+}
+
 function getMaturityLabel(level?: string | null) {
   if (!level) return "Não calculado";
   switch (level.toUpperCase()) {
@@ -130,8 +138,8 @@ function getMaturityLabel(level?: string | null) {
 }
 
 export function ResultsView({ model, history = [] }: { model: ResultsViewModel; history?: DiagnosticHistoryItem[] }) {
-  const { globalScore, globalProvenScore, isPreDiagnostic, axisScores } = model;
-  const hasVerifiedScore = !isPreDiagnostic && globalProvenScore > 0;
+  const { globalScore, globalProvenScore, isPreDiagnostic, axisScores, isSupplierOrg } = model;
+  const hasVerifiedScore = globalProvenScore > 0;
 
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
@@ -228,7 +236,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
       />
 
       {/* ── Status Banner for pre-diagnostic ── */}
-      {isPreDiagnostic && (
+      {!hasVerifiedScore && (
         <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/30 p-5 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent pointer-events-none" />
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -278,35 +286,35 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
             <div>
               <p className="text-xs uppercase tracking-widest text-slate-400 font-extrabold">Score Declarado</p>
               <h3 className="text-base font-black text-slate-800 font-display mt-0.5">
-                {getMaturityLabelFromStars(starsValue)}
+                {isSupplierOrg ? getSupplierRiskLabelFromStars(starsValue) : getMaturityLabelFromStars(starsValue)}
               </h3>
               <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                {isPreDiagnostic ? "Limite do Pré-Diagnóstico: 4.0 estrelas (80%)" : "Maturidade avaliada com sucesso"}
+                {hasVerifiedScore ? "Maturidade avaliada com sucesso" : "Sem evidências comprovadas"}
               </p>
             </div>
             
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                isPreDiagnostic 
+                hasVerifiedScore
                   ? "bg-amber-50 text-amber-850 border-amber-200" 
                   : "bg-emerald-50 text-emerald-850 border-emerald-200"
               }`}>
-                {isPreDiagnostic ? (
+                {hasVerifiedScore ? (
                   <>
-                    <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> Declaratório
+                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Auditado
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Auditado
+                    <AlertTriangle className="w-2.5 h-2.5 text-amber-600" /> Declaratório
                   </>
                 )}
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                isPreDiagnostic 
-                  ? "bg-red-50 text-red-750 border-red-200" 
-                  : "bg-emerald-50 text-emerald-850 border-emerald-200"
+                hasVerifiedScore
+                  ? "bg-emerald-50 text-emerald-850 border-emerald-200" 
+                  : "bg-red-50 text-red-750 border-red-200"
               }`}>
-                Confiança: {isPreDiagnostic ? "Baixo" : "Alto"}
+                Confiança: {hasVerifiedScore ? "Alto" : "Baixo"}
               </span>
             </div>
           </div>
@@ -369,7 +377,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                     <Icon className={`w-4 h-4 ${cfg.color}`} />
                     <h3 className={`text-sm font-bold ${cfg.color}`}>{cfg.label}</h3>
                   </div>
-                  {!isPreDiagnostic && proven > 0 ? (
+                  {proven > 0 ? (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-800">
                       <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Comprovado
                     </span>
@@ -409,455 +417,489 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
         </div>
       </section>
 
-      {/* ── Histórico de Desempenho ── */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            Histórico de Desempenho
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Acompanhe a evolução histórica da maturidade e pontuação ESG da sua empresa.</p>
-        </div>
+      {!isSupplierOrg ? (
+        <>
+          {/* ── Histórico de Desempenho ── */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                Histórico de Desempenho
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">Acompanhe a evolução histórica da maturidade e pontuação ESG da sua empresa.</p>
+            </div>
 
-        {(!history || history.length === 0) ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
-            <FileText className="h-8 w-8 text-slate-300 mb-2" />
-            <p className="text-xs font-bold text-slate-700">Nenhum histórico disponível</p>
-            <p className="text-[11px] text-slate-500 mt-1">Conclua diagnósticos para visualizar sua evolução aqui.</p>
-          </div>
-        ) : (
-          <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-                    <th className="w-10 px-5 py-3"></th>
-                    <th className="px-5 py-3">Data de Conclusão</th>
-                    <th className="px-5 py-3">Tipo</th>
-                    <th className="px-5 py-3 text-center">Ambiental (E)</th>
-                    <th className="px-5 py-3 text-center">Bioeconomia (B)</th>
-                    <th className="px-5 py-3 text-center">Social (S)</th>
-                    <th className="px-5 py-3 text-center">Governança (G)</th>
-                    <th className="px-5 py-3 text-center">Maturidade</th>
-                    <th className="px-5 py-3 text-right">Nota Geral</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {history.map((item) => {
-                    const score = item.score;
-                    const overall = score ? Math.round(Number(score.overallScore || 0)) : 0;
-                    const env = score?.environmentalScore != null ? Math.round(Number(score.environmentalScore)) : null;
-                    const bio = score?.bioeconomyCircularScore != null ? Math.round(Number(score.bioeconomyCircularScore)) : null;
-                    const soc = score?.socialScore != null ? Math.round(Number(score.socialScore)) : null;
-                    const gov = score?.governanceScore != null ? Math.round(Number(score.governanceScore)) : null;
+            {(!history || history.length === 0) ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                <FileText className="h-8 w-8 text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-700">Nenhum histórico disponível</p>
+                <p className="text-[11px] text-slate-500 mt-1">Conclua diagnósticos para visualizar sua evolução aqui.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                        <th className="w-10 px-5 py-3"></th>
+                        <th className="px-5 py-3">Data de Conclusão</th>
+                        <th className="px-5 py-3">Tipo</th>
+                        <th className="px-5 py-3 text-center">Ambiental (E)</th>
+                        <th className="px-5 py-3 text-center">Bioeconomia (B)</th>
+                        <th className="px-5 py-3 text-center">Social (S)</th>
+                        <th className="px-5 py-3 text-center">Governança (G)</th>
+                        <th className="px-5 py-3 text-center">Maturidade</th>
+                        <th className="px-5 py-3 text-right">Nota Geral</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {history.map((item) => {
+                        const score = item.score;
+                        const overall = score ? Math.round(Number(score.overallScore || 0)) : 0;
+                        const env = score?.environmentalScore != null ? Math.round(Number(score.environmentalScore)) : null;
+                        const bio = score?.bioeconomyCircularScore != null ? Math.round(Number(score.bioeconomyCircularScore)) : null;
+                        const soc = score?.socialScore != null ? Math.round(Number(score.socialScore)) : null;
+                        const gov = score?.governanceScore != null ? Math.round(Number(score.governanceScore)) : null;
 
-                    const dateStr = item.completedAt
-                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.completedAt))
-                      : item.createdAt
-                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))
-                      : "—";
+                        const dateStr = item.completedAt
+                          ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.completedAt))
+                          : item.createdAt
+                          ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))
+                          : "—";
 
-                    const isExpanded = expandedDiagnosticId === item.id;
-                    
-                    // Grouping responses compliance metrics
-                    const totalResponses = item.responses?.length || 0;
-                    const highCount = item.responses?.filter(r => (r.score ?? 0) >= 80).length || 0;
-                    const mediumCount = item.responses?.filter(r => (r.score ?? 0) > 0 && (r.score ?? 0) < 80).length || 0;
-                    const lowCount = item.responses?.filter(r => (r.score ?? 0) === 0 || r.score === null).length || 0;
+                        const isExpanded = expandedDiagnosticId === item.id;
+                        
+                        // Grouping responses compliance metrics
+                        const totalResponses = item.responses?.length || 0;
+                        const highCount = item.responses?.filter(r => (r.score ?? 0) >= 80).length || 0;
+                        const mediumCount = item.responses?.filter(r => (r.score ?? 0) > 0 && (r.score ?? 0) < 80).length || 0;
+                        const lowCount = item.responses?.filter(r => (r.score ?? 0) === 0 || r.score === null).length || 0;
 
-                    return (
-                      <Fragment key={item.id}>
-                        <tr className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-5 py-4 text-center whitespace-nowrap">
-                            <button
-                              onClick={() => toggleExpand(item.id)}
-                              className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
-                              title={isExpanded ? "Recolher detalhes" : "Expandir detalhes"}
-                            >
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                          </td>
-                          <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">
-                            {dateStr}
-                          </td>
-                          <td className="px-5 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                              item.kind === "PRE_DIAGNOSTIC"
-                                ? "bg-amber-50 text-amber-800 border-amber-200"
-                                : "bg-emerald-50 text-emerald-800 border-emerald-200"
-                            }`}>
-                              {item.kind === "PRE_DIAGNOSTIC" ? "Pré-Diagnóstico" : "Completo"}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-center whitespace-nowrap">
-                            {env !== null ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
-                                <Leaf className="w-3 h-3" /> {env}%
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="px-5 py-4 text-center whitespace-nowrap">
-                            {bio !== null ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
-                                <Recycle className="w-3 h-3" /> {bio}%
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="px-5 py-4 text-center whitespace-nowrap">
-                            {soc !== null ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
-                                <Heart className="w-3 h-3" /> {soc}%
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="px-5 py-4 text-center whitespace-nowrap">
-                            {gov !== null ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-violet-600">
-                                <Scale className="w-3 h-3" /> {gov}%
-                              </span>
-                            ) : "—"}
-                          </td>
-                          <td className="px-5 py-4 text-center font-medium text-slate-800 whitespace-nowrap">
-                            {score?.maturityLevel ? getMaturityLabel(score.maturityLevel) : "—"}
-                          </td>
-                          <td className="px-5 py-4 text-right whitespace-nowrap">
-                            <span className="font-extrabold text-slate-900 text-sm bg-slate-50 border border-slate-200 rounded px-2 py-1">
-                              {overall}%
-                            </span>
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <tr className="bg-slate-50/30">
-                            <td colSpan={9} className="px-8 py-6 border-b border-slate-200">
-                              <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {/* Left Panel: Pontuação por Pilar (Bar Chart) */}
-                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-                                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                                    <Target className="w-4 h-4 text-emerald-600" />
-                                    Desempenho por Eixo
-                                  </h3>
-                                  <div className="space-y-3 pt-1">
-                                    {/* Ambiental */}
-                                    <div className="space-y-1">
-                                      <div className="flex justify-between text-xs font-medium text-slate-600">
-                                        <span className="flex items-center gap-1.5"><Leaf className="w-3.5 h-3.5 text-emerald-600" /> Ambiental (E)</span>
-                                        <span>{env !== null ? `${env}%` : "—"}</span>
-                                      </div>
-                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                                        <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${env ?? 0}%` }} />
-                                      </div>
-                                    </div>
-                                    {/* Bioeconomia */}
-                                    <div className="space-y-1">
-                                      <div className="flex justify-between text-xs font-medium text-slate-600">
-                                        <span className="flex items-center gap-1.5"><Recycle className="w-3.5 h-3.5 text-amber-600" /> Bioeconomia (B)</span>
-                                        <span>{bio !== null ? `${bio}%` : "—"}</span>
-                                      </div>
-                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                                        <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${bio ?? 0}%` }} />
-                                      </div>
-                                    </div>
-                                    {/* Social */}
-                                    <div className="space-y-1">
-                                      <div className="flex justify-between text-xs font-medium text-slate-600">
-                                        <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-blue-600" /> Social (S)</span>
-                                        <span>{soc !== null ? `${soc}%` : "—"}</span>
-                                      </div>
-                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                                        <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${soc ?? 0}%` }} />
-                                      </div>
-                                    </div>
-                                    {/* Governança */}
-                                    <div className="space-y-1">
-                                      <div className="flex justify-between text-xs font-medium text-slate-600">
-                                        <span className="flex items-center gap-1.5"><Scale className="w-3.5 h-3.5 text-violet-600" /> Governança (G)</span>
-                                        <span>{gov !== null ? `${gov}%` : "—"}</span>
-                                      </div>
-                                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                                        <div className="h-full rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${gov ?? 0}%` }} />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Right Panel: Resumo das Respostas */}
-                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-                                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                                    Resumo de Conformidade das Respostas
-                                  </h3>
-                                  {totalResponses === 0 ? (
-                                    <p className="text-xs text-slate-500 italic py-6 text-center">Nenhuma resposta detalhada registrada para este diagnóstico.</p>
-                                  ) : (
-                                    <div className="space-y-4 pt-1">
-                                      <div className="flex items-center justify-between text-xs text-slate-600">
-                                        <span>Total de Questões Respondidas</span>
-                                        <span className="font-semibold text-slate-900">{totalResponses}</span>
-                                      </div>
-                                      
-                                      {/* Compliance Progress Bars */}
-                                      <div className="space-y-2">
-                                        <div className="space-y-0.5">
-                                          <div className="flex justify-between text-[11px] text-slate-500">
-                                            <span>Conformidade Alta (score ≥ 80%)</span>
-                                            <span className="font-medium text-slate-700">{highCount} ({Math.round((highCount / totalResponses) * 100)}%)</span>
+                        return (
+                          <Fragment key={item.id}>
+                            <tr className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-5 py-4 text-center whitespace-nowrap">
+                                <button
+                                  onClick={() => toggleExpand(item.id)}
+                                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                                  title={isExpanded ? "Recolher detalhes" : "Expandir detalhes"}
+                                >
+                                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                              </td>
+                              <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                {dateStr}
+                              </td>
+                              <td className="px-5 py-4 whitespace-nowrap">
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                  item.kind === "PRE_DIAGNOSTIC"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                                    : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                }`}>
+                                  {item.kind === "PRE_DIAGNOSTIC" ? "Pré-Diagnóstico" : "Completo"}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4 text-center whitespace-nowrap">
+                                {env !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                                    <Leaf className="w-3 h-3" /> {env}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-5 py-4 text-center whitespace-nowrap">
+                                {bio !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
+                                    <Recycle className="w-3 h-3" /> {bio}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-5 py-4 text-center whitespace-nowrap">
+                                {soc !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
+                                    <Heart className="w-3 h-3" /> {soc}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-5 py-4 text-center whitespace-nowrap">
+                                {gov !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-violet-600">
+                                    <Scale className="w-3 h-3" /> {gov}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-5 py-4 text-center font-medium text-slate-800 whitespace-nowrap">
+                                {score?.maturityLevel ? getMaturityLabel(score.maturityLevel) : "—"}
+                              </td>
+                              <td className="px-5 py-4 text-right whitespace-nowrap">
+                                <span className="font-extrabold text-slate-900 text-sm bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                                  {overall}%
+                                </span>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-slate-50/30">
+                                <td colSpan={9} className="px-8 py-6 border-b border-slate-200">
+                                  <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    {/* Left Panel: Pontuação por Pilar (Bar Chart) */}
+                                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                        <Target className="w-4 h-4 text-emerald-600" />
+                                        Desempenho por Eixo
+                                      </h3>
+                                      <div className="space-y-3 pt-1">
+                                        {/* Ambiental */}
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between text-xs font-medium text-slate-600">
+                                            <span className="flex items-center gap-1.5"><Leaf className="w-3.5 h-3.5 text-emerald-600" /> Ambiental (E)</span>
+                                            <span>{env !== null ? `${env}%` : "—"}</span>
                                           </div>
-                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
-                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(highCount / totalResponses) * 100}%` }} />
+                                          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${env ?? 0}%` }} />
                                           </div>
                                         </div>
-                                        <div className="space-y-0.5">
-                                          <div className="flex justify-between text-[11px] text-slate-500">
-                                            <span>Conformidade Parcial (0 &lt; score &lt; 80%)</span>
-                                            <span className="font-medium text-slate-700">{mediumCount} ({Math.round((mediumCount / totalResponses) * 100)}%)</span>
+                                        {/* Bioeconomia */}
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between text-xs font-medium text-slate-600">
+                                            <span className="flex items-center gap-1.5"><Recycle className="w-3.5 h-3.5 text-amber-600" /> Bioeconomia (B)</span>
+                                            <span>{bio !== null ? `${bio}%` : "—"}</span>
                                           </div>
-                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
-                                            <div className="h-full rounded-full bg-amber-500" style={{ width: `${(mediumCount / totalResponses) * 100}%` }} />
+                                          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${bio ?? 0}%` }} />
                                           </div>
                                         </div>
-                                        <div className="space-y-0.5">
-                                          <div className="flex justify-between text-[11px] text-slate-500">
-                                            <span>Sem Conformidade (score = 0%)</span>
-                                            <span className="font-medium text-slate-700">{lowCount} ({Math.round((lowCount / totalResponses) * 100)}%)</span>
+                                        {/* Social */}
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between text-xs font-medium text-slate-600">
+                                            <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-blue-600" /> Social (S)</span>
+                                            <span>{soc !== null ? `${soc}%` : "—"}</span>
                                           </div>
-                                          <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
-                                            <div className="h-full rounded-full bg-rose-500" style={{ width: `${(lowCount / totalResponses) * 100}%` }} />
+                                          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${soc ?? 0}%` }} />
+                                          </div>
+                                        </div>
+                                        {/* Governança */}
+                                        <div className="space-y-1">
+                                          <div className="flex justify-between text-xs font-medium text-slate-600">
+                                            <span className="flex items-center gap-1.5"><Scale className="w-3.5 h-3.5 text-violet-600" /> Governança (G)</span>
+                                            <span>{gov !== null ? `${gov}%` : "—"}</span>
+                                          </div>
+                                          <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                            <div className="h-full rounded-full bg-violet-500 transition-all duration-500" style={{ width: `${gov ?? 0}%` }} />
                                           </div>
                                         </div>
                                       </div>
                                     </div>
-                                  )}
-                                </div>
 
-                                {/* Detailed Response List */}
-                                {totalResponses > 0 && (
-                                  <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                                      <FileText className="w-4 h-4 text-slate-500" />
-                                      Questões e Respostas Registradas
-                                    </h3>
-                                    <div className="max-h-60 overflow-y-auto border border-slate-100 rounded-lg divide-y divide-slate-100 scrollbar-thin">
-                                      {item.responses?.map((res, idx) => {
-                                        const axisName = res.axis === "ENVIRONMENTAL" ? "Ambiental" : res.axis === "BIOECONOMY_CIRCULAR" ? "Bioeconomia" : res.axis === "SOCIAL" ? "Social" : "Governança";
-                                        const axisColor = res.axis === "ENVIRONMENTAL" ? "text-emerald-600 bg-emerald-50 border-emerald-100" : res.axis === "BIOECONOMY_CIRCULAR" ? "text-amber-600 bg-amber-50 border-amber-100" : res.axis === "SOCIAL" ? "text-blue-600 bg-blue-50 border-blue-100" : "text-violet-600 bg-violet-50 border-violet-100";
-                                        return (
-                                          <div key={res.id || idx} className="p-3 text-[11px] flex flex-col sm:flex-row sm:items-start justify-between gap-3 hover:bg-slate-50/50">
-                                            <div className="space-y-1 max-w-[80%]">
-                                              <div className="flex items-center gap-2">
-                                                <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${axisColor}`}>
-                                                  {axisName}
-                                                </span>
-                                                <span className="text-slate-400 font-semibold">Questão {idx + 1}</span>
+                                    {/* Right Panel: Resumo das Respostas */}
+                                    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                        Resumo de Conformidade das Respostas
+                                      </h3>
+                                      {totalResponses === 0 ? (
+                                        <p className="text-xs text-slate-500 italic py-6 text-center">Nenhuma resposta detalhada registrada para este diagnóstico.</p>
+                                      ) : (
+                                        <div className="space-y-4 pt-1">
+                                          <div className="flex items-center justify-between text-xs text-slate-600">
+                                            <span>Total de Questões Respondidas</span>
+                                            <span className="font-semibold text-slate-900">{totalResponses}</span>
+                                          </div>
+                                          
+                                          {/* Compliance Progress Bars */}
+                                          <div className="space-y-2">
+                                            <div className="space-y-0.5">
+                                              <div className="flex justify-between text-[11px] text-slate-500">
+                                                <span>Conformidade Alta (score ≥ 80%)</span>
+                                                <span className="font-medium text-slate-700">{highCount} ({Math.round((highCount / totalResponses) * 100)}%)</span>
                                               </div>
-                                              <p className="font-medium text-slate-800">{res.questionText}</p>
-                                              <p className="text-slate-600 mt-1">
-                                                Resposta: <span className="font-semibold text-slate-900">{res.answerText || "—"}</span>
-                                              </p>
+                                              <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(highCount / totalResponses) * 100}%` }} />
+                                              </div>
                                             </div>
-                                            <div className="shrink-0 flex items-center gap-2 self-end sm:self-start">
-                                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                                                (res.score ?? 0) >= 80 
-                                                  ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
-                                                  : (res.score ?? 0) > 0 
-                                                    ? "bg-amber-50 border-amber-200 text-amber-800" 
-                                                    : "bg-rose-50 border-rose-200 text-rose-800"
-                                              }`}>
-                                                Pontuação: {res.score ?? 0}%
-                                              </span>
+                                            <div className="space-y-0.5">
+                                              <div className="flex justify-between text-[11px] text-slate-500">
+                                                <span>Conformidade Parcial (0 &lt; score &lt; 80%)</span>
+                                                <span className="font-medium text-slate-700">{mediumCount} ({Math.round((mediumCount / totalResponses) * 100)}%)</span>
+                                              </div>
+                                              <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                                <div className="h-full rounded-full bg-amber-500" style={{ width: `${(mediumCount / totalResponses) * 100}%` }} />
+                                              </div>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                              <div className="flex justify-between text-[11px] text-slate-500">
+                                                <span>Sem Conformidade (score = 0%)</span>
+                                                <span className="font-medium text-slate-700">{lowCount} ({Math.round((lowCount / totalResponses) * 100)}%)</span>
+                                              </div>
+                                              <div className="h-1.5 w-full rounded-full bg-slate-50 overflow-hidden">
+                                                <div className="h-full rounded-full bg-rose-500" style={{ width: `${(lowCount / totalResponses) * 100}%` }} />
+                                              </div>
                                             </div>
                                           </div>
-                                        );
-                                      })}
+                                        </div>
+                                      )}
                                     </div>
+
+                                    {/* Detailed Response List */}
+                                    {totalResponses > 0 && (
+                                      <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+                                        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                                          <FileText className="w-4 h-4 text-slate-500" />
+                                          Questões e Respostas Registradas
+                                        </h3>
+                                        <div className="max-h-60 overflow-y-auto border border-slate-100 rounded-lg divide-y divide-slate-100 scrollbar-thin">
+                                          {item.responses?.map((res, idx) => {
+                                            const axisName = res.axis === "ENVIRONMENTAL" ? "Ambiental" : res.axis === "BIOECONOMY_CIRCULAR" ? "Bioeconomia" : res.axis === "SOCIAL" ? "Social" : "Governança";
+                                            const axisColor = res.axis === "ENVIRONMENTAL" ? "text-emerald-600 bg-emerald-50 border-emerald-100" : res.axis === "BIOECONOMY_CIRCULAR" ? "text-amber-600 bg-amber-50 border-amber-100" : res.axis === "SOCIAL" ? "text-blue-600 bg-blue-50 border-blue-100" : "text-violet-600 bg-violet-50 border-violet-100";
+                                            return (
+                                              <div key={res.id || idx} className="p-3 text-[11px] flex flex-col sm:flex-row sm:items-start justify-between gap-3 hover:bg-slate-50/50">
+                                                <div className="space-y-1 max-w-[80%]">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border ${axisColor}`}>
+                                                      {axisName}
+                                                    </span>
+                                                    <span className="text-slate-400 font-semibold">Questão {idx + 1}</span>
+                                                  </div>
+                                                  <p className="font-medium text-slate-800">{res.questionText}</p>
+                                                  <p className="text-slate-600 mt-1">
+                                                    Resposta: <span className="font-semibold text-slate-900">{res.answerText || "—"}</span>
+                                                  </p>
+                                                </div>
+                                                <div className="shrink-0 flex items-center gap-2 self-end sm:self-start">
+                                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                    (res.score ?? 0) >= 80 
+                                                      ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                                                      : (res.score ?? 0) > 0 
+                                                        ? "bg-amber-50 border-amber-200 text-amber-800" 
+                                                        : "bg-rose-50 border-rose-200 text-rose-800"
+                                                  }`}>
+                                                    Pontuação: {res.score ?? 0}%
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ── Cadeia de Fornecedores Section ── */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-600" />
+                  Monitoramento ESG da Cadeia de Valor
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Mapeie o risco socioambiental dos seus parceiros de negócios e obtenha a média da cadeia.</p>
+              </div>
+              {invites.length > 0 && (
+                <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 shadow-sm text-xs rounded-xl">
+                  <Link href="/app/fornecedores">
+                    <Plus className="w-3.5 h-3.5" /> Convidar Fornecedor
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            {loadingInvites ? (
+              <div className="flex flex-col items-center justify-center py-10 space-y-3 bg-white border border-slate-200 rounded-2xl">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <p className="text-xs text-slate-400">Carregando dados dos fornecedores...</p>
+              </div>
+            ) : errorInvites ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                <AlertTriangle className="h-8 w-8 text-rose-500 mb-2" />
+                <p className="text-xs font-bold text-slate-700">Erro ao carregar dados dos fornecedores</p>
+                <p className="text-[11px] text-slate-500 mt-1">Verifique sua conexão ou tente novamente.</p>
+              </div>
+            ) : invites.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-4">
+                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full shrink-0">
+                  <Users className="h-6 w-6" />
+                </div>
+                <div className="space-y-1.5 max-w-lg">
+                  <h4 className="text-sm font-bold text-slate-800">Sua cadeia de suprimentos ainda não está cadastrada</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Adquira pacotes de convites para que seus fornecedores possam preencher o questionário ESG gratuitamente. 
+                    Isso permitirá que sua empresa monitore riscos socioambientais de terceiros e calcule o Score ESG médio da cadeia.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center pt-2">
+                  <Button asChild className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-9 text-xs shadow-md shadow-indigo-100">
+                    <Link href="/app/convites/comprar" className="flex items-center gap-1.5">
+                      <Plus className="w-3.5 h-3.5" /> Adquirir Convites
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 h-9 text-xs font-semibold">
+                    <Link href="/app/fornecedores">
+                      Gestão de Convites
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Quick Metrics Bar */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Total Convidados</span>
+                      <p className="text-xl font-black text-slate-800 font-display">{invites.length}</p>
+                    </div>
+                    <Users className="h-7 w-7 text-indigo-500/20" />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Conectados</span>
+                      <p className="text-xl font-black text-indigo-600 font-display">
+                        {invites.filter(i => i.status === "ACCEPTED" || i.supplierOrganizationId != null).length}
+                      </p>
+                    </div>
+                    <Building2 className="h-7 w-7 text-indigo-500/20" />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Respondidos</span>
+                      <p className="text-xl font-black text-emerald-600 font-display">
+                        {invites.filter(i => i.requestedDiagnostics.some(d => d.status === "COMPLETED")).length}
+                      </p>
+                    </div>
+                    <CheckCircle2 className="h-7 w-7 text-emerald-500/20" />
+                  </div>
+                </div>
+
+                {/* List of Suppliers */}
+                <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                          <th className="px-5 py-3">Fornecedor</th>
+                          <th className="px-5 py-3">Segmento</th>
+                          <th className="px-5 py-3">Status do Convite</th>
+                          <th className="px-5 py-3">Diagnóstico</th>
+                          <th className="px-5 py-3 text-right">Nota Geral</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
+                        {invites.map((invite) => {
+                          const completedDiag = invite.requestedDiagnostics.find(d => d.status === "COMPLETED");
+                          const hasCompleted = !!completedDiag;
+                          const hasAccepted = invite.status === "ACCEPTED" || invite.supplierOrganizationId != null;
+
+                          let statusBadge = (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                              Pendente
+                            </span>
+                          );
+                          if (hasCompleted) {
+                            statusBadge = (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                Respondido
+                              </span>
+                            );
+                          } else if (hasAccepted) {
+                            statusBadge = (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-850">
+                                Preenchendo
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <tr key={invite.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="px-5 py-3">
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-slate-800">
+                                    {invite.supplierOrganization?.tradeName || invite.supplierOrganization?.legalName || "Fornecedor Convidado"}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400">{invite.supplierEmail}</p>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3 text-slate-600 font-medium">
+                                {invite.supplierOrganization?.industrySegment || "Geral / Não Informado"}
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                  invite.status === "ACCEPTED" ? "bg-indigo-50 text-indigo-700 border border-indigo-100" :
+                                  invite.status === "SENT" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                  invite.status === "CANCELED" ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                                  "bg-slate-100 text-slate-700"
+                                }`}>
+                                  {invite.status === "ACCEPTED" ? "Conectado" :
+                                   invite.status === "SENT" ? "Enviado" :
+                                   invite.status === "CANCELED" ? "Cancelado" : invite.status}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3">
+                                {statusBadge}
+                              </td>
+                              <td className="px-5 py-3 text-right font-extrabold text-slate-850 text-sm">
+                                {hasCompleted && completedDiag.score?.overallScore != null ? (
+                                  <span className="text-emerald-600 font-display">
+                                    {Math.round(completedDiag.score.overallScore)}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal">—</span>
                                 )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── Cadeia de Fornecedores Section ── */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" />
-              Monitoramento ESG da Cadeia de Valor
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Mapeie o risco socioambiental dos seus parceiros de negócios e obtenha a média da cadeia.</p>
-          </div>
-          {invites.length > 0 && (
-            <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 shadow-sm text-xs rounded-xl">
-              <Link href="/app/fornecedores">
-                <Plus className="w-3.5 h-3.5" /> Convidar Fornecedor
-              </Link>
-            </Button>
-          )}
-        </div>
-
-        {loadingInvites ? (
-          <div className="flex flex-col items-center justify-center py-10 space-y-3 bg-white border border-slate-200 rounded-2xl">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-            <p className="text-xs text-slate-400">Carregando dados dos fornecedores...</p>
-          </div>
-        ) : errorInvites ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl p-6">
-            <AlertTriangle className="h-8 w-8 text-rose-500 mb-2" />
-            <p className="text-xs font-bold text-slate-700">Erro ao carregar dados dos fornecedores</p>
-            <p className="text-[11px] text-slate-500 mt-1">Verifique sua conexão ou tente novamente.</p>
-          </div>
-        ) : invites.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full shrink-0">
-              <Users className="h-6 w-6" />
-            </div>
-            <div className="space-y-1.5 max-w-lg">
-              <h4 className="text-sm font-bold text-slate-800">Sua cadeia de suprimentos ainda não está cadastrada</h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Adquira pacotes de convites para que seus fornecedores possam preencher o questionário ESG gratuitamente. 
-                Isso permitirá que sua empresa monitore riscos socioambientais de terceiros e calcule o Score ESG médio da cadeia.
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        /* ── Card de CTA para análise mais completa do Fornecedor ── */
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 p-8 text-white shadow-xl border border-emerald-500/20 my-6">
+          {/* Decorative glows */}
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+          
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                Destaque-se no Mercado
+              </div>
+              <h3 className="text-xl md:text-2xl font-black font-display tracking-tight">
+                Deseja uma análise ESG completa para sua empresa?
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Como fornecedor, você concluiu a avaliação simplificada. Para acessar um diagnóstico corporativo completo, realizar a auditoria de evidências com o Selo InoveESG verificado, gerar relatórios para novos clientes e alavancar seus indicadores de sustentabilidade, conheça nossas soluções.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center pt-2">
-              <Button asChild className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-9 text-xs shadow-md shadow-indigo-100">
-                <Link href="/app/convites/comprar" className="flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Adquirir Convites
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 h-9 text-xs font-semibold">
-                <Link href="/app/fornecedores">
-                  Gestão de Convites
+            <div className="shrink-0 pt-2 md:pt-0">
+              <Button asChild size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.03] duration-200">
+                <Link href="/app/meus-servicos" className="flex items-center gap-2">
+                  Ver Serviços Disponíveis
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Quick Metrics Bar */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Total Convidados</span>
-                  <p className="text-xl font-black text-slate-800 font-display">{invites.length}</p>
-                </div>
-                <Users className="h-7 w-7 text-indigo-500/20" />
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Conectados</span>
-                  <p className="text-xl font-black text-indigo-600 font-display">
-                    {invites.filter(i => i.status === "ACCEPTED" || i.supplierOrganizationId != null).length}
-                  </p>
-                </div>
-                <Building2 className="h-7 w-7 text-indigo-500/20" />
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Respondidos</span>
-                  <p className="text-xl font-black text-emerald-600 font-display">
-                    {invites.filter(i => i.requestedDiagnostics.some(d => d.status === "COMPLETED")).length}
-                  </p>
-                </div>
-                <CheckCircle2 className="h-7 w-7 text-emerald-500/20" />
-              </div>
-            </div>
-
-            {/* List of Suppliers */}
-            <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-                      <th className="px-5 py-3">Fornecedor</th>
-                      <th className="px-5 py-3">Segmento</th>
-                      <th className="px-5 py-3">Status do Convite</th>
-                      <th className="px-5 py-3">Diagnóstico</th>
-                      <th className="px-5 py-3 text-right">Nota Geral</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
-                    {invites.map((invite) => {
-                      const completedDiag = invite.requestedDiagnostics.find(d => d.status === "COMPLETED");
-                      const hasCompleted = !!completedDiag;
-                      const hasAccepted = invite.status === "ACCEPTED" || invite.supplierOrganizationId != null;
-
-                      let statusBadge = (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                          Pendente
-                        </span>
-                      );
-                      if (hasCompleted) {
-                        statusBadge = (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                            Respondido
-                          </span>
-                        );
-                      } else if (hasAccepted) {
-                        statusBadge = (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-850">
-                            Preenchendo
-                          </span>
-                        );
-                      }
-
-                      return (
-                        <tr key={invite.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-5 py-3">
-                            <div className="space-y-0.5">
-                              <p className="font-bold text-slate-800">
-                                {invite.supplierOrganization?.tradeName || invite.supplierOrganization?.legalName || "Fornecedor Convidado"}
-                              </p>
-                              <p className="text-[10px] text-slate-400">{invite.supplierEmail}</p>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3 text-slate-600 font-medium">
-                            {invite.supplierOrganization?.industrySegment || "Geral / Não Informado"}
-                          </td>
-                          <td className="px-5 py-3">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              invite.status === "ACCEPTED" ? "bg-indigo-50 text-indigo-700 border border-indigo-100" :
-                              invite.status === "SENT" ? "bg-blue-50 text-blue-700 border border-blue-100" :
-                              invite.status === "CANCELED" ? "bg-rose-50 text-rose-700 border border-rose-100" :
-                              "bg-slate-100 text-slate-700"
-                            }`}>
-                              {invite.status === "ACCEPTED" ? "Conectado" :
-                               invite.status === "SENT" ? "Enviado" :
-                               invite.status === "CANCELED" ? "Cancelado" : invite.status}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3">
-                            {statusBadge}
-                          </td>
-                          <td className="px-5 py-3 text-right font-extrabold text-slate-850 text-sm">
-                            {hasCompleted && completedDiag.score?.overallScore != null ? (
-                              <span className="text-emerald-600 font-display">
-                                {Math.round(completedDiag.score.overallScore)}%
-                              </span>
-                            ) : (
-                              <span className="text-slate-300 font-normal">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* ── Relatórios section ── */}
       <section className="space-y-3">

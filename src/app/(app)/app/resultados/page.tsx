@@ -5,11 +5,13 @@ import { getCookie } from "cookies-next";
 import { getResultsViewModel } from "@/features/company-area/controllers/results.controller";
 import { ResultsView } from "@/features/company-area/views/pages/resultados/results-view";
 import { diagnosticService, type DiagnosticHistoryItem } from "@/features/company-area/services/diagnostic.service";
+import { useCompany } from "@/features/company-area/context/company-context";
 
 import { useRouter } from "next/navigation";
 
 export default function ResultsPage() {
   const router = useRouter();
+  const { company, isLoading: companyLoading } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
   const [history, setHistory] = useState<DiagnosticHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,13 +44,15 @@ export default function ResultsPage() {
     loadResults();
   }, []);
 
+  const isSupplierOrg = company?.roles?.some((role) => role.role === "SUPPLIER") ?? false;
+
   useEffect(() => {
     if (!isLoading && (!dbDiagnostic || dbDiagnostic.status !== "COMPLETED")) {
       router.replace("/app/diagnostico");
     }
   }, [isLoading, dbDiagnostic, router]);
 
-  if (isLoading || !dbDiagnostic || dbDiagnostic.status !== "COMPLETED") {
+  if (isLoading || companyLoading || !dbDiagnostic || dbDiagnostic.status !== "COMPLETED") {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
@@ -57,7 +61,7 @@ export default function ResultsPage() {
   }
 
   // Get base model structures
-  const baseModel = getResultsViewModel();
+  const baseModel = getResultsViewModel({ isSupplierOrg });
 
   // If we have diagnostic from DB, override with dynamic real data or aligned fallback mocks!
   if (dbDiagnostic) {
@@ -80,15 +84,20 @@ export default function ResultsPage() {
     baseModel.globalScore = overallScore;
     baseModel.globalProvenScore = globalProven;
     baseModel.isPreDiagnostic = isPreDiagnostic;
+    baseModel.isSupplierOrg = isSupplierOrg;
 
     // Map dynamic axis scores and interpretations based on database scores
     const getInterpretation = (score: number, axis: string) => {
       const axisName = axis === "E" ? "ambiental" : axis === "B" ? "de bioeconomia circular" : axis === "S" ? "social" : "de governança";
-      if (score >= 80) {
+      const excellentThreshold = isSupplierOrg ? 32 : 80;
+      const structuredThreshold = isSupplierOrg ? 24 : 60;
+      const intermediateThreshold = isSupplierOrg ? 16 : 40;
+
+      if (score >= excellentThreshold) {
         return `Excelente maturidade ${axisName}. Práticas avançadas consolidadas com ótimo acompanhamento de metas e indicadores.`;
-      } else if (score >= 60) {
+      } else if (score >= structuredThreshold) {
         return `Desempenho ${axisName} estruturado. Processos em execução regular com oportunidades pontuais de aprimoramento.`;
-      } else if (score >= 40) {
+      } else if (score >= intermediateThreshold) {
         return `Maturidade ${axisName} em nível intermediário. Políticas iniciadas, demandando maior formalização e auditoria.`;
       } else {
         return `Nível ${axisName} crítico/inicial. Alta necessidade de estruturação de processos e conformidade básica.`;

@@ -84,6 +84,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
   const [industrySegment, setIndustrySegment] = useState("");
   const [businessCategoryCode, setBusinessCategoryCode] = useState("");
   const [businessSegmentCode, setBusinessSegmentCode] = useState("");
+  const [specificActivity, setSpecificActivity] = useState("");
   const [numberOfSuppliers, setNumberOfSuppliers] = useState("");
   const [annualRevenue, setAnnualRevenue] = useState("");
 
@@ -130,12 +131,16 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
   };
 
   const formatCpf = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
-      .slice(0, 14);
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    const part1 = digits.slice(0, 3);
+    const part2 = digits.slice(3, 6);
+    const part3 = digits.slice(6, 9);
+    const part4 = digits.slice(9, 11);
+
+    if (digits.length <= 3) return part1;
+    if (digits.length <= 6) return `${part1}.${part2}`;
+    if (digits.length <= 9) return `${part1}.${part2}.${part3}`;
+    return `${part1}.${part2}.${part3}-${part4}`;
   };
 
   const isValidEmail = (e: string) => /\S+@\S+\.\S+/.test(e);
@@ -158,14 +163,14 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
     cnpj.replace(/\D/g, "").length === 14 && 
     enderecoCompleto.trim().length >= 5 &&
     municipioEstado.trim().length >= 2 &&
-    site.trim().length >= 3 &&
     naturezaJuridica !== "" &&
     porte !== "" &&
     size !== "" &&
     tempoOperacao !== "" &&
     alcanceMercado !== "" &&
     businessCategoryCode !== "" &&
-    businessSegmentCode !== "";
+    businessSegmentCode !== "" &&
+    specificActivity.trim().length >= 2;
 
   const isStep3Valid = esgJaPossui.length > 0 && esgInteresse.length > 0;
 
@@ -218,6 +223,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
         industrySegment: industrySegment || undefined,
         businessCategoryCode: businessCategoryCode || undefined,
         businessSegmentCode: businessSegmentCode || undefined,
+        specificActivity: specificActivity || undefined,
         size: size || undefined,
         numberOfSuppliers: numberOfSuppliers || undefined,
         annualRevenue: annualRevenue || undefined,
@@ -228,7 +234,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
         tradeName,
         enderecoCompleto,
         municipioEstado,
-        site,
+        site: site.trim() || undefined,
         redesSociais: redesSociais || undefined,
         naturezaJuridica,
         porte,
@@ -510,12 +516,11 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="site" className="text-xs font-medium text-slate-700">
-                  Site *
+                  Site (opcional)
                 </label>
                 <input
                   id="site"
                   type="text"
-                  required
                   value={site}
                   onChange={(e) => setSite(e.target.value)}
                   placeholder="Ex: www.empresa.com.br"
@@ -657,6 +662,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                     setBusinessCategoryCode(catCode);
                     setBusinessSegmentCode("");
                     setIndustrySegment("");
+                    setSpecificActivity("");
                   }}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
                 >
@@ -681,6 +687,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                     setBusinessSegmentCode(segCode);
                     const segName = BUSINESS_SEGMENTS[businessCategoryCode]?.find((s) => s.code === segCode)?.name || "";
                     setIndustrySegment(segName);
+                    setSpecificActivity("");
                   }}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                 >
@@ -693,6 +700,23 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                 </select>
               </div>
             </div>
+
+            {businessSegmentCode && (
+              <div className="space-y-1.5 animate-fade-in">
+                <label htmlFor="specificActivity" className="text-xs font-medium text-slate-700">
+                  Atividade Específica (ex: café, uva, soja, cana-de-açúcar) *
+                </label>
+                <input
+                  id="specificActivity"
+                  type="text"
+                  required
+                  value={specificActivity}
+                  onChange={(e) => setSpecificActivity(e.target.value)}
+                  placeholder="Digite a atividade específica"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

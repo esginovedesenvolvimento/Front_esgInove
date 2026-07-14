@@ -92,8 +92,11 @@ export function InvitePurchaseModal({
           priceFormatted: formattedPrice
         };
         localStorage.setItem("inoveesg_pending_purchase", JSON.stringify([pendingItem]));
-        
-        window.location.href = response.checkoutUrl;
+
+        const paymentWindow = window.open(response.checkoutUrl, "_blank", "noopener,noreferrer");
+        if (!paymentWindow) {
+          throw new Error("O navegador bloqueou a abertura da nova aba. Permita pop-ups para continuar o pagamento.");
+        }
       } else {
         throw new Error("Falha ao gerar link de checkout.");
       }
@@ -286,6 +289,7 @@ export function InvitePurchaseModal({
             Cancelar
           </Button>
           <Button
+            type="button"
             onClick={handleCheckout}
             disabled={loading}
             className="rounded-full px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-100/50 flex items-center gap-2"

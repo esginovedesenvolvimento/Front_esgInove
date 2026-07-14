@@ -13,6 +13,7 @@ export interface RegisterInput {
   industrySegment?: string;
   businessCategoryCode?: string;
   businessSegmentCode?: string;
+  specificActivity?: string;
   size?: string;
   numberOfSuppliers?: string;
   annualRevenue?: string;
@@ -23,7 +24,7 @@ export interface RegisterInput {
   tradeName: string;
   enderecoCompleto: string;
   municipioEstado: string;
-  site: string;
+  site?: string;
   redesSociais?: string;
   naturezaJuridica: string;
   porte: string;
@@ -38,6 +39,7 @@ export interface AuthOrganization {
   legalName: string;
   tradeName: string | null;
   cnpj: string;
+  specificActivity: string | null;
 }
 
 export interface AuthUser {
