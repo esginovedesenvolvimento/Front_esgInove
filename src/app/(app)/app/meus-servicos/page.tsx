@@ -19,12 +19,14 @@ import {
   ChevronRight,
   TrendingUp,
   AlertCircle,
-  Loader2
+  Loader2,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/features/company-area/context/company-context";
 import { getCookie } from "cookies-next";
 import { inviteService } from "@/features/company-area/services/invite.service";
+import { budgetService } from "@/features/company-area/services/budget.service";
 
 interface PurchasedService {
   id: string;
@@ -38,17 +40,23 @@ interface PurchasedService {
 interface RequestedBudget {
   id: string;
   name: string;
+  code?: string;
   description: string;
   priceFormatted: string;
   requestedAt: string;
-  status: "EM_ANALISE" | "PROPOSTA_ENVIADA" | "NEGOCIACAO";
+  status: "SOLICITADO" | "RESPONDIDO" | "ACEITO" | "RECUSADO" | "EM_ANALISE" | "PROPOSTA_ENVIADA" | "NEGOCIACAO" | "ATIVO";
 }
 
 export default function MeusServicosPage() {
-  const { user, company, isLoading: companyLoading, hasOnlyPreDiagnostic, isUnpaid, isSupplierOnly, hasActivePlan } = useCompany();
+  const { user, company, serviceAccess, isLoading: companyLoading, hasOnlyPreDiagnostic, isUnpaid, isSupplierOnly, hasActivePlan } = useCompany();
   const [purchasedServices, setPurchasedServices] = useState<PurchasedService[]>([]);
   const [requestedBudgets, setRequestedBudgets] = useState<RequestedBudget[]>([]);
   const [isQueryingDb, setIsQueryingDb] = useState(true);
+  const [selectedBudget, setSelectedBudget] = useState<RequestedBudget | null>(null);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [actionStatus, setActionStatus] = useState<"success-accept" | "success-decline" | null>(null);
+  const [loadingBudgetId, setLoadingBudgetId] = useState<string | null>(null);
 
   // Carrega serviços comprados e solicitações de orçamento do localStorage & Banco de Dados
   useEffect(() => {
@@ -73,8 +81,22 @@ export default function MeusServicosPage() {
         console.error("Erro ao carregar dados locais do painel de serviços:", e);
       }
 
-      // Mescla com as compras reais encontradas no banco de dados (retornadas no contexto)
-      if (company.orders) {
+      // Usa o contexto carregado no login como fonte principal dos serviços comprados
+      if (serviceAccess?.purchasedServices?.length) {
+        serviceAccess.purchasedServices.forEach((service) => {
+          const exists = localPurchased.some((s) => s.id === service.serviceId);
+          if (!exists) {
+            localPurchased.push({
+              id: service.serviceId,
+              name: service.name,
+              description: service.description || "",
+              priceFormatted: `R$ ${(service.unitPriceCents / 100).toFixed(2).replace(".", ",")}`,
+              purchasedAt: service.purchasedAt,
+              status: "ATIVO",
+            });
+          }
+        });
+      } else if (company.orders) {
         const paidOrders = company.orders.filter((o) => o.status === "PAID");
         paidOrders.forEach((order) => {
           order.items?.forEach((item) => {
@@ -115,7 +137,7 @@ export default function MeusServicosPage() {
         });
       }
 
-      // Consulta o saldo real de convites no banco de dados
+      // Consulta o saldo real de convites e orçamentos no banco de dados
       const token = getCookie("inoveesg_token") as string;
       if (token) {
         try {
@@ -151,6 +173,26 @@ export default function MeusServicosPage() {
           }
         } catch (error) {
           console.error("Erro ao carregar estatísticas de convites do banco:", error);
+        }
+
+        try {
+          const dbBudgets = await budgetService.listRequests(token);
+          if (Array.isArray(dbBudgets)) {
+            const mappedDbBudgets: RequestedBudget[] = dbBudgets.map((b: any) => ({
+              id: b.id,
+              name: b.product?.name ?? "Solicitação de Orçamento",
+              code: b.product?.code,
+              description: b.product?.description ?? "",
+              priceFormatted: b.product?.service?.basePriceCents 
+                ? `R$ ${(b.product.service.basePriceCents / 100).toFixed(2).replace(".", ",")}`
+                : "Sob consulta",
+              requestedAt: b.createdAt,
+              status: b.status,
+            }));
+            setRequestedBudgets(mappedDbBudgets);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar orçamentos do banco:", error);
         } finally {
           setIsQueryingDb(false);
         }
@@ -162,7 +204,47 @@ export default function MeusServicosPage() {
     };
 
     loadServices();
-  }, [company, companyLoading]);
+  }, [company, companyLoading, serviceAccess]);
+
+  // Escuta retornos do checkout do Mercado Pago
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const error = params.get("error");
+    const pending = params.get("pending");
+
+    if (success === "true") {
+      setActionStatus("success-accept");
+      setIsProposalModalOpen(true);
+      const budgetId = params.get("budgetId");
+      if (budgetId) {
+        const found = requestedBudgets.find(b => b.id === budgetId);
+        if (found) {
+          setSelectedBudget(found);
+        } else {
+          setSelectedBudget({
+            id: budgetId,
+            name: "Serviço Adquirido",
+            description: "",
+            priceFormatted: "",
+            requestedAt: new Date().toISOString(),
+            status: "ATIVO"
+          });
+        }
+      }
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    } else if (error === "true") {
+      alert("Ocorreu um erro ou o pagamento foi cancelado. Tente novamente.");
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    } else if (pending === "true") {
+      alert("Seu pagamento está pendente de aprovação. Assim que for confirmado, o serviço será ativado.");
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [requestedBudgets]);
 
   // Formata data
   const formatDate = (isoString: string) => {
@@ -183,6 +265,96 @@ export default function MeusServicosPage() {
       `Olá! Gostaria de conversar com um consultor sobre o serviço "${serviceName}" contratado na plataforma InoveESG.`
     );
     return `https://wa.me/5511999999999?text=${text}`;
+  };
+
+  // Obter checklist do produto para proposta
+  const getProductChecklist = (code?: string) => {
+    if (code === "full-diagnostic") {
+      return [
+        "Diagnóstico aprofundado nos eixos E, B, S e G",
+        "Mapeamento completo de riscos e oportunidades",
+        "Upload e análise de evidências de sustentabilidade",
+        "Roadmap e plano de ação estruturado",
+        "Selo de verificação de evidências InoveESG"
+      ];
+    }
+    if (code === "diag-consultoria") {
+      return [
+        "Diagnóstico aprofundado nos eixos E, B, S e G",
+        "Mapeamento completo de riscos e oportunidades",
+        "Upload e análise de evidências de sustentabilidade",
+        "Roadmap e plano de ação estruturado",
+        "Selo de verificação de evidências InoveESG",
+        "2 horas de consultoria estratégica com especialista ESG",
+        "Apoio técnico personalizado para tomadas de decisão"
+      ];
+    }
+    if (code === "assessoria-completa") {
+      return [
+        "Diagnóstico aprofundado nos eixos E, B, S e G",
+        "Mapeamento completo de riscos e oportunidades",
+        "Selo de verificação de evidências InoveESG",
+        "Reuniões mensais de assessoria e acompanhamento",
+        "Avaliação trimestral da cadeia de fornecedores",
+        "Relatório anual consolidado com selo premium"
+      ];
+    }
+    return [
+      "Análise personalizada da demanda",
+      "Direcionamento técnico consultivo",
+      "Suporte prioritário via canais oficiais",
+      "Acompanhamento de entrega do serviço"
+    ];
+  };
+
+  const handleAcceptProposal = async (budgetId: string) => {
+    const token = getCookie("inoveesg_token") as string;
+    if (!token) return;
+    
+    setIsSubmittingAction(true);
+    setLoadingBudgetId(budgetId);
+    try {
+      const response = await budgetService.acceptRequest(budgetId, token);
+      
+      // Update local state
+      setRequestedBudgets(prev => 
+        prev.map(b => b.id === budgetId ? { ...b, status: "ACEITO" } : b)
+      );
+      
+      if (response && response.checkoutUrl) {
+        window.location.href = response.checkoutUrl;
+      } else {
+        setActionStatus("success-accept");
+      }
+    } catch (error) {
+      console.error("Erro ao aceitar proposta:", error);
+      alert("Ocorreu um erro ao aceitar a proposta. Tente novamente ou contate o suporte.");
+    } finally {
+      setIsSubmittingAction(false);
+      setLoadingBudgetId(null);
+    }
+  };
+
+  const handleDeclineProposal = async (budgetId: string) => {
+    const token = getCookie("inoveesg_token") as string;
+    if (!token) return;
+    
+    setIsSubmittingAction(true);
+    try {
+      await budgetService.declineRequest(budgetId, token);
+      
+      // Update local state
+      setRequestedBudgets(prev => 
+        prev.map(b => b.id === budgetId ? { ...b, status: "RECUSADO" } : b)
+      );
+      
+      setActionStatus("success-decline");
+    } catch (error) {
+      console.error("Erro ao recusar proposta:", error);
+      alert("Ocorreu um erro ao recusar a proposta. Tente novamente.");
+    } finally {
+      setIsSubmittingAction(false);
+    }
   };
 
   // Retorna apenas a lista de serviços de fato comprados/ativos no banco de dados
@@ -400,20 +572,73 @@ export default function MeusServicosPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                        req.status === "SOLICITADO" || req.status === "EM_ANALISE"
+                          ? "bg-amber-50 text-amber-700 border-amber-100"
+                          : req.status === "RESPONDIDO" || req.status === "PROPOSTA_ENVIADA"
+                            ? "bg-blue-50 text-blue-700 border-blue-100"
+                            : req.status === "ACEITO"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                              : req.status === "ATIVO"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : req.status === "RECUSADO"
+                                  ? "bg-rose-50 text-rose-700 border-rose-100"
+                                  : "bg-slate-50 text-slate-700 border-slate-100"
+                      }`}>
                         <Clock className="h-2.5 w-2.5" />
-                        Em Análise
+                        {req.status === "SOLICITADO" || req.status === "EM_ANALISE"
+                          ? "Solicitado"
+                          : req.status === "RESPONDIDO" || req.status === "PROPOSTA_ENVIADA"
+                            ? "Respondido"
+                            : req.status === "ACEITO"
+                              ? "Aceito"
+                              : req.status === "ATIVO"
+                                ? "Ativo"
+                                : req.status === "RECUSADO"
+                                  ? "Recusado"
+                                  : "Em negociação"}
                       </span>
                       
-                      <a 
-                        href={getWhatsAppLink(`Proposta: ${req.name}`)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
-                      >
-                        Falar com consultor
-                        <ArrowUpRight className="h-3 w-3" />
-                      </a>
+                      {req.status === "RESPONDIDO" || req.status === "PROPOSTA_ENVIADA" ? (
+                        <button
+                          onClick={() => {
+                            setSelectedBudget(req);
+                            setIsProposalModalOpen(true);
+                          }}
+                          className="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-2.5 rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
+                        >
+                          Ver Proposta
+                          <ArrowUpRight className="h-3 w-3" />
+                        </button>
+                      ) : req.status === "ACEITO" ? (
+                        <button
+                          onClick={() => handleAcceptProposal(req.id)}
+                          disabled={loadingBudgetId === req.id}
+                          className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-2.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loadingBudgetId === req.id ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            <>
+                              Efetuar Pagamento
+                              <ArrowUpRight className="h-3 w-3" />
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <a 
+                          href={getWhatsAppLink(`Proposta: ${req.name}`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-0.5"
+                        >
+                          Falar com consultor
+                          <ArrowUpRight className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -424,6 +649,161 @@ export default function MeusServicosPage() {
         </div>
 
       </div>
+
+      {/* Modal de Proposta */}
+      {isProposalModalOpen && selectedBudget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            onClick={() => {
+              if (!isSubmittingAction) {
+                setIsProposalModalOpen(false);
+                setSelectedBudget(null);
+                setActionStatus(null);
+              }
+            }}
+          />
+
+          {/* Modal Content Container */}
+          <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl animate-in zoom-in-95 duration-200 text-slate-800">
+            
+            {/* Close button */}
+            {!isSubmittingAction && (
+              <button 
+                onClick={() => {
+                  setIsProposalModalOpen(false);
+                  setSelectedBudget(null);
+                  setActionStatus(null);
+                }}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-100 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+
+            {actionStatus === "success-accept" ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 className="h-10 w-10 animate-bounce" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 font-display">Proposta Aceita!</h3>
+                <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                  Agradecemos a confirmação. Nossa equipe entrará em contato nas próximas horas para os próximos passos e agendamento.
+                </p>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => {
+                      setIsProposalModalOpen(false);
+                      setSelectedBudget(null);
+                      setActionStatus(null);
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold h-11"
+                  >
+                    Entendido
+                  </Button>
+                </div>
+              </div>
+            ) : actionStatus === "success-decline" ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-500">
+                  <AlertCircle className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 font-display">Proposta Recusada</h3>
+                <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                  A proposta foi marcada como recusada. Caso mude de ideia ou deseje discutir outras opções, sinta-se à vontade para entrar em contato com nosso time.
+                </p>
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => {
+                      setIsProposalModalOpen(false);
+                      setSelectedBudget(null);
+                      setActionStatus(null);
+                    }}
+                    className="w-full bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold h-11"
+                  >
+                    Fechar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="border-b border-slate-100 pb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                    Proposta Comercial
+                  </span>
+                  <h3 className="text-lg md:text-xl font-bold text-slate-800 font-display mt-1">
+                    {selectedBudget.name}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Solicitado em {formatDate(selectedBudget.requestedAt)}
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Descrição do Escopo</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    {selectedBudget.description || "Descrição de escopo sob análise técnica personalizada."}
+                  </p>
+                </div>
+
+                {/* Checklist */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Itens Inclusos</h4>
+                  <ul className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {getProductChecklist(selectedBudget.code).map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-600">
+                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span className="leading-snug">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Proposal Value */}
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Valor Proposto</p>
+                    <p className="text-2xl font-bold text-emerald-700 font-display mt-0.5">{selectedBudget.priceFormatted}</p>
+                  </div>
+                  <span className="text-[10px] font-medium text-emerald-600 bg-white border border-emerald-200/50 rounded-full px-2.5 py-1">
+                    Faturamento faturado
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button
+                    onClick={() => handleDeclineProposal(selectedBudget.id)}
+                    disabled={isSubmittingAction}
+                    variant="outline"
+                    className="w-full sm:w-1/2 border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-bold h-11"
+                  >
+                    {isSubmittingAction ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Recusar Proposta"
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleAcceptProposal(selectedBudget.id)}
+                    disabled={isSubmittingAction}
+                    className="w-full sm:w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-11 shadow-md shadow-emerald-100"
+                  >
+                    {isSubmittingAction ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Aceitar Proposta"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

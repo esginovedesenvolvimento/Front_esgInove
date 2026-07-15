@@ -2,21 +2,32 @@
 
 import React, { useState, useEffect } from "react";
 import { 
-  Award, ArrowUpRight, ShieldCheck, 
-  Leaf, Users, Scale, Lock, FileText, Recycle
+  ArrowUpRight, ShieldCheck, 
+  Leaf, Users, Scale, Lock, FileText, Recycle, Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { getCookie } from "cookies-next";
 import { diagnosticService } from "../../../services/diagnostic.service";
-import { inviteService } from "../../../services/invite.service";
+import { inviteService, type SupplierInvite } from "../../../services/invite.service";
 import { useCompany } from "../../../context/company-context";
 
+interface DBDiagnostic {
+  status: string;
+  score?: {
+    overallScore?: number | null;
+    environmentalScore?: number | null;
+    bioeconomyCircularScore?: number | null;
+    socialScore?: number | null;
+    governanceScore?: number | null;
+  } | null;
+}
+
 export function PreDiagnosticResultsView() {
-  const { hasInviteAccess } = useCompany();
-  const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
-  const [realSuppliers, setRealSuppliers] = useState<any[]>([]);
+  const { hasInviteAccess, company, isSupplierOnly } = useCompany();
+  const [dbDiagnostic, setDbDiagnostic] = useState<DBDiagnostic | null>(null);
+  const [realSuppliers, setRealSuppliers] = useState<SupplierInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -66,6 +77,11 @@ export function PreDiagnosticResultsView() {
   const socScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
   const govScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
+  // Consulting Access Logic (checks if company has consulting access or scheduled consultancies)
+  const companyRecord = company as Record<string, unknown> | null;
+  const hasConsultingAccess = !!(companyRecord?.hasConsultingAccess || companyRecord?.consultingAccess);
+  const consultingScheduledAt = (companyRecord?.consultingScheduledAt as string | null) || null;
+
   const getPillarDescription = (score: number, pillar: "E" | "B" | "S" | "G") => {
     if (pillar === "E") {
       if (score >= 80) return "Excelente gestão de recursos e eficiência energética. Foco no monitoramento rigoroso e metas de descarbonização.";
@@ -86,47 +102,397 @@ export function PreDiagnosticResultsView() {
     }
   };
 
-  return (
-    <div className="space-y-8 py-4 animate-in fade-in duration-500">
-      
-      {/* ── Banner Principal / Pontuação Geral ─────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
-        <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+  // Helper for supplier risk styling and label
+  const getSupplierRiskLabel = (score: number) => {
+    const stars = score / 20;
+    if (stars >= 4.0) return { label: "Risco Muito Baixo", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" };
+    if (stars >= 3.0) return { label: "Risco Baixo", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" };
+    if (stars >= 2.0) return { label: "Risco Moderado", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" };
+    if (stars >= 1.0) return { label: "Risco Alto", color: "text-rose-500 bg-rose-500/10 border-rose-500/20" };
+    return { label: "Risco Muito Alto", color: "text-red-500 bg-red-500/10 border-red-500/20" };
+  };
+
+  const renderMeusServicosCTA = () => {
+    return (
+      <Card className="border border-emerald-100 bg-gradient-to-br from-emerald-50/30 via-white to-emerald-50/20 shadow-lg rounded-3xl p-6 sm:p-8 relative overflow-hidden transition-all hover:shadow-xl">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="absolute left-0 bottom-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none" />
         
-        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-3 flex-1">
-            <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
-              {isCompleted ? "Diagnóstico Concluído" : "Pré-Diagnóstico ESG Pendente"}
+        <div className="relative z-10 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+          <div className="space-y-4 max-w-2xl">
+            <span className="bg-emerald-100/80 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+              Nossos Serviços
             </span>
-            <h3 className="text-xl sm:text-2xl font-bold">
-              {isCompleted ? "Diagnóstico Piloto ESG" : "Faça seu Pré-Diagnóstico ESG"}
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 font-display">
+              Impulsione o crescimento da sua empresa com práticas ESG
             </h3>
-            <p className="text-slate-400 text-sm max-w-xl leading-relaxed">
-              {isCompleted 
-                ? "Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado."
-                : "Você ainda não concluiu o seu Pré-Diagnóstico. Responda o formulário para calcular a maturidade ESG da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança."
-              }
+            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+              O ESG (Governança Ambiental, Social e Corporativa) não é apenas conformidade, é uma alavanca estratégica de valor para a sua empresa. Veja os principais benefícios:
             </p>
-            {!isCompleted && (
-              <div className="pt-2">
-                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
-                  <Link href="/app/diagnostico" className="flex items-center gap-1.5">
-                    Realizar Pré-Diagnóstico
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="flex items-start gap-2.5">
+                <div className="bg-emerald-100 p-1 rounded-lg text-emerald-600 mt-0.5 shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700">Destaque Comercial</h4>
+                  <p className="text-[11px] text-slate-500">Seja a escolha preferida de grandes clientes que já exigem relatórios ESG de fornecedores.</p>
+                </div>
               </div>
-            )}
+
+              <div className="flex items-start gap-2.5">
+                <div className="bg-emerald-100 p-1 rounded-lg text-emerald-600 mt-0.5 shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700">Redução de Custos</h4>
+                  <p className="text-[11px] text-slate-500">Economize recursos otimizando o consumo de energia, água e reduzindo resíduos.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="bg-emerald-100 p-1 rounded-lg text-emerald-600 mt-0.5 shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700">Mitigação de Riscos</h4>
+                  <p className="text-[11px] text-slate-500">Evite passivos ambientais e multas, garantindo conformidade jurídica.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="bg-emerald-100 p-1 rounded-lg text-emerald-600 mt-0.5 shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700">Acesso a Capital</h4>
+                  <p className="text-[11px] text-slate-500">Facilite a captação de recursos e consiga taxas de juros mais atrativas em bancos.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col items-center md:items-end gap-2 shrink-0">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
-            <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
-              <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
-              <span className="text-sm font-semibold text-slate-500">/ 100</span>
+          
+          <div className="shrink-0 w-full md:w-auto self-stretch md:self-auto flex items-end md:items-center">
+            <Button asChild className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs h-11 px-6 shadow-md transition-all hover:scale-[1.02]">
+              <Link href="/app/meus-servicos" className="flex items-center justify-center gap-2">
+                Acessar Meus Serviços
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  if (isSupplierOnly) {
+    if (!isCompleted) {
+      return (
+        <div className="space-y-6 py-4 animate-in fade-in duration-500">
+          {/* Banner Principal - Realizar Pré-Diagnóstico */}
+          <div className="w-full relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
+            <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+            
+            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 h-full z-20">
+              <div className="space-y-3 flex-1">
+                <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                  Avaliação ESG Pendente
+                </span>
+                <h3 className="text-xl sm:text-2xl font-bold">
+                  Faça sua Avaliação de Risco ESG
+                </h3>
+                <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+                  Você ainda não realizou a sua avaliação. Responda o formulário para calcular a sua pontuação e análise de risco ESG.
+                </p>
+                <div className="pt-2">
+                  <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
+                    <Link href="/app/diagnostico" className="flex items-center gap-1.5">
+                      Realizar Avaliação de Risco
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA para Meus Serviços */}
+          {renderMeusServicosCTA()}
+        </div>
+      );
+    }
+
+    const risk = getSupplierRiskLabel(overallScore);
+
+    return (
+      <div className="space-y-8 py-4 animate-in fade-in duration-500">
+        
+        {/* Banner Principal com nota e risco */}
+        <div className="w-full relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
+          <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+          
+          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 h-full z-20">
+            <div className="space-y-3 flex-1">
+              <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                Diagnóstico Concluído
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold">
+                Diagnóstico Piloto ESG
+              </h3>
+              <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+                Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e sua análise de risco.
+              </p>
+              
+              <div className="pt-2 flex flex-wrap gap-3 items-center">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Análise de Risco:</span>
+                <span className={`text-xs font-bold py-1 px-3 rounded-full border ${risk.color}`}>
+                  {risk.label}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center md:items-end gap-2 shrink-0 self-center md:self-auto">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
+              <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
+                <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
+                <span className="text-sm font-semibold text-slate-500">/ 100</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Distribuição por Pilar ESG */}
+        <div className="space-y-4">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Distribuição por Pilar ESG
+          </h4>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Pilar E - Ambiental */}
+            <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-600">
+                      <Leaf className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-slate-800">Ambiental (E)</CardTitle>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800 font-mono">{envScore}/100</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${envScore}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pilar B - Bioeconomia Circular */}
+            <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-amber-50 p-1.5 rounded-lg text-amber-600">
+                      <Recycle className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-slate-800">Bioeconomia Circular (B)</CardTitle>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800 font-mono">{bioScore}/100</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${bioScore}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pilar S - Social */}
+            <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-slate-800">Social (S)</CardTitle>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800 font-mono">{socScore}/100</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${socScore}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pilar G - Governança */}
+            <Card className="border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden transition-all duration-300 hover:shadow-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-purple-50 p-1.5 rounded-lg text-purple-600">
+                      <Scale className="h-4 w-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-slate-800">Governança (G)</CardTitle>
+                  </div>
+                  <span className="text-sm font-bold text-slate-800 font-mono">{govScore}/100</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${govScore}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* CTA para Meus Serviços */}
+        {renderMeusServicosCTA()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 py-4 animate-in fade-in duration-500">
+      
+      {/* ── Top Section: Banner + Consulting Card ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Banner Principal (2 cols) */}
+        <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
+          <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+          
+          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 h-full z-20">
+            <div className="space-y-3 flex-1">
+              <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                {isCompleted ? "Diagnóstico Concluído" : "Pré-Diagnóstico ESG Pendente"}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold">
+                {isCompleted ? "Diagnóstico Piloto ESG" : "Faça seu Pré-Diagnóstico ESG"}
+              </h3>
+              <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+                {isCompleted 
+                  ? "Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado."
+                  : "Você ainda não concluiu o seu Pré-Diagnóstico. Responda o formulário para calcular a maturidade ESG da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança."
+                }
+              </p>
+              {!isCompleted && (
+                <div className="pt-2">
+                  <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
+                    <Link href="/app/diagnostico" className="flex items-center gap-1.5">
+                      Realizar Pré-Diagnóstico
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col items-center md:items-end gap-2 shrink-0 self-center md:self-auto">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
+              <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
+                <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
+                <span className="text-sm font-semibold text-slate-500">/ 100</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card de Consultoria (1 col) */}
+        {hasConsultingAccess ? (
+          <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
+            <div className="space-y-3">
+              <span className="bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                Consultoria Ativa
+              </span>
+              <h3 className="text-base font-bold text-slate-800">Sua Consultoria ESG</h3>
+              {consultingScheduledAt ? (
+                <div className="space-y-3 pt-1">
+                  <p className="text-slate-500 text-xs leading-relaxed">
+                    Você possui uma sessão agendada com nossos especialistas.
+                  </p>
+                  <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                      <Calendar className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">Horário Agendado</p>
+                      <p className="text-[10px] text-slate-500">
+                        {new Date(consultingScheduledAt).toLocaleDateString("pt-BR", {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })} às {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-slate-500 text-xs leading-relaxed">
+                    Você tem direito a uma consultoria especializada individual. Agende seu horário para validar suas práticas.
+                  </p>
+                  <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg inline-block">
+                    Aguardando Agendamento
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4">
+              <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 transition-all">
+                <Link href="/app/consultoria" className="flex items-center justify-center gap-1.5">
+                  {consultingScheduledAt ? "Acessar Detalhes" : "Agendar Horário"}
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1px] z-10" />
+            
+            <div className="space-y-3 relative z-20">
+              <div className="flex justify-between items-start">
+                <span className="bg-slate-200/80 border border-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                  Consultoria ESG
+                </span>
+                <div className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-100">
+                  <Lock className="h-3.5 w-3.5 text-slate-400" />
+                </div>
+              </div>
+              <h3 className="text-base font-bold text-slate-400 select-none">Consultoria Especializada</h3>
+              <p className="text-slate-400 text-xs leading-relaxed select-none">
+                Agende sessões individuais com especialistas para validar evidências de conformidade e aprimorar seus indicadores ESG.
+              </p>
+            </div>
+
+            <div className="pt-4 relative z-20">
+              <Button asChild className="w-full bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-xl text-xs h-9 transition-all">
+                <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
+                  Adquirir Consultoria
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        )}
+
       </div>
 
       {/* ── Detalhamento dos Quatro Pilares (E, B, S, G) ─────────────────────────────────── */}
@@ -141,7 +507,7 @@ export function PreDiagnosticResultsView() {
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="bg-emerald-55 p-1.5 rounded-lg text-emerald-600">
+                  <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-600">
                     <Leaf className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-sm font-bold text-slate-800">Ambiental (E)</CardTitle>
@@ -152,12 +518,6 @@ export function PreDiagnosticResultsView() {
             <CardContent className="space-y-4">
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${envScore}%` }} />
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                {getPillarDescription(envScore, "E")}
-              </p>
-              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                🎯 Foco de Ação: Inventário de Emissões de Carbono.
               </div>
             </CardContent>
           </Card>
@@ -180,12 +540,6 @@ export function PreDiagnosticResultsView() {
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${bioScore}%` }} />
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                {getPillarDescription(bioScore, "B")}
-              </p>
-              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                🎯 Foco de Ação: Circularidade de insumos e logística reversa.
-              </div>
             </CardContent>
           </Card>
 
@@ -207,12 +561,6 @@ export function PreDiagnosticResultsView() {
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${socScore}%` }} />
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                {getPillarDescription(socScore, "S")}
-              </p>
-              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                🎯 Foco de Ação: Programa de diversidade formalizado.
-              </div>
             </CardContent>
           </Card>
 
@@ -233,12 +581,6 @@ export function PreDiagnosticResultsView() {
             <CardContent className="space-y-4">
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${govScore}%` }} />
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed min-h-[50px]">
-                {getPillarDescription(govScore, "G")}
-              </p>
-              <div className="text-[10px] bg-slate-50 border border-slate-100/50 p-2 rounded-xl text-slate-600 font-medium">
-                🎯 Foco de Ação: Canal de Ouvidoria com reporte independente.
               </div>
             </CardContent>
           </Card>

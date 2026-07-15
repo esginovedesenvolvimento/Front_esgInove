@@ -1,4 +1,10 @@
-import type { LoginInput, LoginResponse, RegisterInput, RegisterResponse } from "../models/auth.types";
+import type {
+  AuthAccessContext,
+  LoginInput,
+  LoginResponse,
+  RegisterInput,
+  RegisterResponse,
+} from "../models/auth.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -54,6 +60,15 @@ export const authService = {
     });
   },
 
+  getAccessContext(token: string) {
+    return request<AuthAccessContext>("/auth/me/access", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   updateProfile(token: string, payload: any) {
     return request<any>("/auth/profile", {
       method: "PUT",
@@ -64,4 +79,3 @@ export const authService = {
     });
   },
 };
-

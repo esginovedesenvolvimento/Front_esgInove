@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
 import { authService } from "@/features/auth/services/auth.service";
+import type { AuthAccessContext } from "@/features/auth/models/auth.types";
 
 interface OrganizationRole {
   role: "COMPANY" | "SUPPLIER";
@@ -116,6 +117,7 @@ interface UserProfile {
 interface CompanyContextType {
   user: UserProfile | null;
   company: UserProfile["organizationUsers"][0]["organization"] | null;
+  serviceAccess: AuthAccessContext | null;
   isLoading: boolean;
   refreshProfile: () => Promise<void>;
   // Access Control Helpers
@@ -126,6 +128,8 @@ interface CompanyContextType {
   hasCompletedDiagnostic: boolean;
   hasOnlyPreDiagnostic: boolean;
   hasInviteAccess: boolean;
+  hasAssessmentAccess: boolean;
+  hasEvidenceAccess: boolean;
   activeEntitlements: string[];
 }
 
@@ -133,21 +137,38 @@ const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [serviceAccess, setServiceAccess] = useState<AuthAccessContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async () => {
     const token = getCookie("inoveesg_token") as string;
 
     if (!token) {
+      setServiceAccess(null);
       setIsLoading(false);
       return;
     }
 
     try {
-      const data = await authService.getMe(token);
-      setUser(data);
+      const [profileResult, accessResult] = await Promise.allSettled([
+        authService.getMe(token),
+        authService.getAccessContext(token),
+      ]);
+
+      if (profileResult.status === "fulfilled") {
+        setUser(profileResult.value);
+      } else {
+        throw profileResult.reason;
+      }
+
+      if (accessResult.status === "fulfilled") {
+        setServiceAccess(accessResult.value);
+      } else {
+        setServiceAccess(null);
+      }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
+      setServiceAccess(null);
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +185,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const hasActivePlan = activeSubscriptions.length > 0;
   
   const roles = company?.roles?.map(r => r.role) || [];
-  const isSupplierOnly = roles.includes("SUPPLIER") && !roles.includes("COMPANY");
+  const isSupplierOnly = serviceAccess?.isSupplierOnly ?? (roles.includes("SUPPLIER") && !roles.includes("COMPANY"));
   
   const activeEntitlements = company?.entitlements?.map(e => e.featureFlag.code) || [];
   
@@ -172,9 +193,13 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   
   const hasCompletedDiagnostic = company?.subjectDiagnostics?.some(d => d.status === "COMPLETED") || false;
 
-  const hasInviteAccess = (company?.inviteWallet && company.inviteWallet.balance > 0) || 
+  const hasInviteAccess = serviceAccess?.hasInvitePack ||
+    (company?.inviteWallet && company.inviteWallet.balance > 0) || 
     (company?.orders?.some(o => o.orderType === "INVITE_PACK" && o.status === "PAID")) || 
     false;
+
+  const hasAssessmentAccess = serviceAccess?.hasAssessmentAccess ?? false;
+  const hasEvidenceAccess = serviceAccess?.hasEvidenceAccess ?? false;
   
   const hasOnlyPreDiagnostic = (hasActiveDiagnostic && 
     !hasActivePlan && 
@@ -182,10 +207,34 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
 
   const isUnpaid = !hasActivePlan && activeEntitlements.length === 0 && !hasActiveDiagnostic && !hasInviteAccess;
 
+  useEffect(() => {
+    if (user) {
+      console.log("=== Company Area Permissions Log ===");
+      console.log("User:", user);
+      console.log("Company:", company);
+      console.log("Service Access context:", serviceAccess);
+      console.log("Active Subscriptions:", activeSubscriptions);
+      console.log("Active Entitlements:", activeEntitlements);
+      console.log("Roles:", roles);
+      console.log("Flags:", {
+        hasActivePlan,
+        isSupplierOnly,
+        hasActiveDiagnostic,
+        hasCompletedDiagnostic,
+        hasInviteAccess,
+        hasAssessmentAccess,
+        hasEvidenceAccess,
+        hasOnlyPreDiagnostic,
+        isUnpaid
+      });
+    }
+  }, [user, company, serviceAccess]);
+
   return (
     <CompanyContext.Provider value={{ 
       user, 
       company, 
+      serviceAccess,
       isLoading, 
       refreshProfile: fetchProfile,
       hasActivePlan,
@@ -195,6 +244,8 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
       hasCompletedDiagnostic,
       hasOnlyPreDiagnostic,
       hasInviteAccess,
+      hasAssessmentAccess,
+      hasEvidenceAccess,
       activeEntitlements
     }}>
       {children}

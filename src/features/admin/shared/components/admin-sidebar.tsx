@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ChartNoAxesCombined, FileSpreadsheet, FileText, ShieldCheck, Users2 } from "lucide-react";
+import { Building2, ChartNoAxesCombined, FileSpreadsheet, FileText, LogOut, ShieldCheck, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
+import type { AdminSessionUser } from "../server-auth";
 
 const navigation = [
   { href: "/admin", label: "Visão geral", icon: ChartNoAxesCombined },
@@ -14,8 +16,9 @@ const navigation = [
   { href: "/admin/analises", label: "Análises", icon: FileSpreadsheet },
 ] as const;
 
-export function AdminSidebar() {
+export function AdminSidebar({ adminUser }: { adminUser: AdminSessionUser }) {
   const pathname = usePathname();
+  const { logout } = useAuthController();
 
   return (
     <aside className="hidden w-72 shrink-0 border-r border-slate-200/80 bg-slate-950 text-slate-100 lg:flex">
@@ -58,11 +61,21 @@ export function AdminSidebar() {
         <div className="border-t border-white/10 px-6 py-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-              Status da operação
+              Sessão ativa
             </p>
-            <p className="mt-2 text-sm text-slate-200">
-              5 orçamentos pendentes e 32 evidências aguardando revisão.
+            <p className="mt-2 text-sm font-medium text-white">
+              {adminUser.fullName ?? adminUser.email}
             </p>
+            <p className="text-xs text-slate-400">{adminUser.email}</p>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </button>
           </div>
         </div>
       </div>

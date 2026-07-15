@@ -47,6 +47,10 @@ export interface SupplierDiagnostic {
   id: string;
   status: string;
   percentageCompletion?: number;
+  kind?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string | null;
   score?: {
     overallScore: number;
     environmentalScore?: number | null;
@@ -135,6 +139,16 @@ export const inviteService = {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ supplierOrganizationId, endedReason }),
+    });
+  },
+
+  reactivateRelationship(token: string, supplierOrganizationId: string) {
+    return request<any>("/invite/relationship/reactivate", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ supplierOrganizationId }),
     });
   },
 };

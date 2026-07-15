@@ -8,7 +8,7 @@ import { CartSidebar } from "./cart-sidebar";
 import { useCompany } from "../../context/company-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, isLoading } = useCompany();
+  const { user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, isLoading } = useCompany();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -21,6 +21,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (pathname.startsWith("/app/evidencias") && !hasEvidenceAccess) {
+      router.push("/app/upgrade");
+      return;
+    }
+
     // Se o usuário não pagou nada e tentar acessar qualquer rota que não seja o dashboard principal
     if (isUnpaid && pathname !== "/app" && pathname !== "/app/perfil" && pathname !== "/app/meus-servicos") {
       router.push("/app");
@@ -28,26 +33,28 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
 
     // Se o usuário tem apenas pré-diagnóstico e tentar acessar qualquer rota bloqueada
-    if (hasOnlyPreDiagnostic) {
-      const allowedPaths = [
-        "/app",
-        "/app/diagnostico",
-        "/app/perfil",
-        "/app/upgrade",
-        "/app/checkout",
-        "/app/meus-servicos",
-        "/app/fornecedores", // Exceção temporária para teste do fluxo da cadeia
-        "/app/evidencias", // Exceção temporária para testes do fluxo de evidências
-      ];
-      if (hasInviteAccess) {
-        allowedPaths.push("/app/convites");
+      if (hasOnlyPreDiagnostic) {
+        const allowedPaths = [
+          "/app",
+          "/app/diagnostico",
+          "/app/perfil",
+          "/app/upgrade",
+          "/app/checkout",
+          "/app/meus-servicos",
+          "/app/fornecedores", // Exceção temporária para teste do fluxo da cadeia
+        ];
+        if (hasInviteAccess) {
+          allowedPaths.push("/app/convites");
+        }
+        if (hasEvidenceAccess) {
+          allowedPaths.push("/app/evidencias");
+        }
+        const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
+        if (!isAllowed) {
+          router.push("/app/upgrade");
+        }
       }
-      const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
-      if (!isAllowed) {
-        router.push("/app/upgrade");
-      }
-    }
-  }, [user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, isLoading, pathname, router]);
+  }, [user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, isLoading, pathname, router]);
 
   if (isLoading) {
     return (

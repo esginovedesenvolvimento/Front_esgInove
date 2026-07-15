@@ -11,8 +11,7 @@ import { useCompany } from "@/features/company-area/context/company-context";
 export default function ReportPage() {
   const searchParams = useSearchParams();
   const reportType = searchParams.get("type") || "pre"; // 'pre' or 'audited'
-  const { company } = useCompany();
-  const isSupplierOrg = company?.roles?.some((role) => role.role === "SUPPLIER") ?? false;
+  const { isSupplierOnly } = useCompany();
   
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,7 +97,7 @@ export default function ReportPage() {
     const finalScore = reportType === "audited" ? provenOverall : overallScore;
 
     if (maturityEnum) {
-      if (isSupplierOrg && dbDiagnostic?.supplierDisplay?.maturityLabel) {
+      if (isSupplierOnly && dbDiagnostic?.supplierDisplay?.maturityLabel) {
         maturityLabel = dbDiagnostic.supplierDisplay.maturityLabel;
       } else {
         const map: Record<string, string> = {
@@ -111,7 +110,7 @@ export default function ReportPage() {
         maturityLabel = map[maturityEnum] || maturityLabel;
       }
     } else {
-      if (isSupplierOrg) {
+      if (isSupplierOnly) {
         const supplierStars = Math.max(0, Math.min(2, Math.round((finalScore / 20) * 2) / 2));
         if (supplierStars >= 2) maturityLabel = "Nível 2 — Avançado";
         else if (supplierStars >= 1.5) maturityLabel = "Nível 1,5 — Estruturado";

@@ -1,20 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { getSuppliersViewModel } from "../../../controllers/suppliers.controller";
-import { ProgressMeter } from "../../components/progress-meter";
 import { SectionHeading } from "../../components/section-heading";
 import { StatusPill } from "../../components/status-pill";
-import { ChevronDown, ChevronUp, CheckCircle2, X, Loader2, Copy, Send, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2, X, Loader2, Users, MoreVertical, Leaf, Recycle, Heart, Scale } from "lucide-react";
 import { SupplierStatsSummary } from "../../components/supplier-stats-summary";
 import { InvitePurchaseModal } from "../../components/invite-purchase-modal";
 import { getCookie } from "cookies-next";
 import { inviteService, type SupplierInvite } from "../../../services/invite.service";
 import { useCompany } from "../../../context/company-context";
 
-export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliersViewModel> }) {
+export function SuppliersView({ model: _model }: { model: ReturnType<typeof getSuppliersViewModel> }) {
   const { company } = useCompany();
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,12 +20,15 @@ export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliers
   const [availableInvites, setAvailableInvites] = useState<number | null>(null);
   const [hasLoadedInviteBalance, setHasLoadedInviteBalance] = useState(false);
 
-   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [isTerminating, setIsTerminating] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   const handleTerminate = async (supplierOrganizationId: string) => {
     const reason = prompt("Por favor, informe o motivo do encerramento do vínculo (opcional):");
@@ -40,11 +41,29 @@ export function SuppliersView({ model }: { model: ReturnType<typeof getSuppliers
     try {
       await inviteService.terminateRelationship(token, supplierOrganizationId, reason || "Encerrado pelo comprador");
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error terminating relationship:", err);
-      alert(err.message || "Erro ao encerrar relacionamento");
+      const errMsg = err instanceof Error ? err.message : "Erro ao encerrar relacionamento";
+      alert(errMsg);
     } finally {
       setIsTerminating(null);
+    }
+  };
+
+  const handleReactivate = async (supplierOrganizationId: string) => {
+    const token = getCookie("inoveesg_token") as string;
+    if (!token) return;
+
+    setIsReactivating(supplierOrganizationId);
+    try {
+      await inviteService.reactivateRelationship(token, supplierOrganizationId);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err) {
+      console.error("Error reactivating relationship:", err);
+      const errMsg = err instanceof Error ? err.message : "Erro ao reativar relacionamento";
+      alert(errMsg);
+    } finally {
+      setIsReactivating(null);
     }
   };
 
@@ -79,7 +98,7 @@ Agradecemos a parceria de sempre!`;
 
         const statsData = await inviteService.getStats(token);
         setAvailableInvites(statsData.availableInvites);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error loading invites:", err);
       } finally {
         setIsLoading(false);
@@ -98,7 +117,6 @@ Agradecemos a parceria de sempre!`;
   };
 
   function getSupplierStatus(invite: SupplierInvite): "respondido" | "em_andamento" | "convidado" | "expirado" | "pendente" {
-    const hasDiagnostic = invite.requestedDiagnostics.length > 0;
     const diagnostic = invite.requestedDiagnostics[0];
 
     if (diagnostic?.status === "COMPLETED") {
@@ -155,153 +173,312 @@ Agradecemos a parceria de sempre!`;
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-2" />
           <p className="text-sm text-slate-500">Carregando cadeia de fornecedores...</p>
         </div>
-      ) : invites.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 py-16 bg-white/70 backdrop-blur-xl border border-slate-200 rounded-3xl shadow-sm text-center max-w-2xl mx-auto mt-6">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-emerald-100/50">
-            <Users className="h-8 w-8" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800">Conecte sua cadeia de fornecedores</h3>
-          <p className="text-sm text-slate-500 mt-2 max-w-md">
-            Você ainda não convidou nenhum fornecedor para realizar o diagnóstico ESG. Comece a monitorar a conformidade de seus parceiros agora mesmo.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            {canInviteSupplier && (
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 font-semibold"
-                onClick={() => setIsInviteModalOpen(true)}
-              >
-                Enviar Primeiro Convite
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 rounded-full px-6 font-semibold"
-              onClick={() => setIsPurchaseModalOpen(true)}
-            >
-              {availableInvites !== null && availableInvites <= 0 ? "Comprar convites" : "Comprar mais convites"}
-            </Button>
+      ) : (
+        <div className="overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm mt-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="px-5 py-3">Fornecedor</th>
+                  <th className="px-5 py-3">Segmento</th>
+                  <th className="px-5 py-3">Status do Convite</th>
+                  <th className="px-5 py-3 text-center">Amb. (E)</th>
+                  <th className="px-5 py-3 text-center">Bio. (B)</th>
+                  <th className="px-5 py-3 text-center">Soc. (S)</th>
+                  <th className="px-5 py-3 text-center">Gov. (G)</th>
+                  <th className="px-5 py-3 text-right">Nota Geral</th>
+                  <th className="px-5 py-3 text-center">Histórico</th>
+                  <th className="px-5 py-3 text-center w-10">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
+                {invites.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-5 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center max-w-md mx-auto py-6">
+                        <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 shadow-sm border border-emerald-100/50">
+                          <Users className="h-6 w-6" />
+                        </div>
+                        <p className="font-semibold text-slate-700 text-sm">Nenhum fornecedor conectado</p>
+                        <p className="text-slate-500 text-xs mt-1 mb-5 leading-relaxed">
+                          Sua cadeia de fornecedores está vazia. Adquira convites para enviar diagnósticos e monitorar a conformidade ESG.
+                        </p>
+                        <Button 
+                          onClick={() => setIsPurchaseModalOpen(true)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold text-xs h-8 px-5"
+                        >
+                          Comprar convites
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  invites.map((invite) => {
+                    const isExpanded = expandedCards[invite.id];
+                  
+                  // Encontrar o diagnóstico completed mais recente para a linha principal
+                  const completedDiag = invite.requestedDiagnostics.find((d) => d.status === "COMPLETED");
+                  
+                  const score = completedDiag?.score;
+                  const eScore = score?.environmentalScore != null ? Math.round(Number(score.environmentalScore)) : null;
+                  const bScore = score?.bioeconomyCircularScore != null ? Math.round(Number(score.bioeconomyCircularScore)) : null;
+                  const sScore = score?.socialScore != null ? Math.round(Number(score.socialScore)) : null;
+                  const gScore = score?.governanceScore != null ? Math.round(Number(score.governanceScore)) : null;
+                  const overallScore = score?.overallScore != null ? Math.round(Number(score.overallScore)) : null;
+
+                  let scoreColorClass = "text-slate-400 font-medium";
+                  if (overallScore !== null) {
+                    if (overallScore >= 80) {
+                      scoreColorClass = "text-emerald-600 font-extrabold";
+                    } else if (overallScore < 50) {
+                      scoreColorClass = "text-rose-600 font-extrabold";
+                    } else {
+                      scoreColorClass = "text-amber-500 font-extrabold";
+                    }
+                  }
+
+                  const supplierName = invite.supplierOrganization?.tradeName 
+                    || invite.supplierOrganization?.legalName 
+                    || `Pendente (${invite.supplierEmail})`;
+
+                  const isInactive = invite.relationship?.status === "INACTIVE";
+
+                  return (
+                    <React.Fragment key={invite.id}>
+                      <tr className="hover:bg-slate-50/50 transition-colors duration-150">
+                        <td className="px-5 py-4">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-800">{supplierName}</span>
+                              {isInactive && (
+                                <span className="bg-rose-50 text-rose-600 border border-rose-100 text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase">
+                                  Inativo
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400">{invite.supplierEmail}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-slate-500 font-medium">
+                          {invite.supplierOrganization?.industrySegment || "—"}
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusPill status={getSupplierStatus(invite)} />
+                        </td>
+                        <td className="px-5 py-4 text-center font-semibold text-slate-600">
+                          {eScore !== null ? `${eScore}%` : "—"}
+                        </td>
+                        <td className="px-5 py-4 text-center font-semibold text-slate-600">
+                          {bScore !== null ? `${bScore}%` : "—"}
+                        </td>
+                        <td className="px-5 py-4 text-center font-semibold text-slate-600">
+                          {sScore !== null ? `${sScore}%` : "—"}
+                        </td>
+                        <td className="px-5 py-4 text-center font-semibold text-slate-600">
+                          {gScore !== null ? `${gScore}%` : "—"}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <span className={scoreColorClass}>
+                            {overallScore !== null ? `${overallScore}%` : "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleCard(invite.id)}
+                            className="h-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 rounded-full px-3 text-xs font-semibold"
+                          >
+                            {isExpanded ? (
+                              <>Ocultar <ChevronUp className="ml-1 h-3.5 w-3.5" /></>
+                            ) : (
+                              <>Ver Histórico <ChevronDown className="ml-1 h-3.5 w-3.5" /></>
+                            )}
+                          </Button>
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          {invite.supplierOrganizationId ? (
+                            <div className="relative inline-block text-left">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (openMenuId === invite.id) {
+                                    setOpenMenuId(null);
+                                    setMenuPosition(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setOpenMenuId(invite.id);
+                                    setMenuPosition({
+                                      top: rect.bottom + 4,
+                                      left: rect.right - 192, // w-48 is 192px
+                                    });
+                                  }
+                                }}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                              {openMenuId === invite.id && menuPosition && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuId(null);
+                                      setMenuPosition(null);
+                                    }}
+                                  />
+                                  <div 
+                                    style={{
+                                      position: "fixed",
+                                      top: `${menuPosition.top}px`,
+                                      left: `${menuPosition.left}px`,
+                                    }}
+                                    className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in duration-100"
+                                  >
+                                    {isInactive ? (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleReactivate(invite.supplierOrganizationId!);
+                                          setOpenMenuId(null);
+                                          setMenuPosition(null);
+                                        }}
+                                        disabled={isReactivating === invite.supplierOrganizationId}
+                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-600 hover:bg-slate-50 flex items-center gap-1.5"
+                                      >
+                                        {isReactivating === invite.supplierOrganizationId ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          <CheckCircle2 className="h-3.5 w-3.5" />
+                                        )}
+                                        Reativar Relacionamento
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleTerminate(invite.supplierOrganizationId!);
+                                          setOpenMenuId(null);
+                                          setMenuPosition(null);
+                                        }}
+                                        disabled={isTerminating === invite.supplierOrganizationId}
+                                        className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-slate-50 flex items-center gap-1.5"
+                                      >
+                                        {isTerminating === invite.supplierOrganizationId ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          <X className="h-3.5 w-3.5" />
+                                        )}
+                                        Inativar Relacionamento
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 text-xs">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-slate-50/40">
+                          <td colSpan={10} className="px-5 py-4 border-t border-slate-100">
+                            <div className="space-y-4">
+                              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Histórico de Diagnósticos ESG</h4>
+                              {invite.requestedDiagnostics.length > 0 ? (
+                                <div className="space-y-3">
+                                  {invite.requestedDiagnostics.map((diag) => {
+                                    const diagScore = diag.score;
+                                    const diagEnv = diagScore?.environmentalScore != null ? Math.round(Number(diagScore.environmentalScore)) : null;
+                                    const diagBio = diagScore?.bioeconomyCircularScore != null ? Math.round(Number(diagScore.bioeconomyCircularScore)) : null;
+                                    const diagSoc = diagScore?.socialScore != null ? Math.round(Number(diagScore.socialScore)) : null;
+                                    const diagGov = diagScore?.governanceScore != null ? Math.round(Number(diagScore.governanceScore)) : null;
+                                    const diagOverall = diagScore?.overallScore != null ? Math.round(Number(diagScore.overallScore)) : null;
+
+                                    let diagOverallColorClass = "text-slate-800";
+                                    if (diagOverall !== null) {
+                                      if (diagOverall >= 80) {
+                                        diagOverallColorClass = "text-emerald-600 font-extrabold";
+                                      } else if (diagOverall < 50) {
+                                        diagOverallColorClass = "text-rose-600 font-extrabold";
+                                      } else {
+                                        diagOverallColorClass = "text-amber-500 font-extrabold";
+                                      }
+                                    }
+
+                                    const completionDate = diag.completedAt || diag.updatedAt || diag.createdAt || new Date().toISOString();
+
+                                    return (
+                                      <div key={diag.id} className="flex flex-wrap items-center justify-between gap-4 p-3 bg-white border border-slate-100 rounded-xl shadow-xs">
+                                        <div className="flex flex-col">
+                                          <span className="text-xs font-semibold text-slate-700">
+                                            Diagnóstico ({diag.kind === "FULL_DIAGNOSTIC" ? "Completo" : diag.kind === "PRE_DIAGNOSTIC" ? "Pré-Diagnóstico" : "Fornecedor"})
+                                          </span>
+                                          <span className="text-[10px] text-slate-400">
+                                            {diag.status === "COMPLETED" 
+                                              ? `Concluído em ${new Date(completionDate).toLocaleDateString("pt-BR")}` 
+                                              : `Em andamento (${diag.percentageCompletion}% preenchido)`}
+                                          </span>
+                                        </div>
+                                        {diag.status === "COMPLETED" && (
+                                          <div className="flex gap-4 text-xs">
+                                            <span className="flex items-center gap-1 font-semibold text-emerald-600">
+                                              <Leaf className="w-3.5 h-3.5" /> E: {diagEnv !== null ? `${diagEnv}%` : "—"}
+                                            </span>
+                                            <span className="flex items-center gap-1 font-semibold text-amber-600">
+                                              <Recycle className="w-3.5 h-3.5" /> B: {diagBio !== null ? `${diagBio}%` : "—"}
+                                            </span>
+                                            <span className="flex items-center gap-1 font-semibold text-blue-600">
+                                              <Heart className="w-3.5 h-3.5" /> S: {diagSoc !== null ? `${diagSoc}%` : "—"}
+                                            </span>
+                                            <span className="flex items-center gap-1 font-semibold text-indigo-600">
+                                              <Scale className="w-3.5 h-3.5" /> G: {diagGov !== null ? `${diagGov}%` : "—"}
+                                            </span>
+                                            <span className={`font-extrabold ${diagOverallColorClass}`}>
+                                              Geral: {diagOverall !== null ? `${diagOverall}%` : "—"}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="text-slate-500 text-xs py-2">
+                                  Nenhum histórico de pontuações disponível para este fornecedor.
+                                </div>
+                              )}
+                              
+                              <div className="pt-2 border-t border-slate-200/60 text-xs flex justify-between items-center">
+                                <div>
+                                  <span className="font-semibold text-slate-700">Status do Relacionamento:</span>{" "}
+                                  {isInactive ? (
+                                    <span className="text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                                      Inativo (Fim: {new Date(invite.relationship?.endedAt || Date.now()).toLocaleDateString("pt-BR")} - {invite.relationship?.endedReason || "Sem justificativa"})
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                      Ativo (Início: {invite.relationship?.startedAt || invite.acceptedAt ? new Date(invite.relationship?.startedAt || invite.acceptedAt!).toLocaleDateString("pt-BR") : new Date(invite.createdAt).toLocaleDateString("pt-BR")})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+               )}
+              </tbody>
+            </table>
           </div>
         </div>
-      ) : (
-        <section className="space-y-4">
-          {invites.map((invite) => {
-            const isExpanded = expandedCards[invite.id];
-            const hasDiagnostic = invite.requestedDiagnostics.length > 0;
-            const diagnostic = invite.requestedDiagnostics[0];
-            const isRespondido = diagnostic?.status === "COMPLETED";
-            const progress = hasDiagnostic ? diagnostic.percentageCompletion : 0;
-            const supplierName = invite.supplierOrganization?.tradeName 
-              || invite.supplierOrganization?.legalName 
-              || `Pendente (${invite.supplierEmail})`;
-
-            return (
-              <article key={invite.id} className="space-y-3 border border-border bg-white/75 p-5 rounded-lg shadow-sm hover:bg-white transition-all duration-200">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold tracking-tight text-slate-800">{supplierName}</h2>
-                    <p className="text-sm text-slate-500">{invite.supplierEmail}</p>
-                  </div>
-                  <StatusPill status={getSupplierStatus(invite)} />
-                </div>
-                
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                  <p>Convite enviado em {new Date(invite.createdAt).toLocaleDateString("pt-BR")}</p>
-                  <p>Última atualização: {invite.acceptedAt ? new Date(invite.acceptedAt).toLocaleDateString("pt-BR") : "-"}</p>
-                </div>
-
-                <div className="pt-2 flex justify-between items-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => toggleCard(invite.id)}
-                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
-                  >
-                    {isExpanded ? (
-                      <>Recolher <ChevronUp className="ml-1 h-4 w-4" /></>
-                    ) : (
-                      <>Ver detalhes <ChevronDown className="ml-1 h-4 w-4" /></>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Expandable Area */}
-                {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-4 bg-slate-50/50 p-4 rounded-md">
-                    {isRespondido && diagnostic.score ? (
-                      <>
-                        {/* Line 1: Pre-diagnostic scores */}
-                        <div className="grid grid-cols-[110px_1fr_1fr_1fr_1fr] gap-1 items-center text-xs md:text-sm">
-                          <span className="font-medium text-slate-600">Pré-diagnóstico:</span>
-                          <span className="text-slate-700">Eixo E: <span className="font-semibold">{Number(diagnostic.score.environmentalScore ?? 0)}</span></span>
-                          <span className="text-slate-700">Eixo B: <span className="font-semibold">{Number(diagnostic.score.bioeconomyCircularScore ?? 0)}</span></span>
-                          <span className="text-slate-700">Eixo S: <span className="font-semibold">{Number(diagnostic.score.socialScore ?? 0)}</span></span>
-                          <span className="text-slate-700">Eixo G: <span className="font-semibold">{Number(diagnostic.score.governanceScore ?? 0)}</span></span>
-                        </div>
-                        
-                        {/* Line 2: Proven scores */}
-                        <div className="grid grid-cols-[110px_1fr_1fr_1fr_1fr] gap-1 items-center text-xs md:text-sm mt-2">
-                          <span className="font-medium text-emerald-700">Comprovado:</span>
-                          <span className="text-emerald-700 font-semibold">Eixo E: {Number(diagnostic.score.environmentalScore ?? 0)}</span>
-                          <span className="text-emerald-700 font-semibold">Eixo B: {Number(diagnostic.score.bioeconomyCircularScore ?? 0)}</span>
-                          <span className="text-emerald-700 font-semibold">Eixo S: {Number(diagnostic.score.socialScore ?? 0)}</span>
-                          <span className="text-emerald-700 font-semibold">Eixo G: {Number(diagnostic.score.governanceScore ?? 0)}</span>
-                        </div>
-                        
-                        {/* Line 3: Metric of proven evidences */}
-                        <div className="pt-2 border-t border-slate-200/60">
-                          <div className="flex items-center justify-between text-sm mb-1">
-                            <span className="text-slate-600 font-medium">Pontuação Geral (ESG):</span>
-                            <span className="font-semibold text-emerald-600">{Number(diagnostic.score.overallScore ?? 0)}/100</span>
-                          </div>
-                          <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: `${Number(diagnostic.score.overallScore ?? 0)}%` }} />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4 text-sm text-slate-500">
-                        {invite.status === "SENT" 
-                          ? "Este fornecedor ainda não se cadastrou na plataforma utilizando o link de convite."
-                          : "Este fornecedor ainda não concluiu o diagnóstico. As pontuações estarão disponíveis após o envio."}
-                      </div>
-                    )}
-
-                    {/* Relationship Details & Action */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/60 text-xs md:text-sm mt-3">
-                      <div>
-                        <span className="font-semibold text-slate-700">Status do Relacionamento:</span>{" "}
-                        {invite.relationship?.status === "INACTIVE" ? (
-                          <span className="text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
-                            Inativo (Fim: {new Date(invite.relationship.endedAt!).toLocaleDateString("pt-BR")} - {invite.relationship.endedReason})
-                          </span>
-                        ) : (
-                          <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                            Ativo (Início: {invite.relationship?.startedAt || invite.acceptedAt ? new Date(invite.relationship?.startedAt || invite.acceptedAt!).toLocaleDateString("pt-BR") : new Date(invite.createdAt).toLocaleDateString("pt-BR")})
-                          </span>
-                        )}
-                      </div>
-                      {(!invite.relationship || invite.relationship.status === "ACTIVE") && invite.supplierOrganizationId && (
-                        <button
-                          onClick={() => handleTerminate(invite.supplierOrganizationId!)}
-                          disabled={isTerminating === invite.supplierOrganizationId}
-                          className="text-rose-600 hover:text-white border border-rose-200 hover:bg-rose-600 px-3 py-1 rounded-full text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        >
-                          {isTerminating === invite.supplierOrganizationId ? (
-                            <>
-                              <Loader2 className="h-3 w-3 animate-spin" /> Inativando...
-                            </>
-                          ) : (
-                            "Inativar Fornecedor"
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
       )}
 
       {isInviteModalOpen && (
@@ -350,7 +527,7 @@ Agradecemos a parceria de sempre!`;
                       <div className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
                       <div>
                         <p className="text-sm font-medium text-slate-700">Acompanhe o progresso</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Assim que ele começar, você verá o status "Em andamento" nesta tela.</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Assim que ele começar, você verá o status &quot;Em andamento&quot; nesta tela.</p>
                       </div>
                     </div>
                   </div>

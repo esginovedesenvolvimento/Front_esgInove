@@ -16,8 +16,10 @@ export default function CheckoutSuccessPage() {
   useEffect(() => {
     // Limpa o carrinho e atualiza o perfil no login/session do usuário para destravar o diagnóstico
     clearCart();
-    refreshProfile();
-  }, []);
+    void refreshProfile().then(() => {
+      router.refresh();
+    });
+  }, [clearCart, refreshProfile, router]);
 
   useEffect(() => {
     if (!company) return;
@@ -61,6 +63,7 @@ export default function CheckoutSuccessPage() {
 
   const handleGoToDashboard = async () => {
     await refreshProfile();
+    router.refresh();
     router.push("/app");
   };
 

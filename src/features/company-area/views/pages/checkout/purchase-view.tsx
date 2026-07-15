@@ -1,15 +1,23 @@
-import React, { useState } from "react";
-import { CircleCheck, X, ShoppingCart, Rocket, Zap, Users, ShieldCheck, GraduationCap } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { CircleCheck, X, ShoppingCart, Rocket, Zap, Users, ShieldCheck, GraduationCap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart, CartItem } from "../../../context/cart-context";
 import { HorizontalServiceRail } from "../../components/horizontal-service-rail";
+import { useBudgetController } from "../../../controllers/use-budget.controller";
+import { useCompany } from "../../../context/company-context";
 
-const planProducts: (CartItem & { features: string[], focus: string, highlight?: boolean })[] = [
+const planProducts: (CartItem & {
+  features: string[];
+  focus: string;
+  productCode: string;
+  highlight?: boolean;
+})[] = [
   {
     id: "diag-estrat",
     name: "Diagnóstico",
     description: "Foco: Diagnóstico Profundo",
     focus: "Profundo",
+    productCode: "full-diagnostic",
     price: 6000,
     priceFormatted: "R$ 6.000",
     type: "ONE_TIME",
@@ -21,6 +29,7 @@ const planProducts: (CartItem & { features: string[], focus: string, highlight?:
     name: "Diag.+Consultoria",
     description: "Foco: Diagnóstico + Ação",
     focus: "Ação",
+    productCode: "diag-consultoria",
     price: 7500,
     priceFormatted: "R$ 7.500",
     type: "ONE_TIME",
@@ -32,6 +41,7 @@ const planProducts: (CartItem & { features: string[], focus: string, highlight?:
     name: "Assessoria",
     description: "Foco: Gestão Contínua",
     focus: "Gestão",
+    productCode: "assessoria-completa",
     price: 0,
     priceFormatted: "Sob Orçamento",
     type: "SUBSCRIPTION",
@@ -100,7 +110,31 @@ import { InvitePurchaseModal } from "../../components/invite-purchase-modal";
 
 export function PurchaseView() {
   const { addItem, items } = useCart();
+  const { company } = useCompany();
+  const { createBudget } = useBudgetController();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selectedBudgetPlan, setSelectedBudgetPlan] = useState<(typeof planProducts)[number] | null>(null);
+  const [isBudgetSubmitting, setIsBudgetSubmitting] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [requestedBudgetCodes, setRequestedBudgetCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const companyId = company?.id || "anonymous";
+      const requestedStr = localStorage.getItem(`inoveesg_requested_budgets_${companyId}`);
+      if (!requestedStr) {
+        return;
+      }
+
+      const parsed = JSON.parse(requestedStr) as Array<{ productCode?: string }>;
+      const codes = parsed.map((item) => item.productCode).filter((code): code is string => Boolean(code));
+      if (codes.length > 0) {
+        setRequestedBudgetCodes(Array.from(new Set(codes)));
+      }
+    } catch (error) {
+      console.error("Failed to hydrate requested budget codes", error);
+    }
+  }, [company?.id]);
 
   const handleAddToCart = (product: CartItem) => {
     if (product.id === "cadeia-fornecedores") {
@@ -108,6 +142,61 @@ export function PurchaseView() {
       return;
     }
     addItem(product);
+  };
+
+  const handleBudgetClick = (plan: (typeof planProducts)[number]) => {
+    if (requestedBudgetCodes.includes(plan.productCode)) {
+      return;
+    }
+
+    setBudgetError(null);
+    setSelectedBudgetPlan(plan);
+  };
+
+  const persistRequestedBudget = (plan: (typeof planProducts)[number]) => {
+    try {
+      const companyId = company?.id || "anonymous";
+      const storageKey = `inoveesg_requested_budgets_${companyId}`;
+      const existingRequested = localStorage.getItem(storageKey);
+      const requestedList = existingRequested ? JSON.parse(existingRequested) : [];
+
+      const newRequest = {
+        id: plan.id,
+        productCode: plan.productCode,
+        name: plan.name,
+        description: plan.description,
+        priceFormatted: plan.priceFormatted,
+        requestedAt: new Date().toISOString(),
+        status: "SOLICITADO",
+      };
+
+      localStorage.setItem(storageKey, JSON.stringify([...requestedList, newRequest]));
+    } catch (error) {
+      console.error("Failed to persist budget request", error);
+    }
+  };
+
+  const handleConfirmBudget = async () => {
+    if (!selectedBudgetPlan) {
+      return;
+    }
+
+    setIsBudgetSubmitting(true);
+    setBudgetError(null);
+
+    try {
+      await createBudget({ productCode: selectedBudgetPlan.productCode });
+      persistRequestedBudget(selectedBudgetPlan);
+      setRequestedBudgetCodes((prev) =>
+        prev.includes(selectedBudgetPlan.productCode) ? prev : [...prev, selectedBudgetPlan.productCode]
+      );
+      setSelectedBudgetPlan(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao solicitar orçamento.";
+      setBudgetError(message);
+    } finally {
+      setIsBudgetSubmitting(false);
+    }
   };
 
   const isInCart = (id: string) => items.some(item => item.id === id);
@@ -129,7 +218,6 @@ export function PurchaseView() {
           {/* Mobile View: Planos como Cards */}
           <div className="lg:hidden grid gap-4">
             {planProducts.map((plan) => {
-              const inCart = isInCart(plan.id);
               return (
                 <div key={plan.id} className={`rounded-2xl border border-border bg-white p-6 shadow-sm relative ${plan.highlight ? 'ring-2 ring-emerald-500' : ''}`}>
                   {plan.highlight && (
@@ -146,11 +234,11 @@ export function PurchaseView() {
                     ))}
                   </ul>
                   <Button 
-                    onClick={() => handleAddToCart(plan)}
-                    disabled={inCart}
-                    className={`w-full rounded-full font-bold h-11 ${inCart ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                    onClick={() => handleBudgetClick(plan)}
+                    disabled={requestedBudgetCodes.includes(plan.productCode)}
+                    className={`w-full rounded-full font-bold h-11 ${requestedBudgetCodes.includes(plan.productCode) ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                   >
-                    {inCart ? "No Carrinho" : plan.requiresBudget ? "Sob Orçamento" : "Adicionar"}
+                    {requestedBudgetCodes.includes(plan.productCode) ? "Solicitado" : "Solicitar Orçamento"}
                   </Button>
                 </div>
               );
@@ -201,21 +289,20 @@ export function PurchaseView() {
                 <tr>
                   <td className="p-5 font-bold text-slate-800 bg-slate-50/30 text-xs">Investimento</td>
                   {planProducts.map(plan => {
-                    const inCart = isInCart(plan.id);
                     return (
                       <td key={plan.id} className={`p-5 text-center ${plan.highlight ? 'bg-emerald-50/30' : ''}`}>
                         <div className="text-[10px] text-slate-500 mb-0.5">{plan.price > 0 ? "A partir de" : ""}</div>
                         <div className="text-lg font-bold text-slate-900 mb-3">{plan.priceFormatted}</div>
                         <Button 
-                          onClick={() => handleAddToCart(plan)}
-                          disabled={inCart}
+                          onClick={() => handleBudgetClick(plan)}
+                          disabled={requestedBudgetCodes.includes(plan.productCode)}
                           className={`w-full rounded-full font-bold h-9 text-xs transition-all ${
-                            inCart 
+                            requestedBudgetCodes.includes(plan.productCode)
                               ? 'bg-slate-100 text-slate-400' 
                               : 'bg-emerald-600 text-white hover:bg-emerald-700'
                           }`}
                         >
-                          {inCart ? "No Carrinho" : plan.requiresBudget ? "Sob Orçamento" : "Adicionar"}
+                          {requestedBudgetCodes.includes(plan.productCode) ? "Solicitado" : "Solicitar Orçamento"}
                         </Button>
                       </td>
                     );
@@ -286,6 +373,84 @@ export function PurchaseView() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
       />
+
+      {selectedBudgetPlan && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
+            onClick={isBudgetSubmitting ? undefined : () => setSelectedBudgetPlan(null)}
+          />
+          <div className="relative w-full max-w-lg rounded-3xl border border-white/20 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                  <ShoppingCart className="h-3 w-3" />
+                  Confirmar orçamento
+                </p>
+                <h3 className="mt-3 text-xl font-extrabold text-slate-900">
+                  Solicitar orçamento de {selectedBudgetPlan.name}
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Vamos registrar sua solicitação de orçamento para este produto.
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedBudgetPlan(null)}
+                disabled={isBudgetSubmitting}
+                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {budgetError && (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {budgetError}
+              </div>
+            )}
+
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Produto</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{selectedBudgetPlan.name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Investimento</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{selectedBudgetPlan.priceFormatted}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedBudgetPlan(null)}
+                disabled={isBudgetSubmitting}
+                className="rounded-full px-5"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmBudget}
+                disabled={isBudgetSubmitting}
+                className="rounded-full bg-emerald-600 px-6 text-white hover:bg-emerald-700"
+              >
+                {isBudgetSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Solicitando...
+                  </>
+                ) : (
+                  "Sim, solicitar"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

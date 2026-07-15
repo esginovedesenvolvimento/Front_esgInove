@@ -49,7 +49,13 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
           maxAge: 60 * 60 * 24 * 7,
           path: "/",
         });
-        router.push("/app");
+        
+        if (response.user?.role === "ADMIN") {
+          router.push("/admin");
+        } else {
+          router.push("/app");
+        }
+        
         onClose();
       }
     } catch (err) {

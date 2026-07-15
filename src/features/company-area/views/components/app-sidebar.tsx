@@ -3,14 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   LogOut, 
   Menu, 
-  X, 
   ChevronLeft, 
   ChevronRight,
   Building2,
   Lock
 } from 'lucide-react';
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { companyNavItems } from "./navigation";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { useCompany } from "@/features/company-area/context/company-context";
@@ -19,9 +18,8 @@ export function AppSidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const { logout } = useAuthController();
-  const { user, company, isLoading, isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasInviteAccess } = useCompany();
+  const { user, company, isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan } = useCompany();
 
   const getInitials = (name: string) => {
     return name
@@ -33,6 +31,23 @@ export function AppSidebar() {
   };
 
   const userInitials = getInitials(user?.fullName || "");
+
+  useEffect(() => {
+    console.log("=== AppSidebar Access & Routing Analysis ===");
+    console.log("Context values:", { isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan });
+    companyNavItems.forEach((item) => {
+      const isLocked = isUnpaid 
+        ? (item.href !== "/app" && item.href !== "/app/meus-servicos")
+        : (item.href === "/app/evidencias" 
+            ? !hasEvidenceAccess 
+            : (item.href === "/app/resultados"
+                ? (!hasCompletedDiagnostic && !hasActivePlan)
+                : false
+              )
+          );
+      console.log(`Route: ${item.label} (${item.href}) | isLocked: ${isLocked}`);
+    });
+  }, [isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan]);
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -137,16 +152,15 @@ export function AppSidebar() {
               
               const isEvidenceRoute = item.href === "/app/evidencias";
               const isChainRoute = item.href === "/app/fornecedores";
-              const isInvitePurchaseRoute = item.href === "/app/convites/comprar";
               const isLocked = isUnpaid 
                 ? (item.href !== "/app" && item.href !== "/app/meus-servicos")
-                : hasOnlyPreDiagnostic 
-                  ? (isChainRoute
-                      ? false
-                      : isInvitePurchaseRoute && !hasInviteAccess
-                        ? true
-                        : (item.href !== "/app" && item.href !== "/app/diagnostico" && item.href !== "/app/meus-servicos" && !isEvidenceRoute && !(item.href === "/app/resultados" && hasCompletedDiagnostic)))
-                  : false;
+                : (item.href === "/app/evidencias" 
+                    ? !hasEvidenceAccess 
+                    : (item.href === "/app/resultados"
+                        ? (!hasCompletedDiagnostic && !hasActivePlan)
+                        : false
+                      )
+                  );
 
               const href = isLocked 
                 ? (isUnpaid ? "/app" : "/app/upgrade") 
@@ -158,7 +172,7 @@ export function AppSidebar() {
                     href={href}
                     onClick={handleItemClick}
                     className={`
-                      w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-md text-left transition-all duration-200 group
+                      w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-md text-left transition-all duration-200 group relative
                       ${isActive
                         ? "bg-emerald-50 text-emerald-700"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -166,29 +180,36 @@ export function AppSidebar() {
                       ${isCollapsed ? "justify-center px-2" : ""}
                       ${isLocked 
                         ? isUnpaid 
-                          ? "opacity-50 cursor-not-allowed pointer-events-none grayscale-[0.5]" 
-                          : "opacity-60 cursor-pointer hover:bg-slate-50"
+                          ? "bg-slate-100 text-slate-500 cursor-not-allowed pointer-events-none grayscale-[0.3]" 
+                          : "bg-slate-100/60 text-slate-700 cursor-pointer hover:bg-slate-200/60"
                         : ""
                       }
                     `}
                     title={isLocked ? `${item.label} (Assine um plano para acessar)` : (isCollapsed ? item.label : undefined)}
                   >
-                    <div className="flex items-center justify-center min-w-[24px]">
+                    <div className="flex items-center justify-center min-w-[24px] relative">
                       <Icon
                         className={`
                           h-5 w-5 flex-shrink-0
                           ${isActive 
                             ? "text-emerald-600" 
-                            : "text-slate-500 group-hover:text-slate-700"
+                            : isLocked 
+                              ? "text-slate-600" 
+                              : "text-slate-500 group-hover:text-slate-700"
                           }
                         `}
                       />
+                      {isCollapsed && isLocked && (
+                        <div className="absolute -top-1 -right-1.5 bg-slate-200 text-slate-700 rounded-full p-0.5 shadow-sm border border-white">
+                          <Lock className="h-2 w-2" />
+                        </div>
+                      )}
                     </div>
                     
                     {!isCollapsed && (
                       <div className="flex items-center justify-between w-full">
-                        <span className={`text-sm ${isActive ? "font-medium" : "font-normal"}`}>{item.label}</span>
-                        {isLocked && <Lock className="h-3 w-3 text-slate-400" />}
+                        <span className={`text-sm ${isActive ? "font-medium" : "font-normal"} ${isLocked ? "text-slate-700 font-medium" : ""}`}>{item.label}</span>
+                        {isLocked && <Lock className="h-3.5 w-3.5 text-slate-600 flex-shrink-0 ml-1.5" />}
                       </div>
                     )}
 

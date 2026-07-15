@@ -1,6 +1,6 @@
-import { adminAnalyticsBoardModel } from "@/features/admin/shared/mock-data";
+import { adminFetch } from "@/features/admin/shared/api";
 import type { AdminAnalyticsBoardModel } from "@/features/admin/shared/types";
 
 export async function getAnalyticsBoardModel(): Promise<AdminAnalyticsBoardModel> {
-  return adminAnalyticsBoardModel;
+  return adminFetch<AdminAnalyticsBoardModel>("/admin/analytics");
 }

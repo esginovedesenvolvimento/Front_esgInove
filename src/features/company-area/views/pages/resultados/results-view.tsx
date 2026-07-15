@@ -190,6 +190,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   };
 
   const starsValue = getStarsValue(globalScore ?? 0);
+  const activeInvites = invites.filter((i) => i.relationship?.status !== "INACTIVE");
 
   const renderStars = (rating: number) => {
     const stars = [];
@@ -705,7 +706,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">Mapeie o risco socioambiental dos seus parceiros de negócios e obtenha a média da cadeia.</p>
               </div>
-              {invites.length > 0 && (
+              {activeInvites.length > 0 && (
                 <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 shadow-sm text-xs rounded-xl">
                   <Link href="/app/fornecedores">
                     <Plus className="w-3.5 h-3.5" /> Convidar Fornecedor
@@ -725,7 +726,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                 <p className="text-xs font-bold text-slate-700">Erro ao carregar dados dos fornecedores</p>
                 <p className="text-[11px] text-slate-500 mt-1">Verifique sua conexão ou tente novamente.</p>
               </div>
-            ) : invites.length === 0 ? (
+            ) : activeInvites.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-4">
                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full shrink-0">
                   <Users className="h-6 w-6" />
@@ -757,7 +758,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
                     <div className="space-y-1">
                       <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Total Convidados</span>
-                      <p className="text-xl font-black text-slate-800 font-display">{invites.length}</p>
+                      <p className="text-xl font-black text-slate-800 font-display">{activeInvites.length}</p>
                     </div>
                     <Users className="h-7 w-7 text-indigo-500/20" />
                   </div>
@@ -766,7 +767,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                     <div className="space-y-1">
                       <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Conectados</span>
                       <p className="text-xl font-black text-indigo-600 font-display">
-                        {invites.filter(i => i.status === "ACCEPTED" || i.supplierOrganizationId != null).length}
+                        {activeInvites.filter(i => i.status === "ACCEPTED" || i.supplierOrganizationId != null).length}
                       </p>
                     </div>
                     <Building2 className="h-7 w-7 text-indigo-500/20" />
@@ -776,7 +777,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                     <div className="space-y-1">
                       <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Respondidos</span>
                       <p className="text-xl font-black text-emerald-600 font-display">
-                        {invites.filter(i => i.requestedDiagnostics.some(d => d.status === "COMPLETED")).length}
+                        {activeInvites.filter(i => i.requestedDiagnostics.some(d => d.status === "COMPLETED")).length}
                       </p>
                     </div>
                     <CheckCircle2 className="h-7 w-7 text-emerald-500/20" />
@@ -793,14 +794,36 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                           <th className="px-5 py-3">Segmento</th>
                           <th className="px-5 py-3">Status do Convite</th>
                           <th className="px-5 py-3">Diagnóstico</th>
+                          <th className="px-5 py-3 text-center">Amb. (E)</th>
+                          <th className="px-5 py-3 text-center">Bio. (B)</th>
+                          <th className="px-5 py-3 text-center">Soc. (S)</th>
+                          <th className="px-5 py-3 text-center">Gov. (G)</th>
                           <th className="px-5 py-3 text-right">Nota Geral</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
-                        {invites.map((invite) => {
+                        {activeInvites.map((invite) => {
                           const completedDiag = invite.requestedDiagnostics.find(d => d.status === "COMPLETED");
                           const hasCompleted = !!completedDiag;
                           const hasAccepted = invite.status === "ACCEPTED" || invite.supplierOrganizationId != null;
+
+                          const score = completedDiag?.score;
+                          const env = score?.environmentalScore != null ? Math.round(Number(score.environmentalScore)) : null;
+                          const bio = score?.bioeconomyCircularScore != null ? Math.round(Number(score.bioeconomyCircularScore)) : null;
+                          const soc = score?.socialScore != null ? Math.round(Number(score.socialScore)) : null;
+                          const gov = score?.governanceScore != null ? Math.round(Number(score.governanceScore)) : null;
+                          const overall = score?.overallScore != null ? Math.round(Number(score.overallScore)) : null;
+
+                          let overallColorClass = "text-slate-800";
+                          if (overall !== null) {
+                            if (overall >= 80) {
+                              overallColorClass = "text-emerald-600";
+                            } else if (overall < 50) {
+                              overallColorClass = "text-rose-600";
+                            } else {
+                              overallColorClass = "text-amber-500";
+                            }
+                          }
 
                           let statusBadge = (
                             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
@@ -849,10 +872,46 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                               <td className="px-5 py-3">
                                 {statusBadge}
                               </td>
-                              <td className="px-5 py-3 text-right font-extrabold text-slate-850 text-sm">
-                                {hasCompleted && completedDiag.score?.overallScore != null ? (
-                                  <span className="text-emerald-600 font-display">
-                                    {Math.round(completedDiag.score.overallScore)}%
+                              <td className="px-5 py-3 text-center whitespace-nowrap">
+                                {env !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                                    <Leaf className="w-3.5 h-3.5" /> {env}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal">—</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3 text-center whitespace-nowrap">
+                                {bio !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
+                                    <Recycle className="w-3.5 h-3.5" /> {bio}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal">—</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3 text-center whitespace-nowrap">
+                                {soc !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
+                                    <Heart className="w-3.5 h-3.5" /> {soc}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal">—</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3 text-center whitespace-nowrap">
+                                {gov !== null ? (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-indigo-600">
+                                    <Scale className="w-3.5 h-3.5" /> {gov}%
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-normal">—</span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3 text-right font-extrabold text-sm">
+                                {overall !== null ? (
+                                  <span className={`${overallColorClass} font-display`}>
+                                    {overall}%
                                   </span>
                                 ) : (
                                   <span className="text-slate-300 font-normal">—</span>

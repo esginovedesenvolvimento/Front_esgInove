@@ -5,14 +5,14 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("inoveesg_token")?.value;
   const { pathname } = request.nextUrl;
 
-  // Define quais rotas são protegidas
-  const isProtectedPage = pathname.startsWith("/app") || pathname.startsWith("/admin");
+  const isAppPage = pathname.startsWith("/app");
 
-  if (isProtectedPage && !token) {
-    // Redireciona para a landing com o modal de login aberto
-    const homeUrl = new URL("/", request.url);
-    homeUrl.searchParams.set("auth", "true");
-    return NextResponse.redirect(homeUrl);
+  if (isAppPage) {
+    if (!token) {
+      const homeUrl = new URL("/", request.url);
+      homeUrl.searchParams.set("auth", "true");
+      return NextResponse.redirect(homeUrl);
+    }
   }
 
   return NextResponse.next();
@@ -21,8 +21,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/app/:path*", 
-    "/app", 
-    "/admin/:path*", 
-    "/admin"
+    "/app"
   ],
 };

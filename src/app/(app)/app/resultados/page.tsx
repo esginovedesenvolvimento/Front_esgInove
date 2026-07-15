@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 export default function ResultsPage() {
   const router = useRouter();
-  const { company, isLoading: companyLoading } = useCompany();
+  const { isLoading: companyLoading, isSupplierOnly } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
   const [history, setHistory] = useState<DiagnosticHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,8 +44,6 @@ export default function ResultsPage() {
     loadResults();
   }, []);
 
-  const isSupplierOrg = company?.roles?.some((role) => role.role === "SUPPLIER") ?? false;
-
   useEffect(() => {
     if (!isLoading && (!dbDiagnostic || dbDiagnostic.status !== "COMPLETED")) {
       router.replace("/app/diagnostico");
@@ -61,7 +59,7 @@ export default function ResultsPage() {
   }
 
   // Get base model structures
-  const baseModel = getResultsViewModel({ isSupplierOrg });
+  const baseModel = getResultsViewModel({ isSupplierOrg: isSupplierOnly });
 
   // If we have diagnostic from DB, override with dynamic real data or aligned fallback mocks!
   if (dbDiagnostic) {
@@ -84,14 +82,14 @@ export default function ResultsPage() {
     baseModel.globalScore = overallScore;
     baseModel.globalProvenScore = globalProven;
     baseModel.isPreDiagnostic = isPreDiagnostic;
-    baseModel.isSupplierOrg = isSupplierOrg;
+    baseModel.isSupplierOrg = isSupplierOnly;
 
     // Map dynamic axis scores and interpretations based on database scores
     const getInterpretation = (score: number, axis: string) => {
       const axisName = axis === "E" ? "ambiental" : axis === "B" ? "de bioeconomia circular" : axis === "S" ? "social" : "de governança";
-      const excellentThreshold = isSupplierOrg ? 32 : 80;
-      const structuredThreshold = isSupplierOrg ? 24 : 60;
-      const intermediateThreshold = isSupplierOrg ? 16 : 40;
+      const excellentThreshold = isSupplierOnly ? 32 : 80;
+      const structuredThreshold = isSupplierOnly ? 24 : 60;
+      const intermediateThreshold = isSupplierOnly ? 16 : 40;
 
       if (score >= excellentThreshold) {
         return `Excelente maturidade ${axisName}. Práticas avançadas consolidadas com ótimo acompanhamento de metas e indicadores.`;

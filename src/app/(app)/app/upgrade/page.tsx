@@ -4,9 +4,7 @@ import React, { useState } from "react";
 import { CircleCheck, Sparkles, ShieldCheck, ArrowRight, ArrowLeft, Users, Zap, GraduationCap, Rocket, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart, CartItem } from "@/features/company-area/context/cart-context";
-import { useCompany } from "@/features/company-area/context/company-context";
 import { BudgetModal } from "@/features/company-area/views/components/budget-modal";
-import { HorizontalServiceRail } from "@/features/company-area/views/components/horizontal-service-rail";
 import { checkoutService } from "@/features/company-area/services/checkout.service";
 import { getCookie } from "cookies-next";
 import Link from "next/link";
@@ -139,7 +137,6 @@ export default function UpgradePage() {
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
-  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/+$/, "") ?? "";
 
   const handleOpenBudget = (plan: UpgradePlan) => {
     clearCart();
@@ -168,7 +165,7 @@ export default function UpgradePage() {
         name: service.name,
         price: 0,
         priceFormatted: service.priceFormatted,
-        type: service.type as any,
+        type: service.type as CartItem["type"],
         description: service.description,
         requiresBudget: true
       });
@@ -209,9 +206,10 @@ export default function UpgradePage() {
           throw new Error("Falha ao gerar link de checkout.");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erro ao iniciar compra:", err);
-      alert(err.message || "Ocorreu um erro ao processar sua solicitação.");
+      const errorMessage = err instanceof Error ? err.message : "Ocorreu um erro ao processar sua solicitação.";
+      alert(errorMessage);
     } finally {
       setCheckoutLoadingId(null);
     }
@@ -242,51 +240,144 @@ export default function UpgradePage() {
         </div>
       </div>
 
-      {/* Serviços sob demanda com navegação manual */}
-      <div className="bg-slate-900 rounded-3xl p-5 md:p-6 shadow-xl relative group">
-        <div className="flex items-center justify-between mb-4 shrink-0 px-2 text-white">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
-            <h3 className="text-xs md:text-sm font-bold tracking-tight">Serviços Sob Demanda e Adicionais</h3>
-          </div>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider hidden sm:block">Use as setas ou arraste no mobile</span>
+      {/* Seção 1: Planos de Assessoria */}
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
+            Planos de Assessoria
+          </h2>
+          <p className="text-sm text-slate-500">
+            Escolha o nível de acompanhamento ideal para a maturidade ESG da sua empresa.
+          </p>
         </div>
 
-        <HorizontalServiceRail
-          ariaLabel="Lista de serviços sob demanda"
-          railClassName="pb-2"
-          className="relative"
-          items={demandServices}
-          renderItem={(service, idx) => {
+        <div className="grid gap-6 md:grid-cols-3">
+          {upgradePlans.map((plan) => {
+            const isSpecial = plan.highlight;
+            return (
+              <div 
+                key={plan.id} 
+                className={`rounded-3xl border bg-white p-6 md:p-8 flex flex-col justify-between transition-all duration-300 relative ${
+                  isSpecial 
+                    ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-50/50 scale-[1.02] md:-translate-y-2 z-10" 
+                    : "border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-sm"
+                }`}
+              >
+                {plan.badge && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                    {plan.badge}
+                  </div>
+                )}
+
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md uppercase tracking-wider inline-block mb-4">
+                    {plan.focus}
+                  </span>
+                  
+                  <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2 font-display">{plan.name}</h3>
+                  <p className="text-xs text-slate-500 mb-6 leading-relaxed min-h-[48px]">{plan.description}</p>
+                  
+                  <div className="border-t border-slate-100 pt-5 mb-6">
+                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider">Investimento</span>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-xl font-extrabold text-slate-800 font-display">Sob Orçamento</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-600 font-medium block mt-1">
+                      Proposta personalizada ao porte da empresa
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 mb-8">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
+                    <ul className="space-y-2.5">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                          <CircleCheck className="size-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => handleOpenBudget(plan)}
+                  className={`w-full rounded-2xl h-11 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 ${
+                    isSpecial 
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100" 
+                      : "bg-slate-900 text-white hover:bg-slate-850"
+                  }`}
+                >
+                  Solicitar Proposta <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Seção 2: Serviços sob Demanda */}
+      <div className="border-t border-slate-100 pt-10 space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <Zap className="h-5 w-5 text-emerald-600" />
+            Serviços sob Demanda e Adicionais
+          </h2>
+          <p className="text-sm text-slate-500">
+            Contrate soluções pontuais adicionais de acordo com a necessidade atual do seu negócio.
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {demandServices.map((service, idx) => {
             const Icon = service.icon;
             return (
-              <div key={`${service.id}-${idx}`} className="w-[280px] snap-start rounded-2xl border border-slate-800 bg-slate-950 p-4 flex flex-col justify-between shadow-lg shrink-0 hover:border-emerald-500/50 transition-colors duration-350">
+              <div 
+                key={`${service.id}-${idx}`} 
+                className="rounded-3xl border border-slate-200 bg-white p-6 flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-lg transition-all duration-300 shadow-sm"
+              >
                 <div>
-                  <div className="flex items-center gap-2.5 mb-2 text-white">
-                    <div className="p-1.5 rounded-lg bg-slate-900 text-emerald-400">
-                      <Icon className="h-4 w-4" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h4 className="text-xs font-bold truncate max-w-[190px]">{service.name}</h4>
+                    <h3 className="text-base font-bold text-slate-800">{service.name}</h3>
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-tight mb-2.5 min-h-[30px]">{service.description}</p>
-                  <ul className="text-[9px] text-slate-500 space-y-1">
-                    {service.features.map((f, fIdx) => (
-                      <li key={fIdx} className="flex items-center gap-1.5"><CircleCheck className="size-2.5 text-emerald-500" /> {f}</li>
-                    ))}
-                  </ul>
+                  
+                  <p className="text-xs text-slate-500 leading-relaxed mb-5 min-h-[40px]">
+                    {service.description}
+                  </p>
+                  
+                  <div className="space-y-2 mb-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
+                    <ul className="space-y-2">
+                      {service.features.map((feature, fIdx) => (
+                        <li key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
+                          <CircleCheck className="size-3.5 text-emerald-500 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mt-4 border-t border-slate-900/60 pt-3">
-                  <span className="font-bold text-xs text-white">{service.priceFormatted}</span>
+
+                <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-slate-400 uppercase tracking-wider">Investimento</span>
+                    <span className="font-extrabold text-sm text-slate-800">{service.priceFormatted}</span>
+                  </div>
+                  
                   <Button 
                     onClick={() => handleDemandServiceClick(service)}
                     disabled={checkoutLoadingId !== null}
                     size="sm"
-                    className="rounded-full px-3.5 h-7 text-[9px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1"
+                    className="rounded-full px-5 h-8 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1.5 shadow-sm shadow-emerald-100"
                   >
                     {checkoutLoadingId === service.id ? (
                       <>
-                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                        Processando
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Aguarde
                       </>
                     ) : (
                       service.requiresBudget ? "Solicitar" : "Comprar"
@@ -295,73 +386,8 @@ export default function UpgradePage() {
                 </div>
               </div>
             );
-          }}
-        />
-      </div>
-
-      {/* Cards de Planos */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {upgradePlans.map((plan) => {
-          const isSpecial = plan.highlight;
-          return (
-            <div 
-              key={plan.id} 
-              className={`rounded-3xl border bg-white p-6 md:p-8 flex flex-col justify-between transition-all duration-300 relative ${
-                isSpecial 
-                  ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-50/50 scale-[1.02] md:-translate-y-2 z-10" 
-                  : "border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-sm"
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                  {plan.badge}
-                </div>
-              )}
-
-              <div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md uppercase tracking-wider inline-block mb-4">
-                  {plan.focus}
-                </span>
-                
-                <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2 font-display">{plan.name}</h3>
-                <p className="text-xs text-slate-500 mb-6 leading-relaxed min-h-[48px]">{plan.description}</p>
-                
-                <div className="border-t border-slate-100 pt-5 mb-6">
-                  <span className="text-[10px] text-slate-400 block uppercase tracking-wider">Investimento</span>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="text-xl font-extrabold text-slate-800 font-display">Sob Orçamento</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-600 font-medium block mt-1">
-                    Proposta personalizada ao porte da empresa
-                  </span>
-                </div>
-
-                <div className="space-y-3 mb-8">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
-                  <ul className="space-y-2.5">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
-                        <CircleCheck className="size-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => handleOpenBudget(plan)}
-                className={`w-full rounded-2xl h-11 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 ${
-                  isSpecial 
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100" 
-                    : "bg-slate-900 text-white hover:bg-slate-850"
-                }`}
-              >
-                Solicitar Proposta <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          );
-        })}
+          })}
+        </div>
       </div>
 
       {/* Caixa de Segurança/FAQ */}

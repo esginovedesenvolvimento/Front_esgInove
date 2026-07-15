@@ -3,20 +3,21 @@ import { getCookie } from "cookies-next";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 export interface BudgetInput {
-  sector: string;
-  employeeCount: string;
-  annualRevenue: string;
-  objective: string;
-  timeline: string;
-  focusAreas: string[];
-  hasPriorInventory: string;
-  phone: string;
-  notes?: string;
-  items: Array<{
+  productCode?: string;
+  items?: Array<{
     id: string;
-    name: string;
-    type: string;
+    name?: string;
+    type?: string;
   }>;
+  sector?: string;
+  employeeCount?: string;
+  annualRevenue?: string;
+  objective?: string;
+  timeline?: string;
+  focusAreas?: string[];
+  hasPriorInventory?: string;
+  phone?: string;
+  notes?: string;
 }
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {
@@ -53,6 +54,33 @@ export const budgetService = {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
+    });
+  },
+
+  listRequests(token: string) {
+    return request<any[]>("/budget", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  acceptRequest(id: string, token: string) {
+    return request<any>(`/budget/${id}/accept`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  declineRequest(id: string, token: string) {
+    return request<any>(`/budget/${id}/decline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   },
 };

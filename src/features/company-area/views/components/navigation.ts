@@ -3,9 +3,9 @@ import {
   FileSpreadsheet,
   FileUp,
   LayoutDashboard,
-  ShoppingCart,
   Truck,
   Briefcase,
+  Trophy,
 } from "lucide-react";
 
 export const companyNavItems = [
@@ -30,18 +30,18 @@ export const companyNavItems = [
     icon: FileUp,
   },
   {
-    href: "/app/resultados",
-    label: "Resultados",
-    icon: FileSpreadsheet,
-  },
-  {
     href: "/app/fornecedores",
     label: "Cadeia",
     icon: Truck,
   },
   {
-    href: "/app/convites/comprar",
-    label: "Convites",
-    icon: ShoppingCart,
+    href: "/app/resultados",
+    label: "Resultados",
+    icon: FileSpreadsheet,
+  },
+  {
+    href: "/app/ranking",
+    label: "Ranking",
+    icon: Trophy,
   },
 ] as const;

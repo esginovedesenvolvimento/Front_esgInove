@@ -1,6 +1,6 @@
-import { adminBudgetBoardModel } from "@/features/admin/shared/mock-data";
+import { adminFetch } from "@/features/admin/shared/api";
 import type { AdminBudgetBoardModel } from "@/features/admin/shared/types";
 
 export async function getBudgetBoardModel(): Promise<AdminBudgetBoardModel> {
-  return adminBudgetBoardModel;
+  return adminFetch<AdminBudgetBoardModel>("/admin/budgets");
 }
