@@ -48,7 +48,7 @@ interface RequestedBudget {
 }
 
 export default function MeusServicosPage() {
-  const { user, company, serviceAccess, isLoading: companyLoading, hasOnlyPreDiagnostic, isUnpaid, isSupplierOnly, hasActivePlan } = useCompany();
+  const { user, company, serviceAccess, isLoading: companyLoading, hasOnlyPreDiagnostic, isUnpaid, isSupplierOnly, hasActivePlan, refreshProfile } = useCompany();
   const [purchasedServices, setPurchasedServices] = useState<PurchasedService[]>([]);
   const [requestedBudgets, setRequestedBudgets] = useState<RequestedBudget[]>([]);
   const [isQueryingDb, setIsQueryingDb] = useState(true);
@@ -214,6 +214,12 @@ export default function MeusServicosPage() {
     const error = params.get("error");
     const pending = params.get("pending");
 
+    if (success === "true" || pending === "true") {
+      refreshProfile().catch((refreshError) => {
+        console.error("Erro ao atualizar perfil após retorno do checkout:", refreshError);
+      });
+    }
+
     if (success === "true") {
       setActionStatus("success-accept");
       setIsProposalModalOpen(true);
@@ -244,7 +250,7 @@ export default function MeusServicosPage() {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [requestedBudgets]);
+  }, [requestedBudgets, refreshProfile]);
 
   // Formata data
   const formatDate = (isoString: string) => {
