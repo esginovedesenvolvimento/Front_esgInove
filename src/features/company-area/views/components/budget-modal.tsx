@@ -40,7 +40,7 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
       const newRequests = budgetItems.map((item) => ({
         id: item.id,
         productCode: item.id,
-        name: item.name,
+        name: item.months ? `${item.name} (${item.months} meses)` : item.name,
         description: item.description || "",
         priceFormatted: item.priceFormatted,
         requestedAt: new Date().toISOString(),
@@ -63,7 +63,10 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
     setErrorMessage(null);
 
     try {
+      const mainItem = budgetItems[0];
       await createBudget({
+        productCode: mainItem?.id,
+        months: mainItem?.months,
         items: budgetItems.map((item) => ({
           id: item.id,
           name: item.name,
@@ -144,7 +147,9 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
               <div className="space-y-2">
                 {budgetItems.map((item) => (
                   <div key={item.id} className="rounded-xl bg-white border border-slate-200 px-3 py-2">
-                    <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {item.name} {item.months ? `(${item.months} meses)` : ""}
+                    </p>
                     <p className="text-[11px] text-slate-500">{item.priceFormatted}</p>
                   </div>
                 ))}

@@ -10,6 +10,7 @@ export interface CartItem {
   type: "ONE_TIME" | "SUBSCRIPTION";
   description?: string;
   requiresBudget?: boolean;
+  months?: number;
 }
 
 interface CartContextType {

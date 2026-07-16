@@ -371,10 +371,23 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                   type="text"
                   required
                   value={cpf}
-                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  onChange={(e) => {
+                    setCpf(formatCpf(e.target.value));
+                    if (errorMessage && errorMessage.toLowerCase().includes("cpf")) {
+                      reset();
+                    }
+                  }}
                   placeholder="000.000.000-00"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                  className={cn(
+                    "h-11 w-full rounded-xl border bg-white/50 px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
+                    errorMessage && errorMessage.toLowerCase().includes("cpf")
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-slate-200 focus:border-emerald-500/50"
+                  )}
                 />
+                {errorMessage && errorMessage.toLowerCase().includes("cpf") && (
+                  <p className="text-xs text-red-500 font-medium mt-1">{errorMessage}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="phone" className="text-xs font-medium text-slate-700">
@@ -478,10 +491,23 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                   type="text"
                   required
                   value={cnpj}
-                  onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+                  onChange={(e) => {
+                    setCnpj(formatCnpj(e.target.value));
+                    if (errorMessage && errorMessage.toLowerCase().includes("cnpj")) {
+                      reset();
+                    }
+                  }}
                   placeholder="00.000.000/0000-00"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                  className={cn(
+                    "h-11 w-full rounded-xl border bg-white/50 px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
+                    errorMessage && errorMessage.toLowerCase().includes("cnpj")
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-slate-200 focus:border-emerald-500/50"
+                  )}
                 />
+                {errorMessage && errorMessage.toLowerCase().includes("cnpj") && (
+                  <p className="text-xs text-red-500 font-medium mt-1">{errorMessage}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="enderecoCompleto" className="text-xs font-medium text-slate-700">
@@ -704,7 +730,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
             {businessSegmentCode && (
               <div className="space-y-1.5 animate-fade-in">
                 <label htmlFor="specificActivity" className="text-xs font-medium text-slate-700">
-                  Atividade Específica (ex: café, uva, soja, cana-de-açúcar) *
+                  Atividade Específica *
                 </label>
                 <input
                   id="specificActivity"
@@ -924,11 +950,22 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errorMessage && (errorMessage.toLowerCase().includes("e-mail") || errorMessage.toLowerCase().includes("email"))) {
+                        reset();
+                      }
+                    }}
                     placeholder="seu@empresa.com"
                     className={cn(
-                      "h-11 w-full rounded-xl border bg-white/50 px-3 pr-10 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20",
-                      emailValid ? "border-green-500/50" : email !== "" ? "border-red-400/50" : "border-slate-200"
+                      "h-11 w-full rounded-xl border bg-white/50 px-3 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
+                      errorMessage && (errorMessage.toLowerCase().includes("e-mail") || errorMessage.toLowerCase().includes("email"))
+                        ? "border-red-300 focus:border-red-500"
+                        : emailValid
+                        ? "border-green-500/50 focus:border-emerald-500/50"
+                        : email !== ""
+                        ? "border-red-400/50 focus:border-emerald-500/50"
+                        : "border-slate-200 focus:border-emerald-500/50"
                     )}
                   />
                   {emailValid && (
@@ -947,11 +984,22 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                     type="email"
                     required
                     value={emailConfirm}
-                    onChange={(e) => setEmailConfirm(e.target.value)}
+                    onChange={(e) => {
+                      setEmailConfirm(e.target.value);
+                      if (errorMessage && (errorMessage.toLowerCase().includes("e-mail") || errorMessage.toLowerCase().includes("email"))) {
+                        reset();
+                      }
+                    }}
                     placeholder="seu@empresa.com"
                     className={cn(
-                      "h-11 w-full rounded-xl border bg-white/50 px-3 pr-10 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20",
-                      emailsMatch ? "border-green-500/50" : emailConfirm !== "" ? "border-red-400/50" : "border-slate-200"
+                      "h-11 w-full rounded-xl border bg-white/50 px-3 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
+                      errorMessage && (errorMessage.toLowerCase().includes("e-mail") || errorMessage.toLowerCase().includes("email"))
+                        ? "border-red-300 focus:border-red-500"
+                        : emailsMatch
+                        ? "border-green-500/50 focus:border-emerald-500/50"
+                        : emailConfirm !== ""
+                        ? "border-red-400/50 focus:border-emerald-500/50"
+                        : "border-slate-200 focus:border-emerald-500/50"
                     )}
                   />
                   {emailsMatch && (

@@ -51,6 +51,43 @@ export function useAuthController() {
     }
   }
 
+  async function adminLogin(input: LoginInput) {
+    try {
+      setStatus("loading");
+      setErrorMessage(null);
+      const response = await authService.adminLogin(input);
+      setStatus("success");
+
+      return response;
+    } catch (error) {
+      setStatus("error");
+      const message = error instanceof Error ? error.message : "";
+
+      try {
+        if (message.includes("[") && message.includes("message")) {
+          const parsed = JSON.parse(message);
+          if (Array.isArray(parsed) && parsed[0]?.message) {
+            setErrorMessage(parsed[0].message);
+            throw error;
+          }
+        }
+      } catch (e) { /* fallback */ }
+
+      if (message.includes("[") || message.includes("validation") || message.includes("code")) {
+        setErrorMessage("E-mail ou senha inválidos");
+      } else if (message === "Unauthorized" || message.includes("401") || message.includes("Invalid login credentials")) {
+        setErrorMessage("Acesso restrito ao painel administrativo");
+      } else if (message.includes("Invalid API key")) {
+        setErrorMessage("Erro na configuração do serviço de autenticação.");
+      } else if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
+        setErrorMessage("Não foi possível conectar ao servidor. Tente novamente mais tarde.");
+      } else {
+        setErrorMessage(message || "Falha no login");
+      }
+      throw error;
+    }
+  }
+
   async function register(input: RegisterInput) {
     try {
       setStatus("loading");
@@ -74,14 +111,27 @@ export function useAuthController() {
         }
       } catch (e) { /* fallback */ }
       
-      if (message.includes("[") || message.includes("validation") || message.includes("code")) {
-        setErrorMessage("Verifique se todos os campos foram preenchidos corretamente");
-      } else if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
+      if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
         setErrorMessage("Não foi possível conectar ao servidor. Tente novamente mais tarde.");
-      } else if (message.includes("prisma") || message.includes("database") || message.includes("table") || message.includes("invocation")) {
+      } else if (
+        message.toLowerCase().includes("prisma") ||
+        message.toLowerCase().includes("database") ||
+        message.toLowerCase().includes("table") ||
+        message.toLowerCase().includes("invocation") ||
+        message.toLowerCase().includes("internal server error") ||
+        message.toLowerCase().includes("unexpected error")
+      ) {
         setErrorMessage("Erro interno ao processar seu cadastro. Tente novamente em alguns instantes.");
-      } else if (message.includes("User already exists") || message.includes("already registered")) {
+      } else if (message.includes("[") || message.includes("validation") || message.includes("code")) {
+        setErrorMessage("Verifique se todos os campos foram preenchidos corretamente");
+      } else if (
+        message.toLowerCase().includes("user already exists") ||
+        message.toLowerCase().includes("already registered") ||
+        message.toLowerCase().includes("email address already registered")
+      ) {
         setErrorMessage("Este e-mail já está cadastrado.");
+      } else if (message) {
+        setErrorMessage(message);
       } else {
         setErrorMessage("Ocorreu um erro no cadastro. Verifique os dados e tente novamente.");
       }
@@ -96,9 +146,9 @@ export function useAuthController() {
 
   const router = useRouter();
 
-  function logout() {
+  function logout(redirectTo = "/") {
     deleteCookie("inoveesg_token");
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -106,6 +156,7 @@ export function useAuthController() {
     status,
     errorMessage,
     login,
+    adminLogin,
     register,
     reset,
     logout,

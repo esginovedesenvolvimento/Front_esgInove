@@ -25,7 +25,7 @@ interface DBDiagnostic {
 }
 
 export function PreDiagnosticResultsView() {
-  const { hasInviteAccess, company, isSupplierOnly } = useCompany();
+  const { hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<DBDiagnostic | null>(null);
   const [realSuppliers, setRealSuppliers] = useState<SupplierInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -365,135 +365,166 @@ export function PreDiagnosticResultsView() {
   return (
     <div className="space-y-8 py-4 animate-in fade-in duration-500">
       
-      {/* ── Top Section: Banner + Consulting Card ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Banner Principal (2 cols) */}
-        <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
-          <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+      {/* ── Top Section: Banner + Consulting Card or Purchase CTA ─────────────────── */}
+      {!hasPreDiagnosticAccess ? (
+        <Card className="border border-emerald-500/30 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white shadow-2xl shadow-emerald-950/20 rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden transition-all hover:shadow-emerald-950/30">
+          {/* Background glowing ambient light */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+          <div className="absolute left-0 bottom-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
           
-          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 h-full z-20">
-            <div className="space-y-3 flex-1">
-              <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
-                {isCompleted ? "Diagnóstico Concluído" : "Pré-Diagnóstico ESG Pendente"}
+          <div className="relative z-10 flex flex-col lg:flex-row gap-8 justify-between items-start lg:items-center">
+            <div className="space-y-5 max-w-3xl">
+              <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full inline-block">
+                Nossos Serviços
               </span>
-              <h3 className="text-xl sm:text-2xl font-bold">
-                {isCompleted ? "Diagnóstico Piloto ESG" : "Faça seu Pré-Diagnóstico ESG"}
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-display tracking-tight leading-tight">
+                Adquira o Pré-Diagnóstico ESG e Consultoria
               </h3>
-              <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
-                {isCompleted 
-                  ? "Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado."
-                  : "Você ainda não concluiu o seu Pré-Diagnóstico. Responda o formulário para calcular a maturidade ESG da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança."
-                }
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Mapeie a maturidade em sustentabilidade da sua empresa nos pilares Ambiental, Social e Governança, atenda aos requisitos do mercado de fornecedores e otimize sua gestão com a validação de nossos especialistas.
               </p>
-              {!isCompleted && (
-                <div className="pt-2">
-                  <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
-                    <Link href="/app/diagnostico" className="flex items-center gap-1.5">
-                      Realizar Pré-Diagnóstico
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </div>
-              )}
             </div>
-            <div className="flex flex-col items-center md:items-end gap-2 shrink-0 self-center md:self-auto">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
-              <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
-                <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
-                <span className="text-sm font-semibold text-slate-500">/ 100</span>
+            
+            <div className="shrink-0 w-full lg:w-auto self-stretch lg:self-auto flex items-end lg:items-center font-display">
+              <Button asChild className="w-full lg:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-sm h-14 px-8 shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.03]">
+                <Link href="/app/upgrade" className="flex items-center justify-center gap-2">
+                  Adquirir Serviços ESG
+                  <ArrowUpRight className="h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Banner Principal (2 cols) */}
+          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
+            <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
+            
+            <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 h-full z-20">
+              <div className="space-y-3 flex-1">
+                <span className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                  {isCompleted ? "Diagnóstico Concluído" : "Pré-Diagnóstico ESG Pendente"}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-bold">
+                  {isCompleted ? "Diagnóstico Piloto ESG" : "Faça seu Pré-Diagnóstico ESG"}
+                </h3>
+                <p className="text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+                  {isCompleted 
+                    ? "Parabéns! Sua empresa concluiu a fase preliminar do diagnóstico. Confira abaixo a pontuação dividida e seu plano de ação recomendado."
+                    : "Você ainda não concluiu o seu Pré-Diagnóstico. Responda o formulário para calcular a maturidade ESG da sua empresa nos pilares Ambiental, Bioeconomia Circular, Social e Governança."
+                  }
+                </p>
+                {!isCompleted && (
+                  <div className="pt-2">
+                    <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 px-5 transition-all">
+                      <Link href="/app/diagnostico" className="flex items-center gap-1.5">
+                        Realizar Pré-Diagnóstico
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-center md:items-end gap-2 shrink-0 self-center md:self-auto">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pontuação Consolidada</span>
+                <div className="flex items-baseline gap-1 bg-slate-800/80 border border-slate-700/50 py-2.5 px-6 rounded-2xl">
+                  <span className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono">{overallScore}</span>
+                  <span className="text-sm font-semibold text-slate-500">/ 100</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Card de Consultoria (1 col) */}
-        {hasConsultingAccess ? (
-          <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
-            <div className="space-y-3">
-              <span className="bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
-                Consultoria Ativa
-              </span>
-              <h3 className="text-base font-bold text-slate-800">Sua Consultoria ESG</h3>
-              {consultingScheduledAt ? (
-                <div className="space-y-3 pt-1">
-                  <p className="text-slate-500 text-xs leading-relaxed">
-                    Você possui uma sessão agendada com nossos especialistas.
-                  </p>
-                  <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-700">Horário Agendado</p>
-                      <p className="text-[10px] text-slate-500">
-                        {new Date(consultingScheduledAt).toLocaleDateString("pt-BR", {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })} às {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
+          {/* Card de Consultoria (1 col) */}
+          {hasConsultingAccess ? (
+            <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
+              <div className="space-y-3">
+                <span className="bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                  Consultoria Ativa
+                </span>
+                <h3 className="text-base font-bold text-slate-800">Sua Consultoria ESG</h3>
+                {consultingScheduledAt ? (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      Você possui uma sessão agendada com nossos especialistas.
+                    </p>
+                    <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700">Horário Agendado</p>
+                        <p className="text-[10px] text-slate-500">
+                          {new Date(consultingScheduledAt).toLocaleDateString("pt-BR", {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })} às {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-slate-500 text-xs leading-relaxed">
-                    Você tem direito a uma consultoria especializada individual. Agende seu horário para validar suas práticas.
-                  </p>
-                  <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg inline-block">
-                    Aguardando Agendamento
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4">
-              <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 transition-all">
-                <Link href="/app/consultoria" className="flex items-center justify-center gap-1.5">
-                  {consultingScheduledAt ? "Acessar Detalhes" : "Agendar Horário"}
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        ) : (
-          <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
-            {/* Background pattern */}
-            <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1px] z-10" />
-            
-            <div className="space-y-3 relative z-20">
-              <div className="flex justify-between items-start">
-                <span className="bg-slate-200/80 border border-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
-                  Consultoria ESG
-                </span>
-                <div className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-100">
-                  <Lock className="h-3.5 w-3.5 text-slate-400" />
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      Você tem direito a uma consultoria especializada individual. Agende seu horário para validar suas práticas.
+                    </p>
+                    <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg inline-block">
+                      Aguardando Agendamento
+                    </span>
+                  </div>
+                )}
               </div>
-              <h3 className="text-base font-bold text-slate-400 select-none">Consultoria Especializada</h3>
-              <p className="text-slate-400 text-xs leading-relaxed select-none">
-                Agende sessões individuais com especialistas para validar evidências de conformidade e aprimorar seus indicadores ESG.
-              </p>
-            </div>
 
-            <div className="pt-4 relative z-20">
-              <Button asChild className="w-full bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-xl text-xs h-9 transition-all">
-                <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
-                  Adquirir Consultoria
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        )}
+              <div className="pt-4">
+                <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 transition-all">
+                  <Link href="/app/consultoria" className="flex items-center justify-center gap-1.5">
+                    {consultingScheduledAt ? "Acessar Detalhes" : "Agendar Horário"}
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
+              {/* Background pattern */}
+              <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1px] z-10" />
+              
+              <div className="space-y-3 relative z-20">
+                <div className="flex justify-between items-start">
+                  <span className="bg-slate-200/80 border border-slate-300 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                    Consultoria ESG
+                  </span>
+                  <div className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-100">
+                    <Lock className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                </div>
+                <h3 className="text-base font-bold text-slate-400 select-none">Consultoria Especializada</h3>
+                <p className="text-slate-400 text-xs leading-relaxed select-none">
+                  Agende sessões individuais com especialistas para validar evidências de conformidade e aprimorar seus indicadores ESG.
+                </p>
+              </div>
 
-      </div>
+              <div className="pt-4 relative z-20">
+                <Button asChild className="w-full bg-slate-800 hover:bg-slate-950 text-white font-bold rounded-xl text-xs h-9 transition-all">
+                  <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
+                    Adquirir Consultoria
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          )}
+
+        </div>
+      )}
 
       {/* ── Detalhamento dos Quatro Pilares (E, B, S, G) ─────────────────────────────────── */}
       <div className="space-y-4">

@@ -68,9 +68,9 @@ export function AdminSidebar({ adminUser }: { adminUser: AdminSessionUser }) {
             </p>
             <p className="text-xs text-slate-400">{adminUser.email}</p>
 
-            <button
+              <button
               type="button"
-              onClick={logout}
+              onClick={() => logout("/admin")}
               className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
             >
               <LogOut className="h-4 w-4" />

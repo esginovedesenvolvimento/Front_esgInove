@@ -297,7 +297,7 @@ function HomeContent() {
 
               {/* Diagnóstico + Consultoria */}
               <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-                <h3 className="text-xl font-bold font-display text-foreground mb-1">Diag.+Consultoria</h3>
+                <h3 className="text-xl font-bold font-display text-foreground mb-1">Consultoria</h3>
                 <p className="text-xs text-foreground/70 mb-3">Foco: Diagnóstico + Ação</p>
                 <div className="text-xs text-foreground/70 mb-0.5">A partir de</div>
                 <div className="text-2xl font-bold text-foreground mb-4">R$ 7.500</div>
@@ -339,23 +339,23 @@ function HomeContent() {
                   onClick={handlePlanClick}
                   className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-sm h-auto py-2.5 px-4 w-full flex justify-center items-center whitespace-nowrap rounded-full"
                 >
-                  Falar com Especialista
+                  Solicitar
                 </button>
               </div>
             </div>
 
             {/* Grid Layout (Desktop) */}
-            <div className="grid gap-8 lg:grid-cols-12 items-start">
-              {/* Lado Esquerdo: Tabela (70%) - Oculto em Mobile */}
-              <div className="hidden lg:block lg:col-span-8">
+            <div className="grid gap-8 lg:grid-cols-2 items-start">
+              {/* Lado Esquerdo: Tabela - Oculto em Mobile */}
+              <div className="hidden lg:block lg:col-span-1">
                 <div className="overflow-x-auto rounded-2xl border border-border bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse min-w-[500px]">
+                  <table className="w-full text-left border-collapse table-fixed min-w-[450px] pricing-table">
                     <thead>
                       <tr>
-                        <th className="p-4 bg-gray-50/50 border-b border-border font-bold text-foreground text-sm">Recursos</th>
-                        <th className="p-4 bg-white border-b border-border text-center font-bold text-foreground text-sm">Diagnóstico</th>
-                        <th className="p-4 bg-white border-b border-border text-center font-bold text-foreground text-sm">Diag.+Consultoria</th>
-                        <th className="p-4 bg-accent text-accent-foreground border-b border-border text-center font-bold text-sm">Assessoria</th>
+                        <th className="w-[34%] p-4 bg-gray-50/50 border-b border-border font-bold text-foreground text-[11px] lg:text-xs xl:text-sm">Recursos</th>
+                        <th className="w-[22%] p-4 bg-white border-b border-border text-center font-bold text-foreground text-[11px] lg:text-xs xl:text-sm">Diagnóstico</th>
+                        <th className="w-[22%] p-4 bg-white border-b border-border text-center font-bold text-foreground text-[11px] lg:text-xs xl:text-sm">Consultoria</th>
+                        <th className="w-[22%] p-4 bg-accent text-accent-foreground border-b border-border text-center font-bold text-[11px] lg:text-xs xl:text-sm">Assessoria</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -433,11 +433,11 @@ function HomeContent() {
                       <tr>
                         <td className="p-4 font-medium text-foreground bg-gray-50/30 text-xs">Investimento</td>
                         <td className="p-4 text-center">
-                          <div className="text-xs text-foreground/70 mb-0.5">A partir de</div>
+                           <div className="text-xs text-foreground/70 mb-0.5">A partir de</div>
                           <div className="text-base font-bold text-foreground mb-2">R$ 6.000</div>
                           <button 
                             onClick={handlePlanClick}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-[10px] sm:text-xs h-auto py-1.5 px-2 w-full flex justify-center items-center rounded-full text-center leading-tight"
                           >
                             Solicitar
                           </button>
@@ -447,7 +447,7 @@ function HomeContent() {
                           <div className="text-base font-bold text-foreground mb-2">R$ 7.500</div>
                           <button 
                             onClick={handlePlanClick}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-[10px] sm:text-xs h-auto py-1.5 px-2 w-full flex justify-center items-center rounded-full text-center leading-tight"
                           >
                             Solicitar
                           </button>
@@ -456,9 +456,9 @@ function HomeContent() {
                           <div className="text-base font-bold text-foreground mb-2">Sob Orçamento</div>
                           <button 
                             onClick={handlePlanClick}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-xs h-auto py-1.5 px-3 w-full flex justify-center items-center whitespace-nowrap rounded-full"
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 border-0 font-bold text-[10px] sm:text-xs h-auto py-1.5 px-2 w-full flex justify-center items-center rounded-full text-center leading-tight"
                           >
-                            Falar com Especialista
+                            Solicitar
                           </button>
                         </td>
                       </tr>
@@ -467,17 +467,17 @@ function HomeContent() {
                 </div>
               </div>
 
-              {/* Lado Direito: Cards (30%) */}
-              <div className="lg:col-span-4 bg-accent/5 p-6 rounded-2xl border border-border">
+              {/* Lado Direito: Cards (50%) */}
+              <div className="lg:col-span-1 bg-accent/10 p-6 rounded-3xl border border-border">
                 <h3 className="text-lg font-bold font-display text-foreground mb-4">Serviços Sob Demanda</h3>
-                <div className="flex flex-col gap-4">
-                  {/* Pré-Diagnóstico ESG */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Diagnóstico Autodeclarável */}
                   <div className="rounded-xl border border-border bg-white p-4 flex flex-col justify-between shadow-sm">
                     <div>
-                      <h4 className="text-sm font-bold font-display text-foreground mb-1">Pré-Diagnóstico ESG</h4>
+                      <h4 className="text-sm font-bold font-display text-foreground mb-1">Diagnóstico Autodeclarável</h4>
                       <p className="text-xs text-foreground/70 mb-2">Diagnóstico rápido de maturidade. Relatório não verificado (baseado em autodeclaração).</p>
                       <ul className="text-xs text-foreground/80 space-y-1 mb-2">
-                        <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> Formulário Automatizado</li>
+                        <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> Formulário ESG Autodeclarável</li>
                         <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> Relatório de Maturidade</li>
                       </ul>
                     </div>
@@ -492,13 +492,13 @@ function HomeContent() {
                     </div>
                   </div>
 
-                  {/* Pré-Diagnóstico + Consultoria */}
+                  {/* Diagnóstico Autodeclarável + Consultoria */}
                   <div className="rounded-xl border border-border bg-white p-4 flex flex-col justify-between shadow-sm">
                     <div>
-                      <h4 className="text-sm font-bold font-display text-foreground mb-1">Pré-Diagnóstico + Consultoria</h4>
-                      <p className="text-xs text-foreground/70 mb-2">Inclui o pré-diagnóstico rápido e 1 hora de consultoria com especialista.</p>
+                      <h4 className="text-sm font-bold font-display text-foreground mb-1">Diagnóstico Autodeclarável + Consultoria</h4>
+                      <p className="text-xs text-foreground/70 mb-2">Inclui o diagnóstico autodeclarável rápido e 1 hora de consultoria com especialista.</p>
                       <ul className="text-xs text-foreground/80 space-y-1 mb-2">
-                        <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> Pré-Diagnóstico ESG</li>
+                        <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> Diagnóstico Autodeclarável</li>
                         <li className="flex items-center gap-1"><CircleCheck className="size-3 text-accent" /> 1h de Consultoria Direta</li>
                       </ul>
                     </div>
@@ -556,7 +556,7 @@ function HomeContent() {
                   </div>
 
                   {/* Livro */}
-                  <div className="rounded-xl border border-border bg-white p-4 flex flex-col justify-between shadow-sm">
+                  <div className="rounded-xl border border-border bg-white p-4 flex flex-col justify-between shadow-sm sm:col-span-2">
                     <div>
                       <h4 className="text-sm font-bold font-display text-foreground mb-1">Livro Bioeconomia & ESG</h4>
                       <p className="text-xs text-foreground/70 mb-2">Adquira o livro físico ou digital.</p>

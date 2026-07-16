@@ -18,6 +18,7 @@ export interface BudgetInput {
   hasPriorInventory?: string;
   phone?: string;
   notes?: string;
+  months?: number;
 }
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {

@@ -18,7 +18,8 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   });
 
   if (response.status === 401) {
-    if (path !== "/auth/login") {
+    const isAuthAction = path === "/auth/login" || path === "/auth/admin/login" || path === "/auth/register";
+    if (!isAuthAction) {
       if (typeof window !== "undefined") {
         document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
         window.location.href = "/?auth=true";
@@ -39,6 +40,13 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 export const authService = {
   login(payload: LoginInput) {
     return request<LoginResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  adminLogin(payload: LoginInput) {
+    return request<LoginResponse>("/auth/admin/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });

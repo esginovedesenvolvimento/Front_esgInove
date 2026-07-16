@@ -2,13 +2,11 @@
 
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
 import { AppSidebar } from "./app-sidebar";
-import { CartSidebar } from "./cart-sidebar";
 import { useCompany } from "../../context/company-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, isLoading } = useCompany();
+  const { user, isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, hasPreDiagnosticAccess, isLoading } = useCompany();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -26,10 +24,38 @@ export function AppShell({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Se o usuário não pagou nada e tentar acessar qualquer rota que não seja o dashboard principal
-    if (isUnpaid && pathname !== "/app" && pathname !== "/app/perfil" && pathname !== "/app/meus-servicos") {
-      router.push("/app");
+    if (pathname.startsWith("/app/diagnostico") && !isSupplierOnly && !hasPreDiagnosticAccess) {
+      router.push("/app/upgrade");
       return;
+    }
+
+    if (pathname.startsWith("/app/fornecedores") && !hasPreDiagnosticAccess) {
+      router.push("/app/upgrade");
+      return;
+    }
+
+    if (pathname.startsWith("/app/ranking") && !hasInviteAccess) {
+      router.push("/app/upgrade");
+      return;
+    }
+
+    // Redirecionamento para usuário não-pagante
+    if (isUnpaid) {
+      if (!isSupplierOnly) {
+        const allowedPaths = ["/app/upgrade", "/app/perfil", "/app/meus-servicos", "/app/checkout"];
+        const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
+        if (!isAllowed) {
+          router.push("/app/upgrade");
+          return;
+        }
+      } else {
+        const allowedPaths = ["/app", "/app/perfil", "/app/meus-servicos"];
+        const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
+        if (!isAllowed) {
+          router.push("/app");
+          return;
+        }
+      }
     }
 
     // Se o usuário tem apenas pré-diagnóstico e tentar acessar qualquer rota bloqueada
@@ -54,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           router.push("/app/upgrade");
         }
       }
-  }, [user, isUnpaid, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, isLoading, pathname, router]);
+  }, [user, isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, hasPreDiagnosticAccess, isLoading, pathname, router]);
 
   if (isLoading) {
     return (
@@ -67,46 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // Layout para usuário não-pagante (Loja/Checkout)
-  if (isUnpaid) {
-    return (
-      <div className="min-h-screen bg-background flex overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          {/* Header simples para checkout */}
-          <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center">
-              <Image 
-                src="/logo_inove_transparent.png" 
-                alt="Inove ESG" 
-                width={1472}
-                height={832}
-                className="h-10 w-auto sm:h-12"
-                priority
-              />
-            </div>
-            <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">1</span>
-                Seleção
-              </span>
-              <span className="w-4 h-[1px] bg-slate-200" />
-              <span className="flex items-center gap-1.5 opacity-40">
-                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px]">2</span>
-                Pagamento
-              </span>
-            </div>
-          </header>
 
-          <main className="flex-1 p-8 max-w-5xl mx-auto w-full">
-            {children}
-          </main>
-        </div>
-        
-        {/* Sidebar de Carrinho no lugar da Sidebar de Navegação */}
-        <CartSidebar />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#ebf1e7_0%,_var(--background)_36%,_var(--background)_100%)] text-foreground">

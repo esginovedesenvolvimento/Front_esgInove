@@ -42,9 +42,17 @@
 }
 
 html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6.5rem;
   max-width: 100%;
   overflow-x: clip;
   scrollbar-gutter: stable;
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: 7.5rem;
+  }
 }
 
 body {
@@ -140,5 +148,18 @@ button {
     transform: none !important;
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Pricing Table adjustments */
+.pricing-table th,
+.pricing-table td {
+  padding: 0.6rem 0.5rem !important; /* reduced padding */
+}
+
+@media (min-width: 1024px) {
+  .pricing-table th,
+  .pricing-table td {
+    padding: 0.85rem 0.75rem !important; /* standard desktop padding */
   }
 }

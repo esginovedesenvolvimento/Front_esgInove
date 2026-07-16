@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -10,12 +9,12 @@ export type AdminSessionUser = {
   role?: string;
 };
 
-export async function requireAdminSession() {
+export async function getAdminSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get("inoveesg_token")?.value;
 
   if (!token) {
-    redirect("/?auth=true");
+    return null;
   }
 
   const response = await fetch(`${API_URL}/auth/me`, {
@@ -28,17 +27,17 @@ export async function requireAdminSession() {
   });
 
   if (response.status === 401) {
-    redirect("/?auth=true");
+    return null;
   }
 
   if (!response.ok) {
-    redirect("/?auth=true");
+    return null;
   }
 
   const user = (await response.json()) as AdminSessionUser;
 
   if (user?.role !== "ADMIN") {
-    redirect("/app");
+    return null;
   }
 
   return {

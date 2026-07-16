@@ -20,7 +20,6 @@ export function DashboardView() {
         <h1 className="text-2xl font-semibold tracking-tight text-slate-800">
           Olá, {user?.fullName?.split(" ")[0] || "Empresa"}! 👋
         </h1>
-        <p className="text-sm text-slate-500">Aqui estão os resultados da sua avaliação inicial.</p>
       </div>
       <PreDiagnosticResultsView />
     </div>

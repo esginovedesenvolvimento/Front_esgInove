@@ -114,10 +114,10 @@ export default function MeusServicosPage() {
               let description = item.product.description || "";
               
               if (item.product.code === "PRE_DIAGNOSTIC") {
-                name = "Pré-Diagnóstico ESG";
+                name = "Diagnóstico Autodeclarável";
                 description = "Diagnóstico de sustentabilidade corporativa focado em responder ao questionário inicial e acessar a nota de maturidade.";
               } else if (item.product.code === "PRE_DIAGNOSTIC_PLUS") {
-                name = "Pré-Diagnóstico ESG + Consultoria";
+                name = "Diagnóstico Autodeclarável + Consultoria";
                 description = "Diagnóstico de sustentabilidade corporativa focado em responder ao questionário inicial, acessar a nota de maturidade e 1h de consultoria.";
               } else if (item.product.code === "LIVRO_ESG") {
                 name = "Livro Bioeconomia & ESG";

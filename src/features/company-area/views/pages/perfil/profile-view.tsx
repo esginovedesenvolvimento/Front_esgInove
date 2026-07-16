@@ -350,7 +350,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
               </div>
               {companyForm.businessSegmentCode && (
                 <div className="space-y-1 md:col-span-2 animate-fade-in">
-                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Atividade Específica (ex: café, cana-de-açúcar)</span>
+                  <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Atividade Específica</span>
                   <input
                     type="text"
                     value={companyForm.specificActivity}

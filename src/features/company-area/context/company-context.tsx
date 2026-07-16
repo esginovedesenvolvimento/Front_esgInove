@@ -130,6 +130,7 @@ interface CompanyContextType {
   hasInviteAccess: boolean;
   hasAssessmentAccess: boolean;
   hasEvidenceAccess: boolean;
+  hasPreDiagnosticAccess: boolean;
   activeEntitlements: string[];
 }
 
@@ -200,6 +201,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
 
   const hasAssessmentAccess = serviceAccess?.hasAssessmentAccess ?? false;
   const hasEvidenceAccess = serviceAccess?.hasEvidenceAccess ?? false;
+  const hasPreDiagnosticAccess = serviceAccess?.hasPreDiagnosticAccess ?? false;
   
   const hasOnlyPreDiagnostic = (hasActiveDiagnostic && 
     !hasActivePlan && 
@@ -224,6 +226,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
         hasInviteAccess,
         hasAssessmentAccess,
         hasEvidenceAccess,
+        hasPreDiagnosticAccess,
         hasOnlyPreDiagnostic,
         isUnpaid
       });
@@ -246,6 +249,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
       hasInviteAccess,
       hasAssessmentAccess,
       hasEvidenceAccess,
+      hasPreDiagnosticAccess,
       activeEntitlements
     }}>
       {children}

@@ -19,7 +19,7 @@ export function AppSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const { logout } = useAuthController();
-  const { user, company, isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan } = useCompany();
+  const { user, company, isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan, hasPreDiagnosticAccess, hasInviteAccess } = useCompany();
 
   const getInitials = (name: string) => {
     return name
@@ -34,20 +34,27 @@ export function AppSidebar() {
 
   useEffect(() => {
     console.log("=== AppSidebar Access & Routing Analysis ===");
-    console.log("Context values:", { isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan });
+    console.log("Context values:", { isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan, hasPreDiagnosticAccess, hasInviteAccess });
     companyNavItems.forEach((item) => {
-      const isLocked = isUnpaid 
-        ? (item.href !== "/app" && item.href !== "/app/meus-servicos")
-        : (item.href === "/app/evidencias" 
-            ? !hasEvidenceAccess 
-            : (item.href === "/app/resultados"
-                ? (!hasCompletedDiagnostic && !hasActivePlan)
-                : false
-              )
-          );
+      let isLocked = false;
+      if (isUnpaid) {
+        isLocked = (item.href !== "/app" && item.href !== "/app/meus-servicos");
+      } else {
+        if (item.href === "/app/diagnostico") {
+          isLocked = !isSupplierOnly && !hasPreDiagnosticAccess;
+        } else if (item.href === "/app/fornecedores") {
+          isLocked = !hasPreDiagnosticAccess;
+        } else if (item.href === "/app/ranking") {
+          isLocked = !hasInviteAccess;
+        } else if (item.href === "/app/evidencias") {
+          isLocked = !hasEvidenceAccess;
+        } else if (item.href === "/app/resultados") {
+          isLocked = !hasCompletedDiagnostic && !hasActivePlan;
+        }
+      }
       console.log(`Route: ${item.label} (${item.href}) | isLocked: ${isLocked}`);
     });
-  }, [isUnpaid, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan]);
+  }, [isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan, hasPreDiagnosticAccess, hasInviteAccess]);
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -148,23 +155,35 @@ export function AppSidebar() {
           <ul className="space-y-0.5">
             {companyNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href);
+              const isActive = item.href === "/app"
+                ? (pathname === "/app" || (isUnpaid && !isSupplierOnly && pathname === "/app/upgrade"))
+                : pathname.startsWith(item.href);
               
               const isEvidenceRoute = item.href === "/app/evidencias";
               const isChainRoute = item.href === "/app/fornecedores";
-              const isLocked = isUnpaid 
-                ? (item.href !== "/app" && item.href !== "/app/meus-servicos")
-                : (item.href === "/app/evidencias" 
-                    ? !hasEvidenceAccess 
-                    : (item.href === "/app/resultados"
-                        ? (!hasCompletedDiagnostic && !hasActivePlan)
-                        : false
-                      )
-                  );
+              let isLocked = false;
+              if (isUnpaid) {
+                isLocked = (item.href !== "/app" && item.href !== "/app/meus-servicos");
+              } else {
+                if (item.href === "/app/diagnostico") {
+                  isLocked = !isSupplierOnly && !hasPreDiagnosticAccess;
+                } else if (item.href === "/app/fornecedores") {
+                  isLocked = !hasPreDiagnosticAccess;
+                } else if (item.href === "/app/ranking") {
+                  isLocked = !hasInviteAccess;
+                } else if (item.href === "/app/evidencias") {
+                  isLocked = !hasEvidenceAccess;
+                } else if (item.href === "/app/resultados") {
+                  isLocked = !hasCompletedDiagnostic && !hasActivePlan;
+                }
+              }
 
-              const href = isLocked 
-                ? (isUnpaid ? "/app" : "/app/upgrade") 
-                : item.href;
+              const href = item.href === "/app" && isUnpaid && !isSupplierOnly
+                ? "/app/upgrade"
+                : (isLocked 
+                    ? (isUnpaid ? (isSupplierOnly ? "/app" : "/app/upgrade") : "/app/upgrade") 
+                    : item.href
+                  );
 
               return (
                 <li key={item.href}>

@@ -54,23 +54,23 @@ const planProducts: (CartItem & {
 const demandServices: (CartItem & { features: string[], icon: React.ComponentType<{ className?: string }> })[] = [
   {
     id: "pre-diag",
-    name: "Pré-Diagnóstico ESG",
+    name: "Diagnóstico Autodeclarável",
     description: "Diagnóstico rápido de maturidade. Relatório não verificado.",
     price: 250,
     priceFormatted: "R$ 250",
     type: "ONE_TIME",
     icon: Zap,
-    features: ["Formulário Automatizado", "Relatório de Maturidade"]
+    features: ["Formulário ESG Autodeclarável", "Relatório de Maturidade"]
   },
   {
     id: "pre-diag-plus",
-    name: "Pré-Diag + Consultoria",
-    description: "Pré-Diagnóstico + 1h de sessão estratégica.",
+    name: "Diagnóstico Autodeclarável + Consultoria",
+    description: "Diagnóstico autodeclarável + 1h de sessão estratégica.",
     price: 500,
     priceFormatted: "R$ 500",
     type: "ONE_TIME",
     icon: Users,
-    features: ["Formulário Automatizado", "1h Sessão Estratégica", "Relatório de Maturidade"]
+    features: ["Formulário ESG Autodeclarável", "1h Sessão Estratégica", "Relatório de Maturidade"]
   },
   {
     id: "cadeia-fornecedores",
@@ -117,6 +117,7 @@ export function PurchaseView() {
   const [isBudgetSubmitting, setIsBudgetSubmitting] = useState(false);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [requestedBudgetCodes, setRequestedBudgetCodes] = useState<string[]>([]);
+  const [checkoutAssessoriaMonths, setCheckoutAssessoriaMonths] = useState<6 | 12>(12);
 
   useEffect(() => {
     try {
@@ -153,7 +154,7 @@ export function PurchaseView() {
     setSelectedBudgetPlan(plan);
   };
 
-  const persistRequestedBudget = (plan: (typeof planProducts)[number]) => {
+  const persistRequestedBudget = (plan: (typeof planProducts)[number], months?: number) => {
     try {
       const companyId = company?.id || "anonymous";
       const storageKey = `inoveesg_requested_budgets_${companyId}`;
@@ -163,7 +164,7 @@ export function PurchaseView() {
       const newRequest = {
         id: plan.id,
         productCode: plan.productCode,
-        name: plan.name,
+        name: months ? `${plan.name} (${months} meses)` : plan.name,
         description: plan.description,
         priceFormatted: plan.priceFormatted,
         requestedAt: new Date().toISOString(),
@@ -185,8 +186,12 @@ export function PurchaseView() {
     setBudgetError(null);
 
     try {
-      await createBudget({ productCode: selectedBudgetPlan.productCode });
-      persistRequestedBudget(selectedBudgetPlan);
+      const months = selectedBudgetPlan.productCode === "assessoria-completa" ? checkoutAssessoriaMonths : undefined;
+      await createBudget({
+        productCode: selectedBudgetPlan.productCode,
+        months
+      });
+      persistRequestedBudget(selectedBudgetPlan, months);
       setRequestedBudgetCodes((prev) =>
         prev.includes(selectedBudgetPlan.productCode) ? prev : [...prev, selectedBudgetPlan.productCode]
       );
@@ -421,6 +426,38 @@ export function PurchaseView() {
                 </div>
               </div>
             </div>
+
+            {selectedBudgetPlan.productCode === "assessoria-completa" && (
+              <div className="mt-4 p-3 border border-slate-200/60 bg-slate-50 rounded-2xl">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                  Duração do Contrato
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200/50 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutAssessoriaMonths(6)}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                      checkoutAssessoriaMonths === 6
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    6 meses
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutAssessoriaMonths(12)}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                      checkoutAssessoriaMonths === 12
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    12 meses
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button

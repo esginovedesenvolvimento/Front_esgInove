@@ -75,6 +75,7 @@ export interface AuthAccessContext {
   hasInvitePack: boolean;
   hasAssessmentAccess: boolean;
   hasEvidenceAccess: boolean;
+  hasPreDiagnosticAccess: boolean;
 }
 
 export interface AuthUser {

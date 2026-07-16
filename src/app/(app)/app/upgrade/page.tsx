@@ -80,23 +80,23 @@ const upgradePlans: UpgradePlan[] = [
 const demandServices = [
   {
     id: "pre-diag",
-    name: "Pré-Diagnóstico ESG",
+    name: "Diagnóstico Autodeclarável",
     description: "Diagnóstico rápido de maturidade. Relatório não verificado.",
     priceFormatted: "R$ 250",
     type: "ONE_TIME",
     requiresBudget: false,
     icon: Zap,
-    features: ["Formulário Automatizado", "Relatório de Maturidade"]
+    features: ["Formulário ESG Autodeclarável", "Relatório de Maturidade"]
   },
   {
     id: "pre-diag-plus",
-    name: "Pré-Diag + Consultoria",
-    description: "Pré-Diagnóstico + 1h de sessão estratégica.",
+    name: "Diagnóstico Autodeclarável + Consultoria",
+    description: "Diagnóstico autodeclarável + 1h de sessão estratégica.",
     priceFormatted: "R$ 500",
     type: "ONE_TIME",
     requiresBudget: false,
     icon: Users,
-    features: ["Formulário Automatizado", "1h Sessão Estratégica"]
+    features: ["Formulário ESG Autodeclarável", "1h Sessão Estratégica"]
   },
   {
     id: "cadeia-fornecedores",
@@ -137,6 +137,7 @@ export default function UpgradePage() {
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [checkoutLoadingId, setCheckoutLoadingId] = useState<string | null>(null);
+  const [assessoriaMonths, setAssessoriaMonths] = useState<6 | 12>(12);
 
   const handleOpenBudget = (plan: UpgradePlan) => {
     clearCart();
@@ -147,7 +148,8 @@ export default function UpgradePage() {
       priceFormatted: plan.priceFormatted,
       type: plan.type,
       description: plan.description,
-      requiresBudget: true
+      requiresBudget: true,
+      months: plan.id === "assessoria-completa" ? assessoriaMonths : undefined
     });
     setIsBudgetOpen(true);
   };
@@ -216,187 +218,213 @@ export default function UpgradePage() {
   };
 
   return (
-    <div className="space-y-8 pb-12 animate-in fade-in duration-500 max-w-7xl mx-auto px-4 md:px-6">
+    <div className="space-y-10 pb-16 pt-6 animate-in fade-in duration-500 max-w-7xl mx-auto px-4 sm:px-6">
       
-      {/* Header com Navegação de Volta */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-        <div className="space-y-1">
-          <Link href="/app" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors mb-2">
-            <ArrowLeft className="h-3 w-3" /> Voltar ao Painel
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 fill-amber-800" />
-              Upgrade Corporativo
-            </span>
+      {/* Grid container with Left and Right columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Column: Planos de Assessoria (col-span-7) */}
+        <div className="lg:col-span-7 space-y-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight font-display">
+                Planos de Assessoria
+              </h2>
+            </div>
+            <p className="text-sm text-slate-500">
+              Escolha o nível de acompanhamento ideal para a maturidade ESG da sua empresa. Nossos especialistas guiam você em cada passo.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 font-display tracking-tight">
-            Desbloqueie o Potencial Completo do InoveESG
-          </h1>
-          <p className="text-sm text-slate-500 max-w-3xl">
-            Sua empresa atualmente possui o <span className="font-semibold text-emerald-600">Pré-Diagnóstico ESG</span>. 
-            Atualize agora para um de nossos planos corporativos e ganhe acesso total à gestão de evidências, selo verificado e engajamento de fornecedores.
-          </p>
-        </div>
-      </div>
 
-      {/* Seção 1: Planos de Assessoria */}
-      <div className="space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-emerald-600" />
-            Planos de Assessoria
-          </h2>
-          <p className="text-sm text-slate-500">
-            Escolha o nível de acompanhamento ideal para a maturidade ESG da sua empresa.
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {upgradePlans.map((plan) => {
-            const isSpecial = plan.highlight;
-            return (
-              <div 
-                key={plan.id} 
-                className={`rounded-3xl border bg-white p-6 md:p-8 flex flex-col justify-between transition-all duration-300 relative ${
-                  isSpecial 
-                    ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-50/50 scale-[1.02] md:-translate-y-2 z-10" 
-                    : "border-slate-200 hover:border-slate-300 hover:shadow-lg shadow-sm"
-                }`}
-              >
-                {plan.badge && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                    {plan.badge}
-                  </div>
-                )}
-
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md uppercase tracking-wider inline-block mb-4">
-                    {plan.focus}
-                  </span>
-                  
-                  <h3 className="text-lg md:text-xl font-bold text-slate-800 mb-2 font-display">{plan.name}</h3>
-                  <p className="text-xs text-slate-500 mb-6 leading-relaxed min-h-[48px]">{plan.description}</p>
-                  
-                  <div className="border-t border-slate-100 pt-5 mb-6">
-                    <span className="text-[10px] text-slate-400 block uppercase tracking-wider">Investimento</span>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-xl font-extrabold text-slate-800 font-display">Sob Orçamento</span>
-                    </div>
-                    <span className="text-[10px] text-emerald-600 font-medium block mt-1">
-                      Proposta personalizada ao porte da empresa
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 mb-8">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
-                    <ul className="space-y-2.5">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
-                          <CircleCheck className="size-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => handleOpenBudget(plan)}
-                  className={`w-full rounded-2xl h-11 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 ${
+          <div className="space-y-6">
+            {upgradePlans.map((plan) => {
+              const isSpecial = plan.highlight;
+              return (
+                <div 
+                  key={plan.id} 
+                  className={`rounded-[2rem] border bg-white p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 relative ${
                     isSpecial 
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100" 
-                      : "bg-slate-900 text-white hover:bg-slate-850"
+                      ? "border-emerald-500 ring-4 ring-emerald-500/10 shadow-md" 
+                      : "border-slate-200/80 hover:border-slate-300 hover:shadow-md shadow-sm"
                   }`}
                 >
-                  Solicitar Proposta <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Seção 2: Serviços sob Demanda */}
-      <div className="border-t border-slate-100 pt-10 space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            <Zap className="h-5 w-5 text-emerald-600" />
-            Serviços sob Demanda e Adicionais
-          </h2>
-          <p className="text-sm text-slate-500">
-            Contrate soluções pontuais adicionais de acordo com a necessidade atual do seu negócio.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {demandServices.map((service, idx) => {
-            const Icon = service.icon;
-            return (
-              <div 
-                key={`${service.id}-${idx}`} 
-                className="rounded-3xl border border-slate-200 bg-white p-6 flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-lg transition-all duration-300 shadow-sm"
-              >
-                <div>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
-                      <Icon className="h-5 w-5" />
+                  {plan.badge && (
+                    <div className="absolute -top-3 left-6 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                      {plan.badge}
                     </div>
-                    <h3 className="text-base font-bold text-slate-800">{service.name}</h3>
-                  </div>
-                  
-                  <p className="text-xs text-slate-500 leading-relaxed mb-5 min-h-[40px]">
-                    {service.description}
-                  </p>
-                  
-                  <div className="space-y-2 mb-6">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
-                    <ul className="space-y-2">
-                      {service.features.map((feature, fIdx) => (
-                        <li key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
-                          <CircleCheck className="size-3.5 text-emerald-500 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                  )}
 
-                <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 uppercase tracking-wider">Investimento</span>
-                    <span className="font-extrabold text-sm text-slate-800">{service.priceFormatted}</span>
+                  <div className="flex flex-col sm:flex-row justify-between gap-6">
+                    <div className="space-y-4 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg uppercase tracking-wider">
+                          {plan.focus}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-800 font-display tracking-tight">{plan.name}</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed mt-1">{plan.description}</p>
+                        {plan.id === "assessoria-completa" && (
+                          <div className="space-y-2 mt-4 bg-slate-50 border border-slate-200/60 p-3 rounded-2xl max-w-[240px]">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                              Duração do Contrato
+                            </label>
+                            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200/50 rounded-xl">
+                              <button
+                                type="button"
+                                onClick={() => setAssessoriaMonths(6)}
+                                className={`py-1 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                                  assessoriaMonths === 6
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                                }`}
+                              >
+                                6 meses
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAssessoriaMonths(12)}
+                                className={`py-1 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                                  assessoriaMonths === 12
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                                }`}
+                              >
+                                12 meses
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                              <CircleCheck className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                              <span className="leading-snug">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="w-full sm:w-48 shrink-0 flex flex-col justify-between border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-6">
+                      <div className="mb-4">
+                        <span className="text-[9px] text-slate-400 font-bold block uppercase tracking-wider">Investimento</span>
+                        <span className="text-lg font-extrabold text-slate-800 font-display block mt-0.5">Sob Orçamento</span>
+                        <span className="text-[10px] text-emerald-600 font-medium block mt-0.5 leading-snug">
+                          Proposta personalizada ao porte da empresa
+                        </span>
+                      </div>
+                      
+                      <Button
+                        onClick={() => handleOpenBudget(plan)}
+                        className={`w-full rounded-xl h-10 font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1 border-0 ${
+                          isSpecial 
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                            : "bg-slate-900 text-white hover:bg-slate-800"
+                        }`}
+                      >
+                        Solicitar Proposta <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <Button 
-                    onClick={() => handleDemandServiceClick(service)}
-                    disabled={checkoutLoadingId !== null}
-                    size="sm"
-                    className="rounded-full px-5 h-8 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1.5 shadow-sm shadow-emerald-100"
-                  >
-                    {checkoutLoadingId === service.id ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Aguarde
-                      </>
-                    ) : (
-                      service.requiresBudget ? "Solicitar" : "Comprar"
-                    )}
-                  </Button>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Column: Serviços sob Demanda (col-span-5) with soft green background */}
+        <div className="lg:col-span-5 bg-gradient-to-b from-emerald-50/50 to-teal-55/30 border border-emerald-100/70 rounded-[2.5rem] p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-emerald-100 text-emerald-750">
+                <Zap className="h-5 w-5 animate-pulse" />
               </div>
-            );
-          })}
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight font-display">
+                Serviços sob Demanda
+              </h2>
+            </div>
+            <p className="text-sm text-slate-500">
+              Contrate soluções pontuais adicionais de acordo com a necessidade atual do seu negócio.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {demandServices.map((service, idx) => {
+              const Icon = service.icon;
+              return (
+                <div 
+                  key={`${service.id}-${idx}`} 
+                  className="group rounded-[2rem] border border-emerald-100/40 bg-white p-5 flex flex-col justify-between hover:border-emerald-500/30 hover:shadow-lg transition-all duration-300 shadow-sm"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80 transition-colors">
+                        <Icon className="h-4.5 w-4.5" />
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-800 tracking-tight font-display">{service.name}</h3>
+                    </div>
+                    
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                      {service.description}
+                    </p>
+                    
+                    <div className="space-y-2 mb-4 border-t border-slate-100/60 pt-3">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">O que está incluso:</span>
+                      <ul className="space-y-2">
+                        {service.features.map((feature, fIdx) => (
+                          <li key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
+                            <CircleCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Investimento</span>
+                      <span className="font-extrabold text-sm text-slate-800">{service.priceFormatted}</span>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => handleDemandServiceClick(service)}
+                      disabled={checkoutLoadingId !== null}
+                      size="sm"
+                      className="rounded-full px-4 h-8 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none flex items-center gap-1 shadow-sm shadow-emerald-600/10"
+                    >
+                      {checkoutLoadingId === service.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Aguarde
+                        </>
+                      ) : (
+                        service.requiresBudget ? "Solicitar" : "Comprar"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Caixa de Segurança/FAQ */}
-      <div className="grid gap-6 md:grid-cols-2 mt-8">
-        <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-6 flex gap-4">
-          <div className="bg-emerald-100 text-emerald-800 p-3 rounded-2xl h-fit">
+      {/* FAQ / Safety Box */}
+      <div className="grid gap-6 md:grid-cols-2 mt-8 pt-4 border-t border-slate-100/60">
+        <div className="bg-slate-50/50 border border-slate-150 rounded-[2rem] p-6 flex gap-4 hover:bg-slate-50 transition-colors duration-200">
+          <div className="bg-emerald-50 text-emerald-700 p-3.5 rounded-2xl h-fit border border-emerald-100/50">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h4 className="text-sm font-bold text-slate-800 font-display">Garantia de Confidencialidade</h4>
             <p className="text-xs text-slate-500 leading-relaxed">
               Todos os seus dados de autodeclaração e documentos anexados são criptografados e tratados sob rígidos acordos de sigilo, 
@@ -405,11 +433,11 @@ export default function UpgradePage() {
           </div>
         </div>
 
-        <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-6 flex gap-4">
-          <div className="bg-emerald-100 text-emerald-800 p-3 rounded-2xl h-fit">
+        <div className="bg-slate-50/50 border border-slate-150 rounded-[2rem] p-6 flex gap-4 hover:bg-slate-50 transition-colors duration-200">
+          <div className="bg-emerald-50 text-emerald-700 p-3.5 rounded-2xl h-fit border border-emerald-100/50">
             <Users className="h-6 w-6" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h4 className="text-sm font-bold text-slate-800 font-display">Suporte Técnico Dedicado</h4>
             <p className="text-xs text-slate-500 leading-relaxed">
               Nossa equipe comercial e de engenheiros ambientais está disponível para sanar dúvidas e personalizar o escopo 
