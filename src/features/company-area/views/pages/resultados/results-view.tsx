@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import type { getResultsViewModel } from "../../../controllers/results.controller";
 import { type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
+import { useCompany } from "@/features/company-area/context/company-context";
+import { generateESGReportPDF } from "@/features/company-area/utils/pdf-generator";
 import { SectionHeading } from "../../components/section-heading";
 import {
   Download,
@@ -140,6 +142,7 @@ function getMaturityLabel(level?: string | null) {
 export function ResultsView({ model, history = [] }: { model: ResultsViewModel; history?: DiagnosticHistoryItem[] }) {
   const { globalScore, globalProvenScore, isPreDiagnostic, axisScores, isSupplierOrg } = model;
   const hasVerifiedScore = globalProvenScore > 0;
+  const { company } = useCompany();
 
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
@@ -148,6 +151,17 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
 
   const toggleExpand = (id: string) => {
     setExpandedDiagnosticId(prev => prev === id ? null : id);
+  };
+
+  const handleDownload = () => {
+    generateESGReportPDF({
+      isSupplierOrg,
+      model,
+      companyName: company?.legalName || company?.tradeName || "Minha Empresa",
+      cnpj: company?.cnpj || "00.000.000/0001-00",
+      segment: company?.industrySegment || "Serviços",
+      invites,
+    });
   };
 
   useEffect(() => {
@@ -221,16 +235,12 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
         description="Diagnóstico completo do desempenho ESG da sua empresa por eixo, evidências e recomendações."
         action={
           hasVerifiedScore ? (
-            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm">
-              <Link href="/app/relatorio?type=audited">
-                <FileCheck className="w-4 h-4" /> Baixar Relatório Auditado
-              </Link>
+            <Button onClick={handleDownload} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
+              <FileCheck className="w-4 h-4" /> Baixar Relatório
             </Button>
           ) : (
-            <Button asChild variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold gap-2">
-              <Link href="/app/relatorio?type=pre">
-                <Download className="w-4 h-4" /> Baixar Relatório Básico
-              </Link>
+            <Button onClick={handleDownload} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
+              <Download className="w-4 h-4" /> Baixar Relatório
             </Button>
           )
         }
@@ -297,8 +307,8 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                 hasVerifiedScore
-                  ? "bg-amber-50 text-amber-850 border-amber-200" 
-                  : "bg-emerald-50 text-emerald-850 border-emerald-200"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                  : "bg-amber-50 text-amber-800 border-amber-200"
               }`}>
                 {hasVerifiedScore ? (
                   <>
@@ -312,8 +322,8 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                 hasVerifiedScore
-                  ? "bg-emerald-50 text-emerald-850 border-emerald-200" 
-                  : "bg-red-50 text-red-750 border-red-200"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                  : "bg-red-50 text-red-700 border-red-200"
               }`}>
                 Confiança: {hasVerifiedScore ? "Alto" : "Baixo"}
               </span>
@@ -982,15 +992,13 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
             </div>
           </div>
           <Button
-            asChild
-            className={`shrink-0 gap-2 font-semibold ${hasVerifiedScore
+            onClick={handleDownload}
+            className={`shrink-0 gap-2 font-semibold cursor-pointer ${hasVerifiedScore
               ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-              : "bg-white hover:bg-slate-50 border border-slate-200 text-slate-700"}`}
+              : "bg-amber-600 hover:bg-amber-700 text-white shadow-sm"}`}
           >
-            <Link href={hasVerifiedScore ? "/app/relatorio?type=audited" : "/app/relatorio?type=pre"}>
-              <Download className="w-4 h-4" />
-              {hasVerifiedScore ? "Baixar Relatório Auditado" : "Baixar Relatório Básico"}
-            </Link>
+            <Download className="w-4 h-4" />
+            Baixar Relatório
           </Button>
         </div>
       </section>

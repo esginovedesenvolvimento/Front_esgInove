@@ -7,6 +7,9 @@ import type { AdminOverviewModel } from "@/features/admin/shared/types";
 import { OverviewPill } from "../../components/overview-pill";
 
 export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
+  const openBudgetMetric = model.metrics.find((metric) => metric.id === "budgets-open");
+  const evidenceMetric = model.metrics.find((metric) => metric.id === "evidence-pending");
+
   return (
     <div className="space-y-8">
       <AdminSectionHeading
@@ -102,16 +105,16 @@ export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
                 <CircleDollarSign className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-[0.14em]">Conversão</span>
               </div>
-              <p className="mt-2 text-2xl font-semibold text-white">5 orçamentos</p>
-              <p className="text-sm text-slate-400">entrada registrada no funil</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{openBudgetMetric?.value ?? "0"}</p>
+              <p className="text-sm text-slate-400">{openBudgetMetric?.detail ?? "entrada registrada no funil"}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center gap-2 text-slate-300">
                 <ShieldCheck className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-[0.14em]">Cobertura</span>
               </div>
-              <p className="mt-2 text-2xl font-semibold text-white">32 evidências</p>
-              <p className="text-sm text-slate-400">aguardando validação técnica</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{evidenceMetric?.value ?? "0"}</p>
+              <p className="text-sm text-slate-400">{evidenceMetric?.detail ?? "aguardando validação técnica"}</p>
             </div>
           </div>
         </article>
