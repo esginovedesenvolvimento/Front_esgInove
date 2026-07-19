@@ -2,11 +2,23 @@ import { cookies } from "next/headers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-export async function adminFetch<T>(path: string): Promise<T> {
+export async function adminFetch<T>(
+  path: string,
+  query?: Record<string, string | number | undefined | null>
+): Promise<T> {
   const cookieStore = await cookies();
   const token = cookieStore.get("inoveesg_token")?.value;
+  const url = new URL(`${API_URL}${path}`);
 
-  const response = await fetch(`${API_URL}${path}`, {
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    }
+  }
+
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

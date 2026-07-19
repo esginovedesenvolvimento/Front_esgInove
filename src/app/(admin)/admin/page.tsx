@@ -1,8 +1,5 @@
-import { getAdminOverviewModel } from "@/features/admin/areas/overview/services/overview.service";
-import { AdminOverviewView } from "@/features/admin/areas/overview/views/pages/admin-overview-view";
+import { AdminOverviewPageClient } from "@/features/admin/areas/overview/views/pages/admin-overview-page-client";
 
-export default async function AdminHome() {
-  const model = await getAdminOverviewModel();
-
-  return <AdminOverviewView model={model} />;
+export default function AdminHome() {
+  return <AdminOverviewPageClient />;
 }

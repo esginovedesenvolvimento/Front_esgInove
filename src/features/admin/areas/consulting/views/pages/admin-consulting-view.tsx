@@ -27,7 +27,7 @@ type Props = {
   onPageChange?: (page: number) => void;
 };
 
-export function AdminClientsView({ model, isLoading = false, onPageChange }: Props) {
+export function AdminConsultingView({ model, isLoading = false, onPageChange }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("ALL");
   const [sortField, setSortField] = useState<"name" | "score">("score");
@@ -43,7 +43,7 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
     ];
   }, [model.clients]);
 
-  // Configure reusable filter structure (health removed, now only plan)
+  // Configure reusable filter structure
   const filters: FilterGroup[] = [
     {
       key: "plan",
@@ -53,6 +53,49 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
       onValueChange: setSelectedPlan,
     },
   ];
+
+  // Dynamic calendar values for rendering current month
+  const calendarDays = useMemo(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    const days: Array<{ dayNum: number | null; isToday: boolean; isAppointment: boolean }> = [];
+
+    // Offset blank days
+    for (let i = 0; i < firstDay; i++) {
+      days.push({ dayNum: null, isToday: false, isAppointment: false });
+    }
+
+    // Mock appointment days (e.g. current day + 2, and current day + 5)
+    // Make sure we stay within bounds
+    const appointmentDays = [
+      (today.getDate() + 2) <= numDays ? today.getDate() + 2 : (today.getDate() - 2 || 1),
+      (today.getDate() + 5) <= numDays ? today.getDate() + 5 : (today.getDate() - 5 || 2)
+    ];
+
+    for (let d = 1; d <= numDays; d++) {
+      days.push({
+        dayNum: d,
+        isToday: d === today.getDate(),
+        isAppointment: appointmentDays.includes(d)
+      });
+    }
+
+    return days;
+  }, []);
+
+  const monthName = useMemo(() => {
+    const today = new Date();
+    return today.toLocaleString("pt-BR", { month: "long" }).replace(/^\w/, (c) => c.toUpperCase());
+  }, []);
+
+  const currentYear = useMemo(() => {
+    return new Date().getFullYear();
+  }, []);
 
   const handleSort = (field: "name" | "score") => {
     if (sortField === field) {
@@ -110,16 +153,107 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
   return (
     <div className="space-y-8">
       <AdminSectionHeading
-        eyebrow="Clientes"
-        title="Carteira, risco e maturidade"
-        description="Leitura operacional das contas atendidas, com foco em saúde da carteira e contas que precisam de ação."
+        eyebrow="Consultoria"
+        title="Consultoria"
+        description="Acompanhamento e agendamentos de reuniões com clientes do programa."
       />
 
-      {/* KPI Cards on Top */}
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {model.metrics.map((metric) => (
-          <AdminStatCard key={metric.id} metric={metric} />
-        ))}
+      {/* KPI Cards on Top: Próximo Agendamento e Calendário */}
+      <section className="grid gap-6 md:grid-cols-2">
+        {/* Card 1: Próximo Agendamento */}
+        <div className="rounded-[2.5rem] border border-slate-200/80 bg-white p-6 shadow-sm flex flex-col justify-between min-h-[240px]">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Próximo Agendamento</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700 uppercase">
+                Confirmado
+              </span>
+            </div>
+            <div className="mt-4">
+              <h3 className="text-lg font-bold text-slate-900">EcoMercado Ltda</h3>
+              <p className="text-xs text-slate-500">Consultoria ESG</p>
+            </div>
+            <div className="mt-4 flex items-center gap-4 text-sm text-slate-700 bg-slate-50 rounded-2xl p-3 border border-slate-100">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900">24 de Julho, 2026</p>
+                <p className="text-xs text-slate-500">Sexta-feira às 15:30 (1 hora)</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-xs">
+            <span className="text-slate-400">Ponto focal: Maria Silva</span>
+            <a 
+              href="https://meet.google.com/abc-defg-hij" 
+              target="_blank" 
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              Entrar na reunião →
+            </a>
+          </div>
+        </div>
+
+        {/* Card 2: Calendário */}
+        <div className="rounded-[2.5rem] border border-slate-200/80 bg-white p-6 shadow-sm flex flex-col justify-between min-h-[240px]">
+          <div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Calendário de Consultorias</span>
+              <span className="text-xs font-bold text-slate-900">{monthName} de {currentYear}</span>
+            </div>
+
+            <div className="mt-4">
+              {/* Weekdays header */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase">
+                <span>D</span>
+                <span>S</span>
+                <span>T</span>
+                <span>Q</span>
+                <span>Q</span>
+                <span>S</span>
+                <span>S</span>
+              </div>
+
+              {/* Days grid */}
+              <div className="mt-2 grid grid-cols-7 gap-1 text-center">
+                {calendarDays.map((d, index) => {
+                  if (d.dayNum === null) {
+                    return <div key={`empty-${index}`} className="h-7 w-7" />;
+                  }
+
+                  return (
+                    <div key={`day-${d.dayNum}`} className="flex items-center justify-center h-7">
+                      <span 
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold transition-all ${
+                          d.isToday 
+                            ? 'bg-indigo-600 text-white font-bold ring-2 ring-indigo-400 ring-offset-1' 
+                            : d.isAppointment
+                            ? 'bg-emerald-100 text-emerald-950 border border-emerald-200 shadow-sm font-bold'
+                            : 'text-slate-600 hover:bg-slate-100 cursor-pointer'
+                        }`}
+                      >
+                        {d.dayNum}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-center gap-4 border-t border-slate-100 pt-3 text-[10px] text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-indigo-600 ring-1 ring-indigo-400" />
+              <span>Hoje</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-100 border border-emerald-300" />
+              <span>Agendado</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Reusable Filters */}
@@ -156,7 +290,7 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
                   </div>
                 </th>
                 <th className="py-4 px-6">Segmento</th>
-                <th className="py-4 px-6">Plano</th>
+                <th className="py-4 px-6">Produto / Plano</th>
                 <th 
                   onClick={() => handleSort("score")}
                   className="py-4 px-6 cursor-pointer hover:bg-slate-100/50 hover:text-slate-600 transition-colors text-center group"
@@ -184,7 +318,7 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
                   <td colSpan={6} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <Sparkles className="h-10 w-10 text-slate-300 animate-pulse" />
-                      <h3 className="mt-4 text-sm font-semibold text-slate-900">Nenhum cliente encontrado</h3>
+                      <h3 className="mt-4 text-sm font-semibold text-slate-900">Nenhuma empresa de consultoria encontrada</h3>
                       <p className="mt-1 text-xs text-slate-500">Tente ajustar seus filtros de busca ou seleção.</p>
                     </div>
                   </td>
@@ -213,7 +347,7 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
 
                         {/* Plan Cell */}
                         <td className="py-4 px-6">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
                             {client.plan}
                           </span>
                         </td>
@@ -345,7 +479,7 @@ export function AdminClientsView({ model, isLoading = false, onPageChange }: Pro
       </div>
 
       <AdminPagination
-        basePath="/admin/clientes"
+        basePath="/admin/consultoria"
         pagination={model.pagination}
         isLoading={isLoading}
         onPageChange={onPageChange}

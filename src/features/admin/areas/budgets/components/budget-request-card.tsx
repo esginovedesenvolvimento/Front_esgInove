@@ -13,8 +13,20 @@ export function BudgetRequestCard({ request }: { request: AdminBudgetRequest }) 
         </div>
         <div className="flex flex-col items-end gap-2">
           <AdminStatusBadge
-            label={request.status}
-            tone={request.status === "PENDING" ? "amber" : request.status === "APPROVED" ? "emerald" : request.status === "REJECTED" ? "rose" : "slate"}
+            label={
+              request.status === "PENDING" ? "Pendente" :
+              request.status === "APPROVED" ? "Aprovado" :
+              request.status === "ACTIVE" ? "Ativo" :
+              request.status === "REJECTED" ? "Recusado" :
+              request.status === "PROPOSAL_SENT" ? "Respondido" :
+              request.status
+            }
+            tone={
+              request.status === "PENDING" ? "amber" :
+              request.status === "APPROVED" || request.status === "ACTIVE" ? "emerald" :
+              request.status === "REJECTED" ? "rose" :
+              "slate"
+            }
           />
           <p className="text-sm font-semibold text-slate-900">{request.proposalValue}</p>
         </div>

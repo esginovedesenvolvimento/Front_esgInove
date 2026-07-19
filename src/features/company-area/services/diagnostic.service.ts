@@ -203,4 +203,20 @@ export const diagnosticService = {
       }),
     });
   },
+
+  async downloadReport(token: string): Promise<Blob> {
+    const response = await fetch(`${API_URL}/diagnostic/current/report`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data?.message ?? "Falha ao baixar o relatório");
+    }
+
+    return response.blob();
+  },
 };

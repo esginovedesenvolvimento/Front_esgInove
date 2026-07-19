@@ -1,8 +1,5 @@
-import { getSupplierBoardModel } from "@/features/admin/areas/suppliers/services/suppliers.service";
-import { AdminSuppliersView } from "@/features/admin/areas/suppliers/views/pages/admin-suppliers-view";
+import { AdminSuppliersPageClient } from "@/features/admin/areas/suppliers/views/pages/admin-suppliers-page-client";
 
-export default async function AdminSuppliersPage() {
-  const model = await getSupplierBoardModel();
-
-  return <AdminSuppliersView model={model} />;
+export default function AdminSuppliersPage() {
+  return <AdminSuppliersPageClient />;
 }

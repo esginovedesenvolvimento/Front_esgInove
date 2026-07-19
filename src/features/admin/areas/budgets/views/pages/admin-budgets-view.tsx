@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCookie } from "cookies-next";
 import { 
   Clock3, 
@@ -19,12 +19,19 @@ import {
   CalendarDays
 } from "lucide-react";
 import { AdminSectionHeading } from "@/features/admin/shared/components/admin-section-heading";
+import { AdminPagination } from "@/features/admin/shared/components/admin-pagination";
 import { AdminStatCard } from "@/features/admin/shared/components/admin-stat-card";
 import { AdminStatusBadge } from "@/features/admin/shared/components/admin-status-badge";
-import type { AdminBudgetBoardModel, AdminBudgetRequest } from "@/features/admin/shared/types";
+import type { AdminBudgetBoardModel, AdminBudgetRequest, BudgetRequestStatus } from "@/features/admin/shared/types";
 import { Button } from "@/components/ui/button";
 
-export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBoardModel }) {
+type Props = {
+  model: AdminBudgetBoardModel;
+  isLoading?: boolean;
+  onPageChange?: (page: number) => void;
+};
+
+export function AdminBudgetsView({ model: initialModel, isLoading = false, onPageChange }: Props) {
   const [model, setModel] = useState<AdminBudgetBoardModel>(initialModel);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -32,6 +39,10 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
   const [proposalValue, setProposalValue] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    setModel(initialModel);
+  }, [initialModel]);
 
   // Filter and sort requests
   const filteredRequests = useMemo(() => {
@@ -103,12 +114,13 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
       });
 
       // Recalculate open value & status counts
-      const groupedByStatus = {
+      const groupedByStatus: Record<BudgetRequestStatus, number> = {
         PENDING: 0,
         IN_REVIEW: 0,
         PROPOSAL_SENT: 0,
         APPROVED: 0,
         REJECTED: 0,
+        ACTIVE: 0,
       };
 
       let openValueCents = 0;
@@ -175,6 +187,8 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
         return "Aprovado";
       case "REJECTED":
         return "Recusado";
+      case "ACTIVE":
+        return "Ativo";
       default:
         return status;
     }
@@ -192,6 +206,8 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
         return "emerald";
       case "REJECTED":
         return "rose";
+      case "ACTIVE":
+        return "emerald";
       default:
         return "slate";
     }
@@ -222,7 +238,8 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
               { id: "PENDING", label: "Pendentes" },
               { id: "PROPOSAL_SENT", label: "Respondidos" },
               { id: "APPROVED", label: "Aprovados" },
-              { id: "REJECTED", label: "Recusados" }
+              { id: "REJECTED", label: "Recusados" },
+              { id: "ACTIVE", label: "Ativos" }
             ].map((filter) => (
               <button
                 key={filter.id}
@@ -293,7 +310,7 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
                     variant="outline"
                     className="rounded-full px-4 py-1.5 h-8 text-xs font-semibold border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-colors"
                   >
-                    Responder
+                    {request.status === "APPROVED" || request.status === "ACTIVE" ? "Visualizar" : "Responder"}
                   </Button>
                 </div>
               </div>
@@ -333,126 +350,286 @@ export function AdminBudgetsView({ model: initialModel }: { model: AdminBudgetBo
               </h3>
             </div>
 
-            {/* Body: Two columns of Company details */}
-            <div className="mt-6 border-t border-slate-100 pt-6">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <Building2 className="h-3.5 w-3.5" />
-                Dados da Empresa Solicitante
-              </h4>
+            {/* Body: Complete Company details in sections */}
+            <div className="mt-6 border-t border-slate-100 pt-6 space-y-6">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-4">
+                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                  Identificação da Empresa Solicitante
+                </h4>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 text-sm">
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Nome Fantasia / Razão Social</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.organizationName}</p>
-                  <p className="text-xs text-slate-500">{selectedRequest.legalName}</p>
-                </div>
+                <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 font-mono tracking-wider">CNPJ</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.cnpj || "Não informado"}</p>
+                  </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Setor de Atuação</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.sector}</p>
-                </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Nome Fantasia / Razão Social</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.organizationName}</p>
+                    <p className="text-xs text-slate-500">{selectedRequest.legalName}</p>
+                  </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Nº de Colaboradores</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.employeeCount}</p>
-                </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Contato / Telefone</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.phone}</p>
+                  </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Faturamento Anual</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.annualRevenue}</p>
-                </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">E-mail de Sustentabilidade</p>
+                    <p className="mt-1 font-medium text-slate-800 truncate">{selectedRequest.primaryEmail || "Não informado"}</p>
+                  </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Contato / Telefone</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.phone}</p>
-                </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Site Oficial</p>
+                    <p className="mt-1 font-medium text-slate-800 truncate">
+                      {selectedRequest.website ? (
+                        <a 
+                          href={selectedRequest.website.startsWith("http") ? selectedRequest.website : `https://${selectedRequest.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-600 hover:underline"
+                        >
+                          {selectedRequest.website}
+                        </a>
+                      ) : "Não informado"}
+                    </p>
+                  </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">Já possui inventário ESG?</p>
-                  <p className="mt-1 font-medium text-slate-800">{selectedRequest.hasPriorInventory}</p>
-                </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Redes Sociais</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.redesSociais || "Não informado"}</p>
+                  </div>
 
-                <div className="sm:col-span-2">
-                  <p className="text-xs font-semibold text-slate-400">Áreas de Interesse</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {selectedRequest.focusAreas.map((area) => (
-                      <span
-                        key={area}
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
-                      >
-                        <Tag className="h-3 w-3 text-slate-500" />
-                        {area === "E" ? "E (Ambiental)" : area === "B" ? "B (Bioeconomia)" : area === "S" ? "S (Social)" : "G (Governança)"}
-                      </span>
-                    ))}
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-semibold text-slate-400">Endereço Completo</p>
+                    <p className="mt-1 font-medium text-slate-800">
+                      {selectedRequest.enderecoCompleto}
+                      {selectedRequest.municipioEstado && ` - ${selectedRequest.municipioEstado}`}
+                      {!selectedRequest.enderecoCompleto && !selectedRequest.municipioEstado && "Não informado"}
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {selectedRequest.notes && (
-                  <div className="sm:col-span-2 rounded-2xl bg-slate-50 p-4 border border-slate-100">
-                    <p className="text-xs font-semibold text-slate-400">Observações Adicionais</p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{selectedRequest.notes}</p>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-4">
+                  <Briefcase className="h-3.5 w-3.5 text-slate-400" />
+                  Caracterização Jurídica e Porte
+                </h4>
+
+                <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Setor de Atuação</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.sector}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Natureza Jurídica</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.naturezaJuridica || "Não informado"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Nº de Colaboradores</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.employeeCount}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Faturamento Anual</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.annualRevenue}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Tempo de Operação</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.tempoOperacao || "Não informado"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Alcance de Mercado</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.alcanceMercado || "Não informado"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Nº de Fornecedores na Cadeia</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.numberOfSuppliers || "Não informado"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Já possui inventário ESG?</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.hasPriorInventory}</p>
+                  </div>
+
+                  {selectedRequest.status !== "PENDING" && selectedRequest.status !== "IN_REVIEW" && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400">Valor Proposto</p>
+                      <p className="mt-1 font-semibold text-slate-800">{selectedRequest.proposalValue}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-4">
+                  <Sparkles className="h-3.5 w-3.5 text-slate-400" />
+                  Atividade de Mercado
+                </h4>
+
+                <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Categoria de Negócio</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.businessCategoryName || "Não informado"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Segmento de Atuação</p>
+                    <p className="mt-1 font-medium text-slate-800">{selectedRequest.businessSegmentName || "Não informado"}</p>
+                  </div>
+
+                  {selectedRequest.specificActivity && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-semibold text-slate-400">Atividade Específica</p>
+                      <p className="mt-1 font-medium text-slate-800">{selectedRequest.specificActivity}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 2: Questionnaire Answers (esgJaPossui & esgInteresse) */}
+              <div className="border-t border-slate-100 pt-6 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">A empresa já possui:</p>
+                  {Array.isArray(selectedRequest.esgJaPossui) && selectedRequest.esgJaPossui.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedRequest.esgJaPossui.map((item) => (
+                        <span 
+                          key={item} 
+                          className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200/50 px-2.5 py-0.5 text-xs font-medium text-slate-700"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Nenhum item selecionado</p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Interesse de Sustentabilidade:</p>
+                  {Array.isArray(selectedRequest.esgInteresse) && selectedRequest.esgInteresse.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedRequest.esgInteresse.map((item) => (
+                        <span 
+                          key={item} 
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Nenhum item selecionado</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Payment Details Section */}
+            {selectedRequest.paymentDetails && (
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-600 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Informações de Ativação e Pagamento
+                </h4>
+                <div className="mt-4 grid gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/20 p-4 sm:grid-cols-2 text-sm">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700/70">Data de Compra / Ativação</p>
+                    <p className="mt-1 font-semibold text-slate-800">{selectedRequest.paymentDetails.paidAt}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700/70">Valor Pago</p>
+                    <p className="mt-1 font-semibold text-slate-800">{selectedRequest.paymentDetails.amountPaid}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700/70">Forma de Pagamento</p>
+                    <p className="mt-1 font-semibold text-slate-800">{selectedRequest.paymentDetails.paymentMethod}</p>
+                  </div>
+                  {selectedRequest.paymentDetails.providerReference && (
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-700/70">ID da Transação ({selectedRequest.paymentDetails.provider || "Mercado Pago"})</p>
+                      <p className="mt-1 font-mono text-xs text-slate-600 break-all">{selectedRequest.paymentDetails.providerReference}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Form Section: Price input & Responder button */}
+            {(selectedRequest.status === "PENDING" || selectedRequest.status === "IN_REVIEW") && (
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Ação Comercial
+                </h4>
+
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <label className="text-xs font-semibold text-slate-500 block mb-2">
+                      Valor Proposto (R$)
+                    </label>
+                    <div className="relative rounded-2xl border border-slate-200 bg-white px-4 py-2.5 focus-within:border-slate-900 transition-colors flex items-center gap-2">
+                      <span className="text-slate-400 text-sm font-semibold">R$</span>
+                      <input
+                        type="text"
+                        value={proposalValue}
+                        onChange={(e) => setProposalValue(e.target.value)}
+                        placeholder="0.00"
+                        disabled={isSubmitting}
+                        className="w-full bg-transparent border-0 p-0 text-sm font-semibold focus:outline-none focus:ring-0 text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleRespond}
+                    disabled={isSubmitting || !proposalValue}
+                    className="rounded-2xl bg-slate-950 text-white hover:bg-slate-800 py-6 px-6 text-sm font-semibold tracking-wide shadow-md disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      "Responder Orçamento"
+                    )}
+                  </Button>
+                </div>
+
+                {message && (
+                  <div
+                    className={`mt-4 rounded-xl px-4 py-3 text-xs font-medium flex items-center gap-2 ${
+                      message.type === "success"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : "bg-rose-50 text-rose-800 border border-rose-200"
+                    }`}
+                  >
+                    {message.type === "success" && <CheckCircle className="h-4 w-4 text-emerald-600" />}
+                    <span>{message.text}</span>
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Form Section: Price input & Responder button */}
-            <div className="mt-6 border-t border-slate-100 pt-6">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Ação Comercial
-              </h4>
-
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex-1">
-                  <label className="text-xs font-semibold text-slate-500 block mb-2">
-                    Valor Proposto (R$)
-                  </label>
-                  <div className="relative rounded-2xl border border-slate-200 bg-white px-4 py-2.5 focus-within:border-slate-900 transition-colors flex items-center gap-2">
-                    <span className="text-slate-400 text-sm font-semibold">R$</span>
-                    <input
-                      type="text"
-                      value={proposalValue}
-                      onChange={(e) => setProposalValue(e.target.value)}
-                      placeholder="0.00"
-                      disabled={isSubmitting || selectedRequest.status === "APPROVED"}
-                      className="w-full bg-transparent border-0 p-0 text-sm font-semibold focus:outline-none focus:ring-0 text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleRespond}
-                  disabled={isSubmitting || !proposalValue || selectedRequest.status === "APPROVED"}
-                  className="rounded-2xl bg-slate-950 text-white hover:bg-slate-800 py-6 px-6 text-sm font-semibold tracking-wide shadow-md disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    "Responder Orçamento"
-                  )}
-                </Button>
-              </div>
-
-              {message && (
-                <div
-                  className={`mt-4 rounded-xl px-4 py-3 text-xs font-medium flex items-center gap-2 ${
-                    message.type === "success"
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-rose-50 text-rose-800 border border-rose-200"
-                  }`}
-                >
-                  {message.type === "success" && <CheckCircle className="h-4 w-4 text-emerald-600" />}
-                  <span>{message.text}</span>
-                </div>
-              )}
-            </div>
+            )}
 
           </div>
         </div>
       )}
+
+      <AdminPagination
+        basePath="/admin/orcamentos"
+        pagination={model.pagination}
+        isLoading={isLoading}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }

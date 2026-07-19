@@ -6,9 +6,8 @@ import { getCookie } from "cookies-next";
 import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import type { getResultsViewModel } from "../../../controllers/results.controller";
-import { type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
+import { diagnosticService, type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { generateESGReportPDF } from "@/features/company-area/utils/pdf-generator";
 import { SectionHeading } from "../../components/section-heading";
 import {
   Download,
@@ -148,20 +147,32 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [errorInvites, setErrorInvites] = useState(false);
   const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const toggleExpand = (id: string) => {
     setExpandedDiagnosticId(prev => prev === id ? null : id);
   };
 
-  const handleDownload = () => {
-    generateESGReportPDF({
-      isSupplierOrg,
-      model,
-      companyName: company?.legalName || company?.tradeName || "Minha Empresa",
-      cnpj: company?.cnpj || "00.000.000/0001-00",
-      segment: company?.industrySegment || "Serviços",
-      invites,
-    });
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const token = getCookie("inoveesg_token") as string;
+      if (!token) return;
+      const blob = await diagnosticService.downloadReport(token);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `relatorio-esg.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erro ao baixar o relatório:", err);
+      alert("Ocorreu um erro ao baixar o relatório. Por favor, tente novamente.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   useEffect(() => {
@@ -235,12 +246,28 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
         description="Diagnóstico completo do desempenho ESG da sua empresa por eixo, evidências e recomendações."
         action={
           hasVerifiedScore ? (
-            <Button onClick={handleDownload} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
-              <FileCheck className="w-4 h-4" /> Baixar Relatório
+            <Button onClick={handleDownload} disabled={downloading} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
+              {downloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Gerando...
+                </>
+              ) : (
+                <>
+                  <FileCheck className="w-4 h-4" /> Baixar Relatório
+                </>
+              )}
             </Button>
           ) : (
-            <Button onClick={handleDownload} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
-              <Download className="w-4 h-4" /> Baixar Relatório
+            <Button onClick={handleDownload} disabled={downloading} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold gap-2 shadow-sm cursor-pointer">
+              {downloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Gerando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" /> Baixar Relatório
+                </>
+              )}
             </Button>
           )
         }
@@ -256,15 +283,27 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                 <AlertTriangle className="w-5 h-5 text-amber-700" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-900">Pré-Diagnóstico — Sem evidências comprovadas</p>
-                <p className="text-xs text-slate-600 mt-0.5">Sua pontuação foi declarada mas ainda não foi verificada. Envie evidências para obter o Selo ESG.</p>
+                <p className="text-sm font-semibold text-amber-900">
+                  {isSupplierOrg
+                    ? "Avaliação de Fornecedor — Sem evidências comprovadas"
+                    : isPreDiagnostic
+                      ? "Pré-Diagnóstico — Sem evidências comprovadas"
+                      : "Diagnóstico Completo — Sem evidências comprovadas"}
+                </p>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  {isSupplierOrg
+                    ? "Sua pontuação foi declarada mas ainda não passou por auditoria de conformidade."
+                    : "Sua pontuação foi declarada mas ainda não foi verificada. Envie evidências para obter o Selo ESG."}
+                </p>
               </div>
             </div>
-            <Button asChild size="sm" className="shrink-0 ml-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 text-xs font-semibold">
-              <Link href="/app/upgrade">
-                <Sparkles className="w-3.5 h-3.5" /> Comprovar Score
-              </Link>
-            </Button>
+            {!isSupplierOrg && (
+              <Button asChild size="sm" className="shrink-0 ml-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 text-xs font-semibold">
+                <Link href="/app/upgrade">
+                  <Sparkles className="w-3.5 h-3.5" /> Comprovar Score
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -982,23 +1021,40 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
             )}
             <div>
               <p className={`text-sm font-semibold ${hasVerifiedScore ? "text-emerald-850" : "text-slate-800"}`}>
-                {hasVerifiedScore ? "Relatório Completo e Auditado disponível" : "Relatório Básico de Pré-Diagnóstico"}
+                {hasVerifiedScore
+                  ? "Relatório Completo e Auditado disponível"
+                  : isSupplierOrg
+                    ? "Relatório Declaratório de Fornecedor"
+                    : isPreDiagnostic
+                      ? "Relatório Básico de Pré-Diagnóstico"
+                      : "Relatório Básico Declaratório"}
               </p>
               <p className="text-xs text-slate-500 mt-0.5">
                 {hasVerifiedScore
                   ? "Inclui Selo ESG, evidências validadas e conformidade GRI/SASB — ideal para investidores."
-                  : "Resumo de maturidade sem comprovação de evidências. Para o relatório completo, contrate a auditoria."}
+                  : isSupplierOrg
+                    ? "Resumo de conformidade de fornecedor sem comprovação de evidências."
+                    : "Resumo de maturidade sem comprovação de evidências. Para o relatório completo, contrate a auditoria."}
               </p>
             </div>
           </div>
           <Button
             onClick={handleDownload}
+            disabled={downloading}
             className={`shrink-0 gap-2 font-semibold cursor-pointer ${hasVerifiedScore
               ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
               : "bg-amber-600 hover:bg-amber-700 text-white shadow-sm"}`}
           >
-            <Download className="w-4 h-4" />
-            Baixar Relatório
+            {downloading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Gerando...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Baixar Relatório
+              </>
+            )}
           </Button>
         </div>
       </section>

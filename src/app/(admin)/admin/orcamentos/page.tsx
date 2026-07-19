@@ -1,8 +1,5 @@
-import { getBudgetBoardModel } from "@/features/admin/areas/budgets/services/budgets.service";
-import { AdminBudgetsView } from "@/features/admin/areas/budgets/views/pages/admin-budgets-view";
+import { AdminBudgetsPageClient } from "@/features/admin/areas/budgets/views/pages/admin-budgets-page-client";
 
-export default async function AdminBudgetsPage() {
-  const model = await getBudgetBoardModel();
-
-  return <AdminBudgetsView model={model} />;
+export default function AdminBudgetsPage() {
+  return <AdminBudgetsPageClient />;
 }

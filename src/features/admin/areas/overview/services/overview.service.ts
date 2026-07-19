@@ -1,6 +1,8 @@
-import { adminFetch } from "@/features/admin/shared/api";
+import { adminClientFetch } from "@/features/admin/shared/client-api";
 import type { AdminOverviewModel } from "@/features/admin/shared/types";
 
 export async function getAdminOverviewModel(): Promise<AdminOverviewModel> {
-  return adminFetch<AdminOverviewModel>("/admin/overview");
+  return adminClientFetch<AdminOverviewModel>("/admin/overview/load", {
+    method: "POST",
+  });
 }

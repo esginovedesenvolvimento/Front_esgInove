@@ -54,8 +54,20 @@ export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <AdminStatusBadge
-                      label={request.status}
-                      tone={request.status === "PENDING" ? "amber" : "slate"}
+                      label={
+                        request.status === "PENDING" ? "Pendente" :
+                        request.status === "APPROVED" ? "Aprovado" :
+                        request.status === "ACTIVE" ? "Ativo" :
+                        request.status === "REJECTED" ? "Recusado" :
+                        request.status === "PROPOSAL_SENT" ? "Respondido" :
+                        request.status
+                      }
+                      tone={
+                        request.status === "PENDING" ? "amber" :
+                        request.status === "APPROVED" || request.status === "ACTIVE" ? "emerald" :
+                        request.status === "REJECTED" ? "rose" :
+                        "slate"
+                      }
                     />
                     <span className="text-sm font-semibold text-slate-800">{request.proposalValue}</span>
                   </div>

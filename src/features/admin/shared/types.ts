@@ -1,12 +1,12 @@
 export type AdminAxis = "E" | "B" | "S" | "G";
 
-export type BudgetRequestStatus = "PENDING" | "IN_REVIEW" | "PROPOSAL_SENT" | "APPROVED" | "REJECTED";
+export type BudgetRequestStatus = "PENDING" | "IN_REVIEW" | "PROPOSAL_SENT" | "APPROVED" | "REJECTED" | "ACTIVE";
 
 export type EvidenceReviewStatus = "PENDING" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED";
 
 export type ClientHealthStatus = "healthy" | "watch" | "critical";
 
-export type SupplierPipelineStatus = "INVITED" | "ACTIVE" | "RESPONDED" | "OVERDUE";
+export type SupplierPipelineStatus = "INVITED" | "ACTIVE" | "RESPONDED" | "OVERDUE" | "REGISTERED";
 
 export interface AdminMetric {
   id: string;
@@ -34,6 +34,29 @@ export interface AdminBudgetRequest {
   createdAt: string;
   updatedAt: string;
   tags: string[];
+  paymentDetails?: {
+    paidAt: string;
+    amountPaid: string;
+    paymentMethod: string;
+    provider?: string | null;
+    providerReference?: string | null;
+  } | null;
+  cnpj?: string | null;
+  primaryEmail?: string | null;
+  website?: string | null;
+  numberOfSuppliers?: string | null;
+  description?: string | null;
+  enderecoCompleto?: string | null;
+  municipioEstado?: string | null;
+  redesSociais?: string | null;
+  naturezaJuridica?: string | null;
+  tempoOperacao?: string | null;
+  alcanceMercado?: string | null;
+  specificActivity?: string | null;
+  businessCategoryName?: string | null;
+  businessSegmentName?: string | null;
+  esgJaPossui?: string[] | null;
+  esgInteresse?: string[] | null;
 }
 
 export interface AdminClientSummary {
@@ -62,6 +85,15 @@ export interface AdminSupplierSummary {
   evidencePending: number;
   invitedAt: string;
   lastUpdate: string;
+  purchasedProducts?: Array<{
+    name: string;
+    status: string;
+  }>;
+  linkedCompanies?: Array<{
+    id: string;
+    name: string;
+    status: string;
+  }>;
 }
 
 export interface AdminEvidenceSummary {
@@ -76,6 +108,34 @@ export interface AdminEvidenceSummary {
   reviewer: string;
   fileName: string;
   severity: "low" | "medium" | "high";
+}
+
+export interface AdminEvidencePillarSummary {
+  axis: AdminAxis;
+  label: string;
+  score: number;
+  provenScore: number;
+  evidenceTotal: number;
+  verifiedEvidence: number;
+  pendingEvidence: number;
+  responseTotal: number;
+  gap: number;
+}
+
+export interface AdminEvidenceCompanySummary {
+  id: string;
+  companyName: string;
+  legalName: string;
+  category: string;
+  segment: string;
+  accessLabel: string;
+  diagnosticStatus: "CONTRACTED" | "DRAFT" | "COMPLETED";
+  score: number;
+  provenScore: number;
+  evidencePending: number;
+  evidenceVerified: number;
+  lastDiagnosticAt: string;
+  pillars: AdminEvidencePillarSummary[];
 }
 
 export interface AdminAxisInsight {
@@ -99,6 +159,15 @@ export interface AdminInsightCard {
   tone: "emerald" | "amber" | "rose" | "slate";
 }
 
+export interface AdminPaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface AdminOverviewModel {
   metrics: AdminMetric[];
   queue: AdminBudgetRequest[];
@@ -113,24 +182,27 @@ export interface AdminBudgetBoardModel {
   requests: AdminBudgetRequest[];
   groupedByStatus: Record<BudgetRequestStatus, number>;
   openValue: string;
+  pagination: AdminPaginationMeta;
 }
 
 export interface AdminClientBoardModel {
   metrics: AdminMetric[];
   clients: AdminClientSummary[];
   healthDistribution: Record<ClientHealthStatus, number>;
+  pagination: AdminPaginationMeta;
 }
 
 export interface AdminSupplierBoardModel {
   metrics: AdminMetric[];
   suppliers: AdminSupplierSummary[];
   pipeline: Record<SupplierPipelineStatus, number>;
+  pagination: AdminPaginationMeta;
 }
 
 export interface AdminEvidenceBoardModel {
   metrics: AdminMetric[];
-  evidences: AdminEvidenceSummary[];
-  reviewDistribution: Record<EvidenceReviewStatus, number>;
+  companies: AdminEvidenceCompanySummary[];
+  pagination: AdminPaginationMeta;
 }
 
 export interface AdminAnalyticsBoardModel {
@@ -139,4 +211,101 @@ export interface AdminAnalyticsBoardModel {
   trend: AdminTrendPoint[];
   maturityBands: Array<{ label: string; value: number; tone: "emerald" | "amber" | "rose" | "slate" }>;
   notes: AdminInsightCard[];
+}
+
+export interface AdminFinanceOrderSummary {
+  id: string;
+  organizationName: string;
+  legalName: string;
+  orderType: string;
+  status: string;
+  totalValue: string;
+  itemCount: number;
+  products: string[];
+  createdAt: string;
+  paidAt: string;
+}
+
+export interface AdminFinancePaymentSummary {
+  id: string;
+  organizationName: string;
+  legalName: string;
+  orderId: string;
+  orderType: string;
+  orderStatus: string;
+  method: string;
+  status: string;
+  amountValue: string;
+  provider: string;
+  paidAt: string;
+  createdAt: string;
+}
+
+export interface AdminFinanceProductSummary {
+  id: string;
+  code: string;
+  name: string;
+  kind: string;
+  active: boolean;
+  orderCount: number;
+  paidOrderCount: number;
+  grossValue: string;
+  lastOrderAt: string;
+}
+
+export interface AdminFinanceBoardModel {
+  metrics: AdminMetric[];
+  purchases: {
+    totalOrders: number;
+    pendingOrders: number;
+    paidOrders: number;
+    recentOrders: AdminFinanceOrderSummary[];
+  };
+  sales: {
+    totalPayments: number;
+    paidPayments: number;
+    grossRevenue: string;
+    pendingRevenue: string;
+    averageTicket: string;
+    recentPayments: AdminFinancePaymentSummary[];
+  };
+  products: {
+    activeProducts: number;
+    activeSubscriptions: number;
+    recentProducts: AdminFinanceProductSummary[];
+  };
+}
+
+export interface AdminBookSaleSummary {
+  id: string;
+  companyName: string;
+  legalName: string;
+  cnpj: string;
+  address: string;
+  orderStatus: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  paymentProvider: string;
+  quantity: number;
+  bookRevenue: string;
+  orderTotal: string;
+  createdAt: string;
+  paidAt: string;
+}
+
+export interface AdminBooksBoardModel {
+  metrics: AdminMetric[];
+  summary: {
+    totalOrders: number;
+    totalBooksSold: number;
+    paidOrders: number;
+    pendingOrders: number;
+    buyersCount: number;
+    grossRevenue: string;
+    paidRevenue: string;
+    pendingRevenue: string;
+    averageBookPrice: string;
+  };
+  sales: AdminBookSaleSummary[];
+  pagination: AdminPaginationMeta;
 }
