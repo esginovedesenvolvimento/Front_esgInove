@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BellRing, CircleDollarSign, FileText, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import { AdminSectionHeading } from "@/features/admin/shared/components/admin-section-heading";
 import { AdminStatCard } from "@/features/admin/shared/components/admin-stat-card";
 import { AdminStatusBadge } from "@/features/admin/shared/components/admin-status-badge";
@@ -7,9 +7,6 @@ import type { AdminOverviewModel } from "@/features/admin/shared/types";
 import { OverviewPill } from "../../components/overview-pill";
 
 export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
-  const openBudgetMetric = model.metrics.find((metric) => metric.id === "budgets-open");
-  const evidenceMetric = model.metrics.find((metric) => metric.id === "evidence-pending");
-
   return (
     <div className="space-y-8">
       <AdminSectionHeading
@@ -26,8 +23,8 @@ export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
         }
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {model.metrics.map((metric) => (
+      <section className="grid gap-4 md:grid-cols-3">
+        {model.metrics?.map((metric) => (
           <AdminStatCard key={metric.id} metric={metric} />
         ))}
       </section>
@@ -45,7 +42,7 @@ export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
           </div>
 
           <div className="mt-5 space-y-3">
-            {model.queue.map((request) => (
+            {model.queue?.map((request) => (
               <div key={request.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -82,128 +79,47 @@ export function AdminOverviewView({ model }: { model: AdminOverviewModel }) {
           </div>
         </article>
 
-        <article className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-slate-100 shadow-sm">
-          <div className="flex items-center gap-2">
-            <BellRing className="h-4 w-4 text-emerald-300" />
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Leituras rápidas</p>
-          </div>
-          <h2 className="mt-3 text-xl font-semibold tracking-tight text-white">O que merece atenção agora</h2>
-
-          <div className="mt-5 space-y-3">
-            {model.insights.map((insight) => (
-              <div key={insight.title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      insight.tone === "emerald"
-                        ? "bg-emerald-400"
-                        : insight.tone === "amber"
-                          ? "bg-amber-400"
-                          : insight.tone === "rose"
-                            ? "bg-rose-400"
-                            : "bg-slate-400"
-                    }`}
-                  />
-                  <p className="font-medium text-white">{insight.title}</p>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{insight.description}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-slate-300">
-                <CircleDollarSign className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">Conversão</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-white">{openBudgetMetric?.value ?? "0"}</p>
-              <p className="text-sm text-slate-400">{openBudgetMetric?.detail ?? "entrada registrada no funil"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-slate-300">
-                <ShieldCheck className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">Cobertura</span>
-              </div>
-              <p className="mt-2 text-2xl font-semibold text-white">{evidenceMetric?.value ?? "0"}</p>
-              <p className="text-sm text-slate-400">{evidenceMetric?.detail ?? "aguardando validação técnica"}</p>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Clientes</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Contas que exigem atenção</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Agenda</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Próximos agendamentos</h2>
             </div>
-            <Link href="/admin/clientes" className="text-sm font-medium text-emerald-700 hover:text-emerald-800">
-              Ver clientes
-            </Link>
+            <Calendar className="h-5 w-5 text-emerald-600" />
           </div>
 
           <div className="mt-5 space-y-3">
-            {model.clientHighlights.slice(0, 3).map((client) => (
-              <div key={client.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{client.tradeName}</p>
-                  <p className="text-sm text-slate-600">{client.segment}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-900">{client.score}/100</p>
-                  <p className="text-xs text-slate-500">{client.evidencePending} pendências</p>
-                </div>
+            {!model.upcomingAppointments || model.upcomingAppointments.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-sm font-semibold text-slate-700">Nenhum agendamento próximo</p>
+                <p className="mt-1 text-xs text-slate-500">As próximas consultorias confirmadas aparecerão aqui.</p>
               </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Fornecedores</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Base convidada e resposta</h2>
-            </div>
-            <Link href="/admin/fornecedores" className="text-sm font-medium text-emerald-700 hover:text-emerald-800">
-              Ver fornecedores
-            </Link>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {model.supplierHighlights.slice(0, 3).map((supplier) => (
-              <div key={supplier.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{supplier.companyName}</p>
-                  <p className="text-sm text-slate-600">{supplier.segment}</p>
+            ) : model.upcomingAppointments.map((appointment) => {
+              const startsAt = new Date(appointment.startsAt);
+              return (
+                <div key={appointment.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <span className="text-[10px] font-bold uppercase">{startsAt.toLocaleDateString("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).replace(".", "")}</span>
+                    <span className="text-lg font-extrabold leading-none">{startsAt.toLocaleDateString("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" })}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-slate-900">{appointment.organizationName}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {startsAt.toLocaleDateString("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" })} às {startsAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                    </p>
+                  </div>
+                  <AdminStatusBadge label={appointment.status === "CONFIRMED" ? "Confirmado" : "Solicitado"} tone={appointment.status === "CONFIRMED" ? "emerald" : "amber"} />
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-900">{supplier.progress}%</p>
-                  <p className="text-xs text-slate-500">{supplier.lastUpdate}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          <Link href="/admin/consultoria" className="mt-5 inline-flex text-sm font-medium text-emerald-700 hover:text-emerald-800">
+            Abrir agenda completa <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
         </article>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {model.evidenceHighlights.slice(0, 4).map((item) => (
-          <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{item.axis}</p>
-            <h3 className="mt-2 font-semibold text-slate-900">{item.title}</h3>
-            <p className="mt-1 text-sm text-slate-600">{item.companyName}</p>
-            <div className="mt-4 flex items-center justify-between">
-              <AdminStatusBadge
-                label={item.status}
-                tone={item.status === "VERIFIED" ? "emerald" : item.status === "REJECTED" ? "rose" : "amber"}
-              />
-              <span className="text-xs text-slate-500">{item.uploadDate}</span>
-            </div>
-          </article>
-        ))}
-      </section>
     </div>
   );
 }

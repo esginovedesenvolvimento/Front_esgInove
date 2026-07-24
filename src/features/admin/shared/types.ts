@@ -65,6 +65,7 @@ export interface AdminClientSummary {
   legalName: string;
   segment: string;
   plan: string;
+  orderId?: string;
   diagnosticStatus: "CONTRACTED" | "DRAFT" | "COMPLETED";
   health: ClientHealthStatus;
   lastDiagnosticAt: string;
@@ -72,6 +73,9 @@ export interface AdminClientSummary {
   evidencePending: number;
   supplierCoverage: string;
   activeUsers: number;
+  consultingStatus?: "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELED";
+  consultingDate?: string | null;
+  consultingStartsAt?: string | null;
 }
 
 export interface AdminSupplierSummary {
@@ -175,6 +179,15 @@ export interface AdminOverviewModel {
   supplierHighlights: AdminSupplierSummary[];
   evidenceHighlights: AdminEvidenceSummary[];
   insights: AdminInsightCard[];
+  upcomingAppointments: AdminUpcomingAppointment[];
+}
+
+export interface AdminUpcomingAppointment {
+  id: string;
+  organizationName: string;
+  status: "REQUESTED" | "CONFIRMED";
+  startsAt: string;
+  endsAt: string | null;
 }
 
 export interface AdminBudgetBoardModel {
@@ -222,6 +235,7 @@ export interface AdminFinanceOrderSummary {
   totalValue: string;
   itemCount: number;
   products: string[];
+  productKinds: string[];
   createdAt: string;
   paidAt: string;
 }
@@ -260,6 +274,8 @@ export interface AdminFinanceBoardModel {
     pendingOrders: number;
     paidOrders: number;
     recentOrders: AdminFinanceOrderSummary[];
+    pagination: AdminPaginationMeta;
+    productOptions: Array<{ id: string; name: string }>;
   };
   sales: {
     totalPayments: number;

@@ -131,6 +131,7 @@ interface CompanyContextType {
   hasAssessmentAccess: boolean;
   hasEvidenceAccess: boolean;
   hasPreDiagnosticAccess: boolean;
+  hasConsultingAccess: boolean;
   activeEntitlements: string[];
 }
 
@@ -202,6 +203,12 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const hasAssessmentAccess = serviceAccess?.hasAssessmentAccess ?? false;
   const hasEvidenceAccess = serviceAccess?.hasEvidenceAccess ?? false;
   const hasPreDiagnosticAccess = serviceAccess?.hasPreDiagnosticAccess ?? false;
+  const consultingProductCodes = ["PRE_DIAGNOSTIC_PLUS", "DIAG_CONSULTORIA", "FULL_DIAGNOSTIC"];
+  const hasConsultingAccess = serviceAccess?.purchasedProductCodes?.some((code) =>
+    consultingProductCodes.includes(code.toUpperCase()),
+  ) ?? company?.orders?.some((order) =>
+    order.status === "PAID" && order.items?.some((item) => consultingProductCodes.includes(item.product.code.toUpperCase())),
+  ) ?? false;
   
   const hasOnlyPreDiagnostic = (hasActiveDiagnostic && 
     !hasActivePlan && 
@@ -250,6 +257,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
       hasAssessmentAccess,
       hasEvidenceAccess,
       hasPreDiagnosticAccess,
+      hasConsultingAccess,
       activeEntitlements
     }}>
       {children}

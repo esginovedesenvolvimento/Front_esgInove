@@ -10,13 +10,14 @@ export function AdminFinancePageClient() {
   const [model, setModel] = useState<AdminFinanceBoardModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [productId, setProductId] = useState("ALL");
+  const [status, setStatus] = useState("ALL");
 
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
-    setError(null);
 
-    getFinanceBoardModel()
+    getFinanceBoardModel(page, 10, productId, status)
       .then((data) => {
         if (active) setModel(data);
       })
@@ -30,7 +31,13 @@ export function AdminFinancePageClient() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [page, productId, status]);
+
+  const reloadWith = (change: () => void) => {
+    setIsLoading(true);
+    setError(null);
+    change();
+  };
 
   if (!model && isLoading) {
     return (
@@ -50,5 +57,34 @@ export function AdminFinancePageClient() {
     );
   }
 
-  return model ? <AdminFinanceView model={model} /> : null;
+  return model ? (
+    <div className="space-y-3">
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          Não foi possível atualizar os pedidos: {error}
+        </div>
+      ) : null}
+      <AdminFinanceView
+        model={model}
+      productId={productId}
+      status={status}
+        isLoading={isLoading}
+      onProductChange={(value) => {
+        if (value === productId && page === 1) return;
+          reloadWith(() => {
+            setProductId(value);
+            setPage(1);
+          });
+      }}
+      onStatusChange={(value) => {
+        if (value === status && page === 1) return;
+        reloadWith(() => {
+          setStatus(value);
+          setPage(1);
+        });
+      }}
+        onPageChange={(nextPage) => reloadWith(() => setPage(nextPage))}
+      />
+    </div>
+  ) : null;
 }

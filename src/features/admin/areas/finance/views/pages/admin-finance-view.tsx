@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowDownRight, ArrowUpRight, Banknote, Package, ReceiptText, ShoppingCart } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Banknote, Coins, Package, ReceiptText, ShoppingCart } from "lucide-react";
 import { AdminSectionHeading } from "@/features/admin/shared/components/admin-section-heading";
 import { AdminStatCard } from "@/features/admin/shared/components/admin-stat-card";
 import { AdminStatusBadge } from "@/features/admin/shared/components/admin-status-badge";
+import { AdminPagination } from "@/features/admin/shared/components/admin-pagination";
 import type { AdminFinanceBoardModel } from "@/features/admin/shared/types";
 
 function orderStatusTone(status: string): "emerald" | "amber" | "rose" | "slate" {
@@ -16,6 +17,7 @@ function orderStatusTone(status: string): "emerald" | "amber" | "rose" | "slate"
     case "FAILED":
     case "CANCELED":
     case "REFUNDED":
+    case "EXPIRED":
       return "rose";
     default:
       return "slate";
@@ -36,6 +38,10 @@ function orderStatusLabel(status: string) {
       return "Cancelado";
     case "REFUNDED":
       return "Estornado";
+    case "EXPIRED":
+      return "Expirado";
+    case "DRAFT":
+      return "Rascunho";
     default:
       return status;
   }
@@ -45,7 +51,23 @@ function productTone(active: boolean) {
   return active ? "emerald" : "slate";
 }
 
-export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
+export function AdminFinanceView({
+  model,
+  productId,
+  status,
+  isLoading = false,
+  onProductChange,
+  onStatusChange,
+  onPageChange,
+}: {
+  model: AdminFinanceBoardModel;
+  productId: string;
+  status: string;
+  isLoading?: boolean;
+  onProductChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+}) {
   return (
     <div className="space-y-8">
       <AdminSectionHeading
@@ -60,15 +82,45 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section className="grid gap-6">
         <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Compras</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">Pedidos recebidos</h2>
             </div>
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
-              {model.purchases.paidOrders} pagos / {model.purchases.pendingOrders} pendentes
+            <div className="flex flex-wrap items-center justify-end gap-3">
+            <label className="flex items-center gap-3 text-sm font-medium text-slate-600">
+              <span className="hidden sm:inline">Produto</span>
+              <select
+                value={productId}
+                onChange={(event) => onProductChange(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="ALL">Todos os produtos</option>
+                {model.purchases.productOptions.map((product) => (
+                  <option key={product.id} value={product.id}>{product.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm font-medium text-slate-600">
+              <span className="hidden sm:inline">Status</span>
+              <select
+                value={status}
+                onChange={(event) => onStatusChange(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="ALL">Todos os status</option>
+                <option value="PAID">Pago</option>
+                <option value="PENDING_PAYMENT">Aguardando pagamento</option>
+                <option value="PARTIALLY_PAID">Pagamento parcial</option>
+                <option value="FAILED">Falhou</option>
+                <option value="CANCELED">Cancelado</option>
+                <option value="REFUNDED">Estornado</option>
+                <option value="EXPIRED">Expirado</option>
+                <option value="DRAFT">Rascunho</option>
+              </select>
+            </label>
             </div>
           </div>
 
@@ -102,10 +154,11 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     <th className="px-4 py-3">Cliente</th>
-                    <th className="px-4 py-3">Tipo</th>
-                    <th className="px-4 py-3">Produtos</th>
+                    <th className="px-4 py-3">Produto(s)</th>
+                    <th className="px-4 py-3">Tipo de produto</th>
                     <th className="px-4 py-3 text-center">Status</th>
                     <th className="px-4 py-3 text-right">Valor</th>
+                    <th className="px-4 py-3 text-right">Pedido em</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
@@ -115,7 +168,6 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
                         <div className="font-semibold text-slate-900">{order.organizationName}</div>
                         <div className="text-xs text-slate-500">{order.legalName}</div>
                       </td>
-                      <td className="px-4 py-4 text-slate-600">{order.orderType}</td>
                       <td className="px-4 py-4">
                         <div className="max-w-[280px] space-y-1">
                           {order.products.length ? (
@@ -127,18 +179,29 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
                           )}
                         </div>
                       </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        <div className="space-y-1">
+                          {(order.productKinds.length ? order.productKinds : [order.orderType]).map((kind) => (
+                            <p key={kind}>{kind}</p>
+                          ))}
+                        </div>
+                      </td>
                       <td className="px-4 py-4 text-center">
                         <AdminStatusBadge label={orderStatusLabel(order.status)} tone={orderStatusTone(order.status)} />
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="font-semibold text-slate-900">{order.totalValue}</div>
-                        <div className="text-xs text-slate-500">{order.paidAt}</div>
+                        <div className="text-xs text-slate-500">{order.paidAt !== "—" ? `Pago em ${order.paidAt}` : "Ainda não pago"}</div>
                       </td>
+                      <td className="px-4 py-4 text-right text-xs text-slate-500">{order.createdAt}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+          <div className="mt-4">
+            <AdminPagination pagination={model.purchases.pagination} isLoading={isLoading} onPageChange={onPageChange} />
           </div>
         </article>
 
@@ -147,9 +210,6 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Vendas</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Receita confirmada</h2>
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
-              Ticket médio {model.sales.averageTicket}
             </div>
           </div>
 
@@ -170,10 +230,10 @@ export function AdminFinanceView({ model }: { model: AdminFinanceBoardModel }) {
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center gap-2 text-slate-300">
-                <ArrowDownRight className="h-4 w-4" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Em aberto</span>
+                <Coins className="h-4 w-4" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Ticket Médio</span>
               </div>
-              <p className="mt-2 text-2xl font-semibold text-white">{model.sales.pendingRevenue}</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{model.sales.averageTicket}</p>
             </div>
           </div>
 

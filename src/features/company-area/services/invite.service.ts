@@ -41,6 +41,12 @@ export interface SupplierOrganization {
   tradeName: string;
   legalName: string;
   industrySegment: string;
+  primaryEmail?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
+  businessCategory?: { name: string } | null;
+  businessSegment?: { name: string } | null;
 }
 
 export interface SupplierDiagnostic {
@@ -57,6 +63,12 @@ export interface SupplierDiagnostic {
     bioeconomyCircularScore?: number | null;
     socialScore?: number | null;
     governanceScore?: number | null;
+    provenOverallScore?: number | null;
+    provenEnvironmentalScore?: number | null;
+    provenBioeconomyCircularScore?: number | null;
+    provenSocialScore?: number | null;
+    provenGovernanceScore?: number | null;
+    maturityLevel?: string | null;
   } | null;
 }
 
@@ -81,6 +93,21 @@ export interface SupplierInvite {
   supplierOrganization?: SupplierOrganization | null;
   requestedDiagnostics: SupplierDiagnostic[];
   relationship?: RelationshipHistory | null;
+}
+
+export interface RankingSupplier {
+  id: string;
+  tradeName: string;
+  legalName: string;
+  industrySegment: string;
+  primaryEmail?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
+  businessCategory?: { name: string } | null;
+  businessSegment?: { name: string } | null;
+  completedDiagnostic?: SupplierDiagnostic | null;
+  isConnected: boolean;
 }
 
 export const inviteService = {
@@ -122,6 +149,15 @@ export const inviteService = {
     });
   },
 
+  getRanking(token: string) {
+    return request<RankingSupplier[]>("/invite/ranking", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   createInvite(token: string, supplierEmail: string, message?: string) {
     return request<{ invite: SupplierInvite; inviteLink: string }>("/invite", {
       method: "POST",
@@ -132,8 +168,18 @@ export const inviteService = {
     });
   },
 
+  acceptInvite(token: string, inviteToken?: string, buyerOrganizationId?: string) {
+    return request<{ buyerOrganization: { id: string; tradeName: string | null; legalName: string }; status: string }>("/invite/accept", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ token: inviteToken, ref: buyerOrganizationId }),
+    });
+  },
+
   terminateRelationship(token: string, supplierOrganizationId: string, endedReason?: string) {
-    return request<any>("/invite/relationship/terminate", {
+    return request<unknown>("/invite/relationship/terminate", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -143,7 +189,7 @@ export const inviteService = {
   },
 
   reactivateRelationship(token: string, supplierOrganizationId: string) {
-    return request<any>("/invite/relationship/reactivate", {
+    return request<unknown>("/invite/relationship/reactivate", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

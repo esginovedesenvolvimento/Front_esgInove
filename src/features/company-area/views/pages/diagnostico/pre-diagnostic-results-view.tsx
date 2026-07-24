@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Link from "next/link";
 import { getCookie } from "cookies-next";
 import { diagnosticService } from "../../../services/diagnostic.service";
+import { getCurrentConsultingAppointment, type CompanyConsultingAppointment } from "../../../services/consulting.service";
 import { inviteService, type SupplierInvite } from "../../../services/invite.service";
 import { useCompany } from "../../../context/company-context";
 
@@ -25,9 +26,10 @@ interface DBDiagnostic {
 }
 
 export function PreDiagnosticResultsView() {
-  const { hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess } = useCompany();
+  const { hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess, hasConsultingAccess } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<DBDiagnostic | null>(null);
   const [realSuppliers, setRealSuppliers] = useState<SupplierInvite[]>([]);
+  const [consultingAppointment, setConsultingAppointment] = useState<CompanyConsultingAppointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,6 +52,13 @@ export function PreDiagnosticResultsView() {
             console.error("Failed to load real suppliers:", e);
           }
         }
+        if (hasConsultingAccess) {
+          try {
+            setConsultingAppointment(await getCurrentConsultingAppointment());
+          } catch (e) {
+            console.error("Failed to load consulting appointment:", e);
+          }
+        }
       } catch (err) {
         console.error("Failed to load pre-diagnostic results:", err);
       } finally {
@@ -57,7 +66,7 @@ export function PreDiagnosticResultsView() {
       }
     }
     loadData();
-  }, [hasInviteAccess]);
+  }, [hasInviteAccess, hasConsultingAccess]);
 
   if (isLoading) {
     return (
@@ -77,10 +86,10 @@ export function PreDiagnosticResultsView() {
   const socScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
   const govScore = isCompleted && scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
-  // Consulting Access Logic (checks if company has consulting access or scheduled consultancies)
-  const companyRecord = company as Record<string, unknown> | null;
-  const hasConsultingAccess = !!(companyRecord?.hasConsultingAccess || companyRecord?.consultingAccess);
-  const consultingScheduledAt = (companyRecord?.consultingScheduledAt as string | null) || null;
+  const consultingScheduledAt = consultingAppointment?.startsAt ?? null;
+  const isConsultingScheduled = consultingAppointment?.status === "REQUESTED" || consultingAppointment?.status === "CONFIRMED";
+  const isConsultingCompleted = consultingAppointment?.status === "COMPLETED";
+  const isConsultingCanceled = consultingAppointment?.status === "CANCELED" || consultingAppointment?.status === "NO_SHOW";
 
   const getPillarDescription = (score: number, pillar: "E" | "B" | "S" | "G") => {
     if (pillar === "E") {
@@ -442,55 +451,68 @@ export function PreDiagnosticResultsView() {
           {hasConsultingAccess ? (
             <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
               <div className="space-y-3">
-                <span className="bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
-                  Consultoria Ativa
+                <span className={`${isConsultingCanceled ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"} border text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block`}>
+                {isConsultingCompleted ? "Consultoria Concluída" : isConsultingCanceled ? "Consultoria Cancelada" : "Consultoria Ativa"}
                 </span>
                 <h3 className="text-base font-bold text-slate-800">Sua Consultoria ESG</h3>
-                {consultingScheduledAt ? (
+                {isConsultingScheduled && consultingScheduledAt ? (
                   <div className="space-y-3 pt-1">
                     <p className="text-slate-500 text-xs leading-relaxed">
                       Você possui uma sessão agendada com nossos especialistas.
                     </p>
-                    <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
                         <Calendar className="h-4 w-4" />
+                        Próxima sessão
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-700">Horário Agendado</p>
-                        <p className="text-[10px] text-slate-500">
-                          {new Date(consultingScheduledAt).toLocaleDateString("pt-BR", {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })} às {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
+                      <div className="mt-3 grid grid-cols-[1fr_auto] items-end gap-3">
+                        <div>
+                          <p className="text-sm font-bold capitalize text-slate-800">
+                            {new Date(consultingScheduledAt).toLocaleDateString("pt-BR", {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'long',
+                              timeZone: "America/Sao_Paulo",
+                            })}
+                          </p>
+                          <p className="mt-1 text-[10px] font-medium text-slate-500">Fuso horário: Brasília</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-extrabold leading-none text-emerald-700">
+                            {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: "America/Sao_Paulo",
+                            })}
+                          </p>
+                          <p className="mt-1 text-[10px] font-semibold text-emerald-700">Duração: 1 hora</p>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                ) : isConsultingCompleted ? (
+                  <div className="space-y-2">
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      Sua sessão de consultoria foi concluída. Obrigado por participar.
+                    </p>
+                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg inline-block">
+                      Atendimento concluído
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      Você tem direito a uma consultoria especializada individual. Agende seu horário para validar suas práticas.
+                      {isConsultingCanceled
+                        ? "Seu agendamento foi cancelado. Nossa equipe poderá remarcar uma nova sessão para você."
+                        : "Você tem direito a uma consultoria especializada individual. Agende seu horário para validar suas práticas."}
                     </p>
                     <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg inline-block">
-                      Aguardando Agendamento
+                      {isConsultingCanceled ? "Agendamento cancelado" : "Aguardando Agendamento"}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4">
-                <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs h-9 transition-all">
-                  <Link href="/app/consultoria" className="flex items-center justify-center gap-1.5">
-                    {consultingScheduledAt ? "Acessar Detalhes" : "Agendar Horário"}
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </div>
             </Card>
           ) : (
             <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
