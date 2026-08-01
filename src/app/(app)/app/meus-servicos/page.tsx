@@ -57,6 +57,8 @@ export default function MeusServicosPage() {
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [actionStatus, setActionStatus] = useState<"success-accept" | "success-decline" | null>(null);
   const [loadingBudgetId, setLoadingBudgetId] = useState<string | null>(null);
+  const [isPaymentSuccessModalOpen, setIsPaymentSuccessModalOpen] = useState(false);
+  const [purchasedProductName, setPurchasedProductName] = useState<string | null>(null);
 
   // Carrega serviços comprados e solicitações de orçamento do localStorage & Banco de Dados
   useEffect(() => {
@@ -221,23 +223,17 @@ export default function MeusServicosPage() {
     }
 
     if (success === "true") {
-      setActionStatus("success-accept");
-      setIsProposalModalOpen(true);
+      setIsPaymentSuccessModalOpen(true);
       const budgetId = params.get("budgetId");
       if (budgetId) {
         const found = requestedBudgets.find(b => b.id === budgetId);
         if (found) {
-          setSelectedBudget(found);
+          setPurchasedProductName(found.name);
         } else {
-          setSelectedBudget({
-            id: budgetId,
-            name: "Serviço Adquirido",
-            description: "",
-            priceFormatted: "",
-            requestedAt: new Date().toISOString(),
-            status: "ATIVO"
-          });
+          setPurchasedProductName("Serviço Contratado");
         }
+      } else {
+        setPurchasedProductName(null);
       }
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
@@ -807,6 +803,70 @@ export default function MeusServicosPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Compra Concluída / Pagamento Confirmado */}
+      {isPaymentSuccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            onClick={() => {
+              setIsPaymentSuccessModalOpen(false);
+              setPurchasedProductName(null);
+            }}
+          />
+
+          {/* Modal Content Container */}
+          <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl animate-in zoom-in-95 duration-200 text-slate-800 text-center space-y-6">
+            
+            {/* Close button */}
+            <button 
+              onClick={() => {
+                setIsPaymentSuccessModalOpen(false);
+                setPurchasedProductName(null);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-100 rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Icon decoration */}
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-12 w-12 animate-bounce" />
+            </div>
+
+            {/* Text content */}
+            <div className="space-y-2">
+              <h3 className="text-xl md:text-2xl font-bold text-slate-800 font-display">
+                Compra Concluída!
+              </h3>
+              <p className="text-sm font-semibold text-emerald-600">
+                Pagamento confirmado com sucesso
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
+                {purchasedProductName ? (
+                  <>Seu pagamento para o serviço <strong>{purchasedProductName}</strong> foi processado. O serviço já está ativo e disponível para uso na sua conta.</>
+                ) : (
+                  "Seu pagamento foi processado com sucesso. O serviço contratado já está ativo e disponível para uso na sua conta."
+                )}
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="pt-2">
+              <Button 
+                onClick={() => {
+                  setIsPaymentSuccessModalOpen(false);
+                  setPurchasedProductName(null);
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold h-11 shadow-md shadow-emerald-100 transition-all hover:scale-[1.01]"
+              >
+                Entendido
+              </Button>
+            </div>
           </div>
         </div>
       )}

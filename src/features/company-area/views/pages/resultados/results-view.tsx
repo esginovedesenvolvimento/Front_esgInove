@@ -544,9 +544,15 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                                   item.kind === "PRE_DIAGNOSTIC"
                                     ? "bg-amber-50 text-amber-800 border-amber-200"
-                                    : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                    : item.kind === "SUPPLIER_DIAGNOSTIC"
+                                      ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                                      : "bg-emerald-50 text-emerald-800 border-emerald-200"
                                 }`}>
-                                  {item.kind === "PRE_DIAGNOSTIC" ? "Pré-Diagnóstico" : "Completo"}
+                                  {item.kind === "PRE_DIAGNOSTIC"
+                                    ? "Autodeclarável"
+                                    : item.kind === "SUPPLIER_DIAGNOSTIC"
+                                      ? "Avaliação de risco"
+                                      : "Completo"}
                                 </span>
                               </td>
                               <td className="px-5 py-4 text-center whitespace-nowrap">

@@ -31,10 +31,11 @@ export default function ResultsPage() {
             return [];
           })
         ]);
+        setHistory(hist);
+
         if (res.hasDiagnostic && res.diagnostic) {
           setDbDiagnostic(res.diagnostic);
         }
-        setHistory(hist);
       } catch (err) {
         console.error("Failed to load results:", err);
       } finally {
@@ -82,7 +83,7 @@ export default function ResultsPage() {
     baseModel.globalScore = overallScore;
     baseModel.globalProvenScore = globalProven;
     baseModel.isPreDiagnostic = isPreDiagnostic;
-    baseModel.isSupplierOrg = isSupplierOnly;
+    baseModel.isSupplierOrg = isSupplierOnly || dbDiagnostic.kind === "SUPPLIER_DIAGNOSTIC";
 
     // Map dynamic axis scores and interpretations based on database scores
     const getInterpretation = (score: number, axis: string) => {

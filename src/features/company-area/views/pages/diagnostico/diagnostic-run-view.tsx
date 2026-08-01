@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import type { getDiagnosticRunViewModel } from "../../../controllers/diagnostic.controller";
 import { diagnosticService } from "../../../services/diagnostic.service";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDashed, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDashed, ShieldCheck, Eye, ChevronUp, Edit2 } from "lucide-react";
 
 type DiagnosticRunViewModel = ReturnType<typeof getDiagnosticRunViewModel>;
 
@@ -30,6 +30,7 @@ export function DiagnosticRunView({
   const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
   const [selectedOption, setSelectedOption] = useState<{ questionId: string; option: string } | null>(null);
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
@@ -215,25 +216,37 @@ export function DiagnosticRunView({
     if (isDeclarationStep) {
     if (!isFinalFlow) {
       return (
-        <div className="mx-auto max-w-xl text-center space-y-6 py-12 animate-in fade-in zoom-in-95 duration-300">
-          <div className="inline-flex size-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">
-            <CircleCheckBig className="size-10" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Prova Concluída!</h1>
-            <p className="text-base text-slate-600">
-              Você concluiu a prova de <span className="font-semibold text-slate-800">{axisInfo.label}</span>. Salve agora para registrar as respostas no banco.
-            </p>
-          </div>
-
-          <div className="pt-6 border-t border-slate-100 flex justify-center">
-            <Button
-              onClick={saveCurrentAxis}
-              disabled={isSubmitting}
-              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 border-none disabled:opacity-50"
-            >
-              {isSubmitting ? "Salvando..." : "Finalizar e voltar ao painel"}
-            </Button>
+        <div className="mx-auto max-w-2xl space-y-6 py-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="text-center space-y-6">
+            <div className="inline-flex size-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">
+              <CircleCheckBig className="size-10" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Prova Concluída!</h1>
+              <p className="text-base text-slate-600">
+                Você concluiu a prova de <span className="font-semibold text-slate-800">{axisInfo.label}</span>. Salve agora para registrar as respostas no banco.
+              </p>
+            </div>
+            <div className="pt-6 border-t border-slate-100 flex justify-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSlideDirection("prev");
+                  setCurrentIndex(0);
+                }}
+                className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold h-11"
+              >
+                <Eye className="mr-2 size-4" /> Rever Respostas
+              </Button>
+              <Button
+                onClick={saveCurrentAxis}
+                disabled={isSubmitting}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 border-none disabled:opacity-50"
+              >
+                {isSubmitting ? "Salvando..." : "Finalizar e voltar ao painel"}
+              </Button>
+            </div>
           </div>
         </div>
       );
@@ -277,6 +290,20 @@ export function DiagnosticRunView({
               <h2 className="text-2xl font-semibold tracking-tight text-foreground">Confirmação obrigatória antes do envio</h2>
               <p className="text-sm text-foreground/65">O diagnóstico será salvo e calculado somente após esta confirmação.</p>
             </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSlideDirection("prev");
+                setCurrentIndex(0);
+              }}
+              className="rounded-xl border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold h-11 w-full sm:w-auto"
+            >
+              <Eye className="mr-2 size-4" /> Rever Respostas
+            </Button>
           </div>
 
           <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
@@ -349,37 +376,15 @@ export function DiagnosticRunView({
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-foreground/45 font-semibold">Diagnóstico ESG</p>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Preenchimento do questionário</h1>
-            <p className="mt-2 text-sm text-foreground/65">Responda uma questão por vez. Use as setas para navegar ou selecione uma opção para avançar.</p>
+            <p className="mt-2 text-sm text-foreground/65">Responda uma questão por vez. Selecione uma opção para avançar ou use os botões abaixo para navegar.</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={goPrevious}
-            disabled={currentIndex === 0}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Pergunta anterior"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-
-          <div className="h-1.5 flex-1 rounded-full bg-slate-200/80 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-emerald-600 transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={currentAnswer.trim().length === 0}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label={currentIndex === lastQuestionIndex ? "Ir para declaração final" : "Próxima pergunta"}
-          >
-            <ArrowRight className="size-4" />
-          </button>
+        <div className="h-1.5 w-full rounded-full bg-slate-200/80 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-emerald-600 transition-all duration-300"
+            style={{ width: `${progressPercentage}%` }}
+          />
         </div>
 
         <div className="flex items-center justify-between text-xs font-medium text-foreground/55">
@@ -459,40 +464,65 @@ export function DiagnosticRunView({
           )}
         </div>
 
-        {currentIndex === lastQuestionIndex && (
-          <div className="mt-6 flex items-center justify-between border-t border-border/70 pt-4">
-            <p className="text-xs text-foreground/55">
-              Última pergunta da sequência. A próxima etapa será a declaração final.
-            </p>
-            <Button
-              onClick={goNext}
-              disabled={currentAnswer.trim().length === 0}
-              className="h-11 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Próxima etapa
-            </Button>
-          </div>
-        )}
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={goPrevious}
+            disabled={currentIndex === 0}
+            className="h-12 px-6 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2 text-base shadow-sm disabled:opacity-40 w-full sm:w-auto justify-center"
+          >
+            <ArrowLeft className="size-5" />
+            Voltar
+          </Button>
 
-        {isComplete && currentIndex < lastQuestionIndex && (
-          <div className="mt-6 flex flex-col items-center justify-between border-t border-border/70 pt-4 sm:flex-row gap-3">
-            <p className="text-xs text-foreground/55">
-              Todas as {model.total} perguntas deste diagnóstico já foram respondidas.
-            </p>
-            <Button
-              onClick={() => {
-                setSlideDirection("next");
-                setCurrentIndex(model.questions.length);
-              }}
-              className="h-11 rounded-xl bg-emerald-600 px-6 text-white hover:bg-emerald-700 font-semibold"
-            >
-              Finalizar
-            </Button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            {isComplete && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setSlideDirection("next");
+                  setCurrentIndex(model.questions.length);
+                }}
+                className="h-12 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 text-base shadow-sm w-full sm:w-auto justify-center"
+              >
+                Finalizar Diagnóstico
+                <CircleCheckBig className="size-5" />
+              </Button>
+            )}
+
+            {currentIndex < lastQuestionIndex && (
+              <Button
+                type="button"
+                onClick={goNext}
+                disabled={currentAnswer.trim().length === 0}
+                className={`h-12 px-6 rounded-2xl font-semibold flex items-center gap-2 text-base shadow-sm w-full sm:w-auto justify-center ${
+                  isComplete
+                    ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                }`}
+              >
+                Próxima pergunta
+                <ArrowRight className="size-5" />
+              </Button>
+            )}
+
+            {currentIndex === lastQuestionIndex && !isComplete && (
+              <Button
+                type="button"
+                onClick={goNext}
+                disabled={currentAnswer.trim().length === 0}
+                className="h-12 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 text-base shadow-sm w-full sm:w-auto justify-center disabled:opacity-50"
+              >
+                Próxima etapa
+                <ArrowRight className="size-5" />
+              </Button>
+            )}
           </div>
-        )}
+        </div>
 
         {!isComplete && (
-          <p className="mt-4 text-sm font-medium text-amber-600">
+          <p className="mt-4 text-center sm:text-left text-sm font-medium text-amber-600">
             Você deve responder a todas as {model.total} perguntas para concluir o diagnóstico.
           </p>
         )}

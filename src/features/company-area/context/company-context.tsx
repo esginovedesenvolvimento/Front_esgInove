@@ -212,7 +212,9 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   
   const hasOnlyPreDiagnostic = (hasActiveDiagnostic && 
     !hasActivePlan && 
-    !isSupplierOnly) ?? false;
+    !isSupplierOnly &&
+    !hasCompletedDiagnostic) ?? false;
+
 
   const isUnpaid = !hasActivePlan && activeEntitlements.length === 0 && !hasActiveDiagnostic && !hasInviteAccess;
 
