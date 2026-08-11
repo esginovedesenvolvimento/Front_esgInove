@@ -6,7 +6,8 @@ import { ArrowLeft, CheckCircle2, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { supabaseBrowser } from "@/lib/supabase-browser";
+import { authService } from "@/features/auth/services/auth.service";
+import { getRecoveryAccessToken } from "@/lib/recovery-token";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -15,16 +16,11 @@ export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [error, setError] = useState(!supabaseBrowser ? "O serviço de autenticação não está configurado." : "");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const client = supabaseBrowser;
-    if (!client) {
-      return;
-    }
-
     const loadRecoveryToken = () => {
-      const token = client.getRecoveryAccessToken();
+      const token = getRecoveryAccessToken();
       if (!token) {
         setError("Este link é inválido ou expirou. Solicite uma nova recuperação de senha.");
       } else {
@@ -38,7 +34,7 @@ export default function UpdatePasswordPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabaseBrowser || !ready || !accessToken) return;
+    if (!ready || !accessToken) return;
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres.");
       return;
@@ -51,7 +47,7 @@ export default function UpdatePasswordPage() {
     setStatus("loading");
     setError("");
     try {
-      await supabaseBrowser.updatePassword(accessToken, password);
+      await authService.completePasswordRecovery(accessToken, password);
     } catch {
       setStatus("error");
       setError("Não foi possível atualizar sua senha. Solicite um novo link e tente novamente.");

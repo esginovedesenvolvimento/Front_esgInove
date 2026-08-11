@@ -65,6 +65,13 @@ export const authService = {
       body: JSON.stringify({ email }),
     });
   },
+
+  completePasswordRecovery(accessToken: string, password: string) {
+    return request<{ message: string }>("/auth/recover/complete", {
+      method: "POST",
+      body: JSON.stringify({ accessToken, password }),
+    });
+  },
   
   getMe(token: string) {
     return request<any>("/auth/me", {

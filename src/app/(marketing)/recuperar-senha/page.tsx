@@ -20,9 +20,12 @@ export default function RecoverPasswordPage() {
     try {
       await authService.recoverPassword(email.trim());
       setStatus("success");
-    } catch {
+    } catch (requestError) {
       setStatus("error");
-      setError("Não foi possível solicitar a recuperação agora. Tente novamente em instantes.");
+      const message = requestError instanceof Error ? requestError.message : "";
+      setError(message.includes("Limite de envio")
+        ? message
+        : "Não foi possível solicitar a recuperação agora. Tente novamente em instantes.");
     }
   }
 
