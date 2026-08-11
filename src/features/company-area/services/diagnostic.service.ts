@@ -52,6 +52,7 @@ export interface DiagnosticCurrentResponse {
   hasDiagnostic: boolean;
   diagnostic: {
     id: string;
+    kind: "PRE_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "SUPPLIER_DIAGNOSTIC";
     status: string;
     percentageCompletion?: number | null;
     completedAt?: string | null;

@@ -15,11 +15,13 @@ export function DiagnosticRunView({
   model,
   diagnosticId,
   axis,
+  isPreDiagnostic = false,
   isFinalFlow = false,
 }: {
   model: DiagnosticRunViewModel;
   diagnosticId: string;
   axis?: string | null;
+  isPreDiagnostic?: boolean;
   isFinalFlow?: boolean;
 }) {
   const { refreshProfile } = useCompany();
@@ -347,9 +349,16 @@ export function DiagnosticRunView({
           </div>
 
           <div className="mt-6 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-foreground/55">
-              Esta é a última etapa antes de enviar as respostas, salvar no banco e calcular o diagnóstico.
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-foreground/55">
+                Esta é a última etapa antes de enviar as respostas, salvar no banco e calcular o diagnóstico.
+              </p>
+              {isPreDiagnostic && (
+                <p className="max-w-xl text-sm font-semibold leading-5 text-red-600">
+                  Atenção: depois de finalizar o pré-diagnóstico, suas respostas não poderão mais ser editadas. Revise todas as informações antes de confirmar o envio.
+                </p>
+              )}
+            </div>
             <Button
               onClick={handleSubmit}
               disabled={!isComplete || !declarationAccepted || isSubmitting}

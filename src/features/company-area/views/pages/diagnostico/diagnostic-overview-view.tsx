@@ -27,6 +27,7 @@ type OverviewQuestion = Omit<DiagnosticStartPayload["questions"][number], "axis"
 interface DiagnosticOverviewViewProps {
   dbDiagnostic: {
     id: string;
+    kind?: "PRE_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "SUPPLIER_DIAGNOSTIC";
     status?: string | null;
     percentageCompletion?: number | null;
     score?: {
@@ -416,7 +417,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
               }`}
             >
               {allPillarsFinished ? (
-                <Link href={`/app/diagnostico/preencher?id=${dbDiagnostic.id}&final=true`}>
+                <Link href={`/app/diagnostico/preencher?id=${dbDiagnostic.id}&kind=${dbDiagnostic.kind ?? "FULL_DIAGNOSTIC"}&final=true`}>
                   Finalizar Diagnóstico <Award className="size-4 ml-2" />
                 </Link>
               ) : (

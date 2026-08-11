@@ -13,6 +13,7 @@ import { useCompany } from "@/features/company-area/context/company-context";
 import { getCookie } from "cookies-next";
 import { inviteService } from "@/features/company-area/services/invite.service";
 import { authService } from "@/features/auth/services/auth.service";
+import { formatCPF, formatCNPJ, validateCPF, validateCNPJ } from "@/lib/cpfCnpjValidator";
 
 const BUSINESS_CATEGORIES = [
   { code: "AGRONEGOCIO", name: "Agronegócio" }
@@ -25,18 +26,14 @@ const BUSINESS_SEGMENTS: Record<string, { code: string; name: string }[]> = {
   ]
 };
 
-function formatCNPJ(cnpj?: string | null): string {
+function displayCNPJ(cnpj?: string | null): string {
   if (!cnpj) return "N/A";
-  const clean = cnpj.replace(/\D/g, "");
-  if (clean.length !== 14) return cnpj;
-  return clean.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  return formatCNPJ(cnpj);
 }
 
-function formatCPF(cpf?: string | null): string {
+function displayCPF(cpf?: string | null): string {
   if (!cpf) return "N/A";
-  const clean = cpf.replace(/\D/g, "");
-  if (clean.length !== 11) return cpf;
-  return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  return formatCPF(cpf);
 }
 
 function formatPhone(phone?: string | null): string {
@@ -104,6 +101,10 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
   const handleSaveCompany = async () => {
     const token = getCookie("inoveesg_token") as string;
     if (!token) return;
+    if (companyForm.cnpj && !validateCNPJ(companyForm.cnpj)) {
+      alert("CNPJ inválido (dígitos verificadores incorretos). Por favor verifique o número preenchido.");
+      return;
+    }
     try {
       await authService.updateProfile(token, {
         organization: companyForm,
@@ -138,6 +139,10 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
   const handleSaveRespondent = async () => {
     const token = getCookie("inoveesg_token") as string;
     if (!token) return;
+    if (respondentForm.cpf && !validateCPF(respondentForm.cpf)) {
+      alert("CPF inválido (dígitos verificadores incorretos). Por favor verifique o número preenchido.");
+      return;
+    }
     try {
       await authService.updateProfile(token, {
         user: respondentForm,
@@ -213,7 +218,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
           <div className="flex flex-wrap gap-3">
             <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-white/10 backdrop-blur-md border border-white/10 text-white">
               <Building2 className="h-4 w-4 text-accent" />
-              CNPJ: {formatCNPJ(company?.cnpj)}
+              CNPJ: {displayCNPJ(company?.cnpj)}
             </span>
             <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-white/10 backdrop-blur-md border border-white/10 text-white">
               <User className="h-4 w-4 text-accent" />
@@ -297,7 +302,8 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                 <input
                   type="text"
                   value={companyForm.cnpj}
-                  onChange={(e) => setCompanyForm({ ...companyForm, cnpj: e.target.value })}
+                  onChange={(e) => setCompanyForm({ ...companyForm, cnpj: formatCNPJ(e.target.value) })}
+                  placeholder="00.000.000/0000-00"
                   className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
@@ -458,7 +464,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
               <div className="space-y-1">
                 <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">CNPJ</span>
                 <p className="text-sm font-semibold text-slate-700 bg-white/40 border border-slate-100 px-3 py-2 rounded-xl">
-                  {formatCNPJ(company?.cnpj)}
+                  {displayCNPJ(company?.cnpj)}
                 </p>
               </div>
               <div className="space-y-1">
@@ -616,7 +622,8 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                   <input
                     type="text"
                     value={respondentForm.cpf}
-                    onChange={(e) => setRespondentForm({ ...respondentForm, cpf: e.target.value })}
+                    onChange={(e) => setRespondentForm({ ...respondentForm, cpf: formatCPF(e.target.value) })}
+                    placeholder="000.000.000-00"
                     className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                   />
                 </div>
@@ -654,7 +661,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
                 <div className="space-y-3">
                   <div className="flex justify-between border-b border-slate-100 pb-2">
                     <span className="text-xs text-slate-400 uppercase font-medium">CPF</span>
-                    <span className="text-xs font-semibold text-slate-800">{formatCPF(user?.cpf)}</span>
+                    <span className="text-xs font-semibold text-slate-800">{displayCPF(user?.cpf)}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-100 pb-2">
                     <span className="text-xs text-slate-400 uppercase font-medium">E-mail</span>

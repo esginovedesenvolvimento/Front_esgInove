@@ -57,20 +57,20 @@ const whyUs = [
     description: "Acesse a plataforma e inicie sua jornada ESG.",
   },
   {
-    title: "Peça seu orçamento de pré-diagnóstico",
-    description: "Faça uma descrição do seu negócio, informando: setor, nº de funcionários, etc.",
+    title: "Faça seu pré-diagnóstico",
+    description: "Responda ao questionário e avalie o nível de maturidade ESG do seu negócio.",
   },
   {
-    title: "Receba nosso orçamento",
-    description: "Tire dúvidas com nossa equipe e alinhe expectativas.",
+    title: "Receba seu relatório",
+    description: "Acesse o painel de desempenho com scores e recomendações estratégicas.",
   },
   {
-    title: "Selecione o serviço",
-    description: "Escolha o serviço ideal para o orçamento pós-diagnóstico.",
+    title: "Selecione o serviço ideal",
+    description: "Escolha o serviço ou consultoria ideal para avançar no seu plano de ação.",
   },
   {
-    title: "Receba o orçamento final",
-    description: "Tire dúvidas com nossa equipe e inicie a execução.",
+    title: "Receba a proposta e inicie a execução",
+    description: "Tire dúvidas com nossa equipe, receba o orçamento e inicie a execução.",
   },
 ] as const;
 
@@ -237,7 +237,7 @@ function HomeContent() {
               <div className="lg:col-span-4">
                 <h2 className="text-3xl font-bold font-display tracking-tight">Direto ao Ponto: Como Funciona</h2>
                 <p className="mt-3 text-sm leading-6 text-foreground/70">
-                  Fluxo simples em três passos para acelerar decisão e execução ESG.
+                  Fluxo simples e direto para acelerar sua decisão e execução ESG.
                 </p>
               </div>
               <div className="lg:col-span-8">

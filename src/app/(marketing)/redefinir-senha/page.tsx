@@ -32,11 +32,18 @@ export default function UpdatePasswordPage() {
     loadRecoveryToken();
   }, []);
 
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const isPasswordStrong = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!ready || !accessToken) return;
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
+    if (!isPasswordStrong) {
+      setError("A senha não atende a todos os requisitos de senha forte.");
       return;
     }
     if (password !== confirmation) {
@@ -77,15 +84,33 @@ export default function UpdatePasswordPage() {
           <>
             <LockKeyhole className="size-10 text-emerald-600" />
             <h1 className="mt-5 text-2xl font-bold font-display">Crie uma nova senha</h1>
-            <p className="mt-2 text-sm leading-6 text-foreground/65">Escolha uma senha com pelo menos 6 caracteres para proteger seu acesso.</p>
+            <p className="mt-2 text-sm leading-6 text-foreground/65">Escolha uma senha forte contendo maiúsculas, minúsculas, números e caracteres especiais.</p>
 
             <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium" htmlFor="new-password">Nova senha</label>
-              <input id="new-password" type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none transition focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/20" />
-              <label className="block text-sm font-medium" htmlFor="confirm-password">Confirmar nova senha</label>
-              <input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none transition focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/20" />
+              <div className="space-y-1">
+                <label className="block text-sm font-medium" htmlFor="new-password">Nova senha</label>
+                <input id="new-password" type="password" required autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none transition focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/20" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium" htmlFor="confirm-password">Confirmar nova senha</label>
+                <input id="confirm-password" type="password" required autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm outline-none transition focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/20" />
+              </div>
+
+              {/* Checklist de requisitos de Senha Forte */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] space-y-1.5">
+                <p className="font-semibold text-slate-700">Requisitos de senha forte:</p>
+                <div className="grid grid-cols-1 gap-y-1 text-slate-600">
+                  <span className={hasMinLength ? "text-emerald-600 font-medium" : ""}>• Mínimo de 8 caracteres</span>
+                  <span className={hasUpper ? "text-emerald-600 font-medium" : ""}>• Pelo menos uma letra maiúscula (A-Z)</span>
+                  <span className={hasLower ? "text-emerald-600 font-medium" : ""}>• Pelo menos uma letra minúscula (a-z)</span>
+                  <span className={hasNumber ? "text-emerald-600 font-medium" : ""}>• Pelo menos um número (0-9)</span>
+                  <span className={hasSpecial ? "text-emerald-600 font-medium" : ""}>• Pelo menos um caractere especial (!@#$%...)</span>
+                </div>
+              </div>
+
               {error && <p className="text-xs font-medium text-red-600">{error}</p>}
-              <Button type="submit" disabled={!ready || status === "loading"} className="h-11 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">
+              <Button type="submit" disabled={!ready || !isPasswordStrong || password !== confirmation || status === "loading"} className="h-11 w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400">
                 {status === "loading" ? "Atualizando..." : "Salvar nova senha"}
               </Button>
             </form>

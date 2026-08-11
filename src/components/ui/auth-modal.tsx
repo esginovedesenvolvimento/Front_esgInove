@@ -27,7 +27,17 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
   useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    } else {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
     }
+
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    };
   }, [isOpen, defaultTab]);
 
   useEffect(() => {
@@ -69,12 +79,17 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Background Overlay with Liquid Glass Effect */}
       <div 
-        className="absolute inset-0 bg-black/20 backdrop-blur-md"
+        className="absolute inset-0 bg-black/20 backdrop-blur-md touch-none"
         onClick={onClose}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-white/20 bg-white/80 p-6 sm:p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl max-h-[90vh] overflow-y-auto">
+      <div 
+        className="relative w-full max-w-2xl rounded-2xl border border-white/20 bg-white/80 p-6 sm:p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl max-h-[90vh] overflow-y-auto overscroll-contain"
+        onWheel={(e) => e.stopPropagation()}
+      >
         {/* Close Button */}
         <button 
           onClick={onClose}

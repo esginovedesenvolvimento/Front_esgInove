@@ -83,6 +83,7 @@ function DiagnosticRunContent() {
   const searchParams = useSearchParams();
   const diagnosticIdFromUrl = searchParams.get("id");
   const axisFromUrl = searchParams.get("axis");
+  const isPreDiagnostic = searchParams.get("kind") === "PRE_DIAGNOSTIC";
   const isFinalFromUrl = searchParams.get("final") === "true";
 
   const [resolvedDiagnosticId, setResolvedDiagnosticId] = useState<string | null>(diagnosticIdFromUrl);
@@ -191,6 +192,7 @@ function DiagnosticRunContent() {
       model={model}
       diagnosticId={resolvedDiagnosticId}
       axis={axisFromUrl}
+      isPreDiagnostic={isPreDiagnostic}
       isFinalFlow={isFinalFromUrl}
     />
   );

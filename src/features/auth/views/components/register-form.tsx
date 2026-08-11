@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { setCookie } from "cookies-next";
+import { formatCPF, formatCNPJ, validateCPF, validateCNPJ } from "@/lib/cpfCnpjValidator";
 
 type RegisterFormProps = {
   refCode?: string;
@@ -16,15 +17,15 @@ type RegisterFormProps = {
 };
 
 const jaPossuiOptions = [
-  "Relatório ESG?",
-  "Política ambiental?",
-  "Inventário de carbono?",
-  "Certificações?",
-  "Indicadores ESG?",
-  "Comitê ESG?",
-  "Ações sociais estruturadas?",
-  "Plano de gestão de resíduos?",
-  "Metas sustentáveis formalizadas?"
+  "Relatório ESG",
+  "Política ambiental",
+  "Inventário de carbono",
+  "Certificações",
+  "Indicadores ESG",
+  "Comitê ESG",
+  "Ações sociais estruturadas",
+  "Plano de gestão de resíduos",
+  "Metas sustentáveis formalizadas"
 ];
 
 const interesseOptions = [
@@ -120,39 +121,29 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
       .substring(0, 15);
   };
 
-  const formatCnpj = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2")
-      .slice(0, 18);
-  };
-
-  const formatCpf = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    const part1 = digits.slice(0, 3);
-    const part2 = digits.slice(3, 6);
-    const part3 = digits.slice(6, 9);
-    const part4 = digits.slice(9, 11);
-
-    if (digits.length <= 3) return part1;
-    if (digits.length <= 6) return `${part1}.${part2}`;
-    if (digits.length <= 9) return `${part1}.${part2}.${part3}`;
-    return `${part1}.${part2}.${part3}-${part4}`;
-  };
+  const formatCnpj = (value: string) => formatCNPJ(value);
+  const formatCpf = (value: string) => formatCPF(value);
 
   const isValidEmail = (e: string) => /\S+@\S+\.\S+/.test(e);
   const emailValid = isValidEmail(email);
   const emailsMatch = email === emailConfirm && emailConfirm !== "";
-  const passwordValid = password.length >= 6;
+
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  const passwordValid = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
   const passwordsMatch = password === passwordConfirm && passwordConfirm !== "";
+
+  const isCpfValid = cpf.replace(/\D/g, "").length === 11 && validateCPF(cpf);
+  const isCnpjValid = cnpj.replace(/\D/g, "").length === 14 && validateCNPJ(cnpj);
 
   // Validation step logic
   const isStep1Valid = 
     fullName.trim().length >= 2 && 
-    cpf.replace(/\D/g, "").length === 11 &&
+    isCpfValid &&
     cargoFuncao.trim().length >= 2 &&
     phone.replace(/\D/g, "").length >= 10 &&
     grauParticipacao !== "";
@@ -160,7 +151,7 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
   const isStep2Valid =
     companyName.trim().length >= 2 && 
     tradeName.trim().length >= 2 && 
-    cnpj.replace(/\D/g, "").length === 14 && 
+    isCnpjValid && 
     enderecoCompleto.trim().length >= 5 &&
     municipioEstado.trim().length >= 2 &&
     naturezaJuridica !== "" &&
@@ -380,11 +371,14 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                   placeholder="000.000.000-00"
                   className={cn(
                     "h-11 w-full rounded-xl border bg-white/50 px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
-                    errorMessage && errorMessage.toLowerCase().includes("cpf")
+                    (errorMessage && errorMessage.toLowerCase().includes("cpf")) || (cpf.replace(/\D/g, "").length === 11 && !isCpfValid)
                       ? "border-red-300 focus:border-red-500"
                       : "border-slate-200 focus:border-emerald-500/50"
                   )}
                 />
+                {cpf.replace(/\D/g, "").length === 11 && !isCpfValid && (
+                  <p className="text-xs text-red-500 font-medium mt-1">CPF inválido (dígitos verificadores incorretos)</p>
+                )}
                 {errorMessage && errorMessage.toLowerCase().includes("cpf") && (
                   <p className="text-xs text-red-500 font-medium mt-1">{errorMessage}</p>
                 )}
@@ -500,11 +494,14 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                   placeholder="00.000.000/0000-00"
                   className={cn(
                     "h-11 w-full rounded-xl border bg-white/50 px-3 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500/20",
-                    errorMessage && errorMessage.toLowerCase().includes("cnpj")
+                    (errorMessage && errorMessage.toLowerCase().includes("cnpj")) || (cnpj.replace(/\D/g, "").length === 14 && !isCnpjValid)
                       ? "border-red-300 focus:border-red-500"
                       : "border-slate-200 focus:border-emerald-500/50"
                   )}
                 />
+                {cnpj.replace(/\D/g, "").length === 14 && !isCnpjValid && (
+                  <p className="text-xs text-red-500 font-medium mt-1">CNPJ inválido (dígitos verificadores incorretos)</p>
+                )}
                 {errorMessage && errorMessage.toLowerCase().includes("cnpj") && (
                   <p className="text-xs text-red-500 font-medium mt-1">{errorMessage}</p>
                 )}
@@ -1082,10 +1079,32 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                 )}
               </div>
             </div>
-            <p className={cn("text-[11px] flex items-center gap-1", passwordValid ? "text-green-600" : "text-slate-400")}>
-              {passwordValid ? <Check className="size-3" /> : <X className="size-3 text-red-500" />}
-              Mínimo de 6 caracteres.
-            </p>
+            {/* Checklist de requisitos de Senha Forte */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] space-y-1.5">
+              <p className="font-semibold text-slate-700">A senha deve conter:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                <span className={cn("flex items-center gap-1.5 transition-colors", hasMinLength ? "text-emerald-600 font-medium" : "text-slate-500")}>
+                  {hasMinLength ? <Check className="size-3 text-emerald-500 shrink-0" /> : <span className="size-1.5 rounded-full bg-slate-300 ml-1 mr-0.5 shrink-0" />}
+                  Mínimo de 8 caracteres
+                </span>
+                <span className={cn("flex items-center gap-1.5 transition-colors", hasUpper ? "text-emerald-600 font-medium" : "text-slate-500")}>
+                  {hasUpper ? <Check className="size-3 text-emerald-500 shrink-0" /> : <span className="size-1.5 rounded-full bg-slate-300 ml-1 mr-0.5 shrink-0" />}
+                  Letra maiúscula (A-Z)
+                </span>
+                <span className={cn("flex items-center gap-1.5 transition-colors", hasLower ? "text-emerald-600 font-medium" : "text-slate-500")}>
+                  {hasLower ? <Check className="size-3 text-emerald-500 shrink-0" /> : <span className="size-1.5 rounded-full bg-slate-300 ml-1 mr-0.5 shrink-0" />}
+                  Letra minúscula (a-z)
+                </span>
+                <span className={cn("flex items-center gap-1.5 transition-colors", hasNumber ? "text-emerald-600 font-medium" : "text-slate-500")}>
+                  {hasNumber ? <Check className="size-3 text-emerald-500 shrink-0" /> : <span className="size-1.5 rounded-full bg-slate-300 ml-1 mr-0.5 shrink-0" />}
+                  Número (0-9)
+                </span>
+                <span className={cn("flex items-center gap-1.5 transition-colors sm:col-span-2", hasSpecial ? "text-emerald-600 font-medium" : "text-slate-500")}>
+                  {hasSpecial ? <Check className="size-3 text-emerald-500 shrink-0" /> : <span className="size-1.5 rounded-full bg-slate-300 ml-1 mr-0.5 shrink-0" />}
+                  Caractere especial (!@#$%^&*...)
+                </span>
+              </div>
+            </div>
 
             {errorMessage && (
               <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-red-600 font-medium">
