@@ -58,6 +58,13 @@ export const authService = {
       body: JSON.stringify(payload),
     });
   },
+
+  recoverPassword(email: string) {
+    return request<{ message: string }>("/auth/recover", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
   
   getMe(token: string) {
     return request<any>("/auth/me", {

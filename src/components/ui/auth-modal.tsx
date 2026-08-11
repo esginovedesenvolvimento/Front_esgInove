@@ -170,9 +170,16 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
             </Button>
             
             <div className="text-center mt-4">
-              <a href="#" className="text-sm text-foreground/65 hover:text-emerald-600">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push("/recuperar-senha");
+                }}
+                className="text-sm text-foreground/65 hover:text-emerald-600"
+              >
                 Esqueci minha senha
-              </a>
+              </button>
             </div>
           </form>
         ) : (
