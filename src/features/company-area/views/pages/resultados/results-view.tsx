@@ -154,26 +154,22 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   };
 
   const handleDownload = async () => {
-    const reportWindow = window.open("about:blank", "_blank");
-
     try {
       setDownloading(true);
       const token = getCookie("inoveesg_token") as string;
       if (!token) {
-        reportWindow?.close();
         return;
       }
       const blob = await diagnosticService.downloadReport(token);
       const url = window.URL.createObjectURL(blob);
+      const reportWindow = window.open(url, "_blank", "noopener,noreferrer");
       if (reportWindow) {
-        reportWindow.location.href = url;
         window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
       } else {
         window.URL.revokeObjectURL(url);
-        alert("Permita a abertura de novas abas para visualizar o relatório.");
+        alert("Permita pop-ups para abrir o relatório em uma nova aba.");
       }
     } catch (err) {
-      reportWindow?.close();
       console.error("Erro ao baixar o relatório:", err);
       alert("Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.");
     } finally {
