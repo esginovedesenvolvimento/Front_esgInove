@@ -154,22 +154,39 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   };
 
   const handleDownload = async () => {
+    const reportWindow = window.open("about:blank", "_blank");
+
+    if (reportWindow) {
+      reportWindow.document.write(`
+        <!doctype html>
+        <html lang="pt-BR">
+          <head><meta charset="utf-8"><title>Gerando relatório</title></head>
+          <body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;font-family:Arial,sans-serif;color:#334155">
+            <div style="text-align:center"><div style="font-size:18px;font-weight:700;margin-bottom:8px">Gerando relatório ESG</div><div style="font-size:14px;color:#64748b">Aguarde enquanto o PDF é preparado...</div></div>
+          </body>
+        </html>
+      `);
+      reportWindow.document.close();
+    }
+
     try {
       setDownloading(true);
       const token = getCookie("inoveesg_token") as string;
       if (!token) {
+        reportWindow?.close();
         return;
       }
       const blob = await diagnosticService.downloadReport(token);
       const url = window.URL.createObjectURL(blob);
-      const reportWindow = window.open(url, "_blank", "noopener,noreferrer");
       if (reportWindow) {
         window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+        reportWindow.location.replace(url);
       } else {
         window.URL.revokeObjectURL(url);
-        alert("Permita pop-ups para abrir o relatório em uma nova aba.");
+        alert("Não foi possível abrir a aba do relatório. Permita pop-ups para este site.");
       }
     } catch (err) {
+      reportWindow?.close();
       console.error("Erro ao baixar o relatório:", err);
       alert("Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.");
     } finally {
