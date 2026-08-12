@@ -154,22 +154,28 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   };
 
   const handleDownload = async () => {
+    const reportWindow = window.open("about:blank", "_blank");
+
     try {
       setDownloading(true);
       const token = getCookie("inoveesg_token") as string;
-      if (!token) return;
+      if (!token) {
+        reportWindow?.close();
+        return;
+      }
       const blob = await diagnosticService.downloadReport(token);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `relatorio-esg.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      if (reportWindow) {
+        reportWindow.location.href = url;
+        window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+      } else {
+        window.URL.revokeObjectURL(url);
+        alert("Permita a abertura de novas abas para visualizar o relatório.");
+      }
     } catch (err) {
+      reportWindow?.close();
       console.error("Erro ao baixar o relatório:", err);
-      alert("Ocorreu um erro ao baixar o relatório. Por favor, tente novamente.");
+      alert("Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.");
     } finally {
       setDownloading(false);
     }
