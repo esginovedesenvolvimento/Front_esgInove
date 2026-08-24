@@ -206,6 +206,7 @@ export const diagnosticService = {
   },
 
   async downloadReport(token: string): Promise<Blob> {
+    console.log("[diagnosticService.downloadReport] Iniciando download do relatório, token length:", token?.length);
     const response = await fetch(`${API_URL}/diagnostic/current/report`, {
       method: "GET",
       headers: {
@@ -213,11 +214,25 @@ export const diagnosticService = {
       },
     });
 
+    console.log("[diagnosticService.downloadReport] Resposta recebida do backend, status:", response.status);
+
+    if (response.status === 401) {
+      console.warn("[diagnosticService.downloadReport] 401 Unauthorized recebido do backend!");
+      if (typeof window !== "undefined") {
+        document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        window.location.href = "/?auth=true";
+      }
+      throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
+    }
+
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
+      console.error("[diagnosticService.downloadReport] Erro na resposta do backend:", data);
       throw new Error(data?.message ?? "Falha ao baixar o relatório");
     }
 
-    return response.blob();
+    const blob = await response.blob();
+    console.log("[diagnosticService.downloadReport] Blob do PDF baixado com sucesso, tamanho:", blob.size);
+    return blob;
   },
 };

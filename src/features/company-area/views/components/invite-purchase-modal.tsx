@@ -157,7 +157,7 @@ export function InvitePurchaseModal({
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               1. Escolha a Faixa de Convites
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {AVAILABLE_PACKAGES.map((pkg) => {
                 const isSelected = selectedPackage.id === pkg.id;
                 return (

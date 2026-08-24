@@ -91,6 +91,14 @@ export function PreDiagnosticResultsView() {
   const isConsultingCompleted = consultingAppointment?.status === "COMPLETED";
   const isConsultingCanceled = consultingAppointment?.status === "CANCELED" || consultingAppointment?.status === "NO_SHOW";
 
+  const appointmentStartDate = consultingScheduledAt ? new Date(consultingScheduledAt) : null;
+  const appointmentEndDate = consultingAppointment?.endsAt 
+    ? new Date(consultingAppointment.endsAt) 
+    : appointmentStartDate 
+      ? new Date(appointmentStartDate.getTime() + 60 * 60 * 1000) 
+      : null;
+  const isAppointmentPast = appointmentEndDate ? appointmentEndDate < new Date() : false;
+
   const getPillarDescription = (score: number, pillar: "E" | "B" | "S" | "G") => {
     if (pillar === "E") {
       if (score >= 80) return "Excelente gestão de recursos e eficiência energética. Foco no monitoramento rigoroso e metas de descarbonização.";
@@ -448,20 +456,38 @@ export function PreDiagnosticResultsView() {
           </div>
 
           {/* Card de Consultoria (1 col) */}
-          {hasConsultingAccess ? (
+          {hasConsultingAccess || consultingAppointment ? (
             <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
               <div className="space-y-3">
-                <span className={`${isConsultingCanceled ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-emerald-50 border-emerald-200 text-emerald-600"} border text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block`}>
-                {isConsultingCompleted ? "Consultoria Concluída" : isConsultingCanceled ? "Consultoria Cancelada" : "Consultoria Ativa"}
+                <span className={`${
+                  isConsultingCompleted
+                    ? "bg-slate-100 border-slate-200 text-slate-700" 
+                    : isConsultingCanceled 
+                    ? "bg-rose-50 border-rose-200 text-rose-600" 
+                    : isConsultingScheduled 
+                    ? isAppointmentPast
+                      ? "bg-amber-50 border-amber-200 text-amber-600 font-bold"
+                      : "bg-emerald-50 border-emerald-200 text-emerald-600" 
+                    : "bg-amber-50 border-amber-200 text-amber-600"
+                } border text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block`}>
+                  {isConsultingCompleted 
+                    ? "Consultoria Concluída" 
+                    : isConsultingCanceled 
+                    ? "Consultoria Cancelada" 
+                    : isConsultingScheduled 
+                    ? "Consultoria Ativa" 
+                    : "Aguardando Agendamento"}
                 </span>
+
                 <h3 className="text-base font-bold text-slate-800">Sua Consultoria ESG</h3>
+
                 {isConsultingScheduled && consultingScheduledAt ? (
                   <div className="space-y-3 pt-1">
                     <p className="text-slate-500 text-xs leading-relaxed">
                       Você possui uma sessão agendada com nossos especialistas.
                     </p>
-                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    <div className={`rounded-2xl border p-4 ${isAppointmentPast ? "border-amber-200 bg-amber-50/50" : "border-emerald-100 bg-emerald-50/50"}`}>
+                      <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${isAppointmentPast ? "text-amber-700" : "text-emerald-700"}`}>
                         <Calendar className="h-4 w-4" />
                         Próxima sessão
                       </div>
@@ -472,20 +498,22 @@ export function PreDiagnosticResultsView() {
                               weekday: 'long',
                               day: 'numeric',
                               month: 'long',
-                              timeZone: "America/Sao_Paulo",
+                              timeZone: consultingAppointment?.timezone || "America/Sao_Paulo",
                             })}
                           </p>
-                          <p className="mt-1 text-[10px] font-medium text-slate-500">Fuso horário: Brasília</p>
+                          <p className="mt-1 text-[10px] font-medium text-slate-500">
+                            Fuso horário: {consultingAppointment?.timezone || "Brasília"}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-extrabold leading-none text-emerald-700">
+                          <p className={`text-2xl font-extrabold leading-none ${isAppointmentPast ? "text-amber-700" : "text-emerald-700"}`}>
                             {new Date(consultingScheduledAt).toLocaleTimeString("pt-BR", {
                               hour: '2-digit',
                               minute: '2-digit',
-                              timeZone: "America/Sao_Paulo",
+                              timeZone: consultingAppointment?.timezone || "America/Sao_Paulo",
                             })}
                           </p>
-                          <p className="mt-1 text-[10px] font-semibold text-emerald-700">Duração: 1 hora</p>
+                          <p className={`mt-1 text-[10px] font-semibold ${isAppointmentPast ? "text-amber-700" : "text-emerald-700"}`}>Duração: 1 hora</p>
                         </div>
                       </div>
                     </div>
@@ -512,7 +540,6 @@ export function PreDiagnosticResultsView() {
                   </div>
                 )}
               </div>
-
             </Card>
           ) : (
             <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
@@ -680,7 +707,7 @@ export function PreDiagnosticResultsView() {
 
             {/* Overlay Lock de Upgrade */}
             <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
-              <div className="bg-white p-3 rounded-2xl shadow-md border border-slate-100 inline-block mb-3 animate-bounce">
+              <div className="hidden sm:inline-block bg-white p-3 rounded-2xl shadow-md border border-slate-100 mb-3 animate-bounce">
                 <Lock className="h-6 w-6 text-slate-800" />
               </div>
               <h5 className="font-bold text-slate-900 text-sm mb-1">Upgrade Necessário</h5>
@@ -779,7 +806,7 @@ export function PreDiagnosticResultsView() {
 
                   {/* Overlay Lock de Upgrade */}
                   <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 text-center">
-                    <div className="bg-white p-2 rounded-xl shadow-md border border-slate-100 inline-block mb-2">
+                    <div className="hidden sm:inline-block bg-white p-2 rounded-xl shadow-md border border-slate-100 mb-2">
                       <Lock className="h-5 w-5 text-slate-800" />
                     </div>
                     <h5 className="font-bold text-slate-900 text-xs mb-0.5">Upgrade Necessário</h5>

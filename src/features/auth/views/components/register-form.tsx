@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { setCookie } from "cookies-next";
 import { formatCPF, formatCNPJ, validateCPF, validateCNPJ } from "@/lib/cpfCnpjValidator";
+import { City, Country, State } from "country-state-city";
 
 type RegisterFormProps = {
   refCode?: string;
@@ -73,8 +74,12 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
   const [companyName, setCompanyName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [cnpj, setCnpj] = useState("");
-  const [enderecoCompleto, setEnderecoCompleto] = useState("");
-  const [municipioEstado, setMunicipioEstado] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
+  const [country, setCountry] = useState("BR");
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [site, setSite] = useState("");
   const [redesSociais, setRedesSociais] = useState("");
   const [naturezaJuridica, setNaturezaJuridica] = useState("");
@@ -152,8 +157,11 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
     companyName.trim().length >= 2 && 
     tradeName.trim().length >= 2 && 
     isCnpjValid && 
-    enderecoCompleto.trim().length >= 5 &&
-    municipioEstado.trim().length >= 2 &&
+    addressLine1.trim().length >= 2 &&
+    addressNumber.trim().length >= 1 &&
+    country.trim().length >= 2 &&
+    state.trim().length >= 2 &&
+    city.trim().length >= 2 &&
     naturezaJuridica !== "" &&
     porte !== "" &&
     size !== "" &&
@@ -223,8 +231,12 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
         cargoFuncao,
         grauParticipacao,
         tradeName,
-        enderecoCompleto,
-        municipioEstado,
+        addressLine1,
+        addressNumber,
+        addressComplement: addressComplement.trim() || undefined,
+        country,
+        state,
+        city,
         site: site.trim() || undefined,
         redesSociais: redesSociais || undefined,
         naturezaJuridica,
@@ -507,48 +519,48 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
                 )}
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="enderecoCompleto" className="text-xs font-medium text-slate-700">
-                  Endereço Completo *
-                </label>
-                <input
-                  id="enderecoCompleto"
-                  type="text"
-                  required
-                  value={enderecoCompleto}
-                  onChange={(e) => setEnderecoCompleto(e.target.value)}
-                  placeholder="Rua, número, bairro..."
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
-                />
+                <label htmlFor="addressLine1" className="text-xs font-medium text-slate-700">Endereço *</label>
+                <input id="addressLine1" type="text" required value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} placeholder="Rua, avenida, rodovia..." className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20" />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="addressNumber" className="text-xs font-medium text-slate-700">Número *</label>
+                <input id="addressNumber" type="text" required value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="Ex: 120" className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="addressComplement" className="text-xs font-medium text-slate-700">Complemento (opcional)</label>
+              <input id="addressComplement" type="text" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Sala, bloco, sítio, km..." className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="country" className="text-xs font-medium text-slate-700">País *</label>
+                <select id="country" required value={country} onChange={(e) => { setCountry(e.target.value); setState(""); setCity(""); }} className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20">
+                  <option value="">Selecione...</option>
+                  {Country.getAllCountries().map((item) => <option key={item.isoCode} value={item.isoCode}>{item.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="state" className="text-xs font-medium text-slate-700">Estado / UF *</label>
+                <select id="state" required disabled={!country} value={state} onChange={(e) => { setState(e.target.value); setCity(""); }} className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50">
+                  <option value="">Selecione...</option>
+                  {State.getStatesOfCountry(country).map((item) => <option key={item.isoCode} value={item.isoCode}>{item.name} ({item.isoCode})</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="city" className="text-xs font-medium text-slate-700">Cidade *</label>
+                <select id="city" required disabled={!country || !state} value={city} onChange={(e) => setCity(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50">
+                  <option value="">Selecione...</option>
+                  {City.getCitiesOfState(country, state).map((item) => <option key={`${item.name}-${item.stateCode}`} value={item.name}>{item.name}</option>)}
+                </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label htmlFor="municipioEstado" className="text-xs font-medium text-slate-700">
-                  Município / Estado *
-                </label>
-                <input
-                  id="municipioEstado"
-                  type="text"
-                  required
-                  value={municipioEstado}
-                  onChange={(e) => setMunicipioEstado(e.target.value)}
-                  placeholder="Ex: São Paulo / SP"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="site" className="text-xs font-medium text-slate-700">
-                  Site (opcional)
-                </label>
-                <input
-                  id="site"
-                  type="text"
-                  value={site}
-                  onChange={(e) => setSite(e.target.value)}
-                  placeholder="Ex: www.empresa.com.br"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
-                />
+                <label htmlFor="site" className="text-xs font-medium text-slate-700">Site (opcional)</label>
+                <input id="site" type="text" value={site} onChange={(e) => setSite(e.target.value)} placeholder="Ex: www.empresa.com.br" className="h-11 w-full rounded-xl border border-slate-200 bg-white/50 px-3 text-sm outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20" />
               </div>
             </div>
 

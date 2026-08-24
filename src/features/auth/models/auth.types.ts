@@ -22,8 +22,12 @@ export interface RegisterInput {
   cargoFuncao: string;
   grauParticipacao: string;
   tradeName: string;
-  enderecoCompleto: string;
-  municipioEstado: string;
+  addressLine1: string;
+  addressNumber: string;
+  addressComplement?: string;
+  country: string;
+  state: string;
+  city: string;
   site?: string;
   redesSociais?: string;
   naturezaJuridica: string;

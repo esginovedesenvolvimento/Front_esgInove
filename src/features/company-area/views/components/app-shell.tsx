@@ -96,11 +96,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#ebf1e7_0%,_var(--background)_36%,_var(--background)_100%)] text-foreground">
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#ebf1e7_0%,_var(--background)_36%,_var(--background)_100%)] text-foreground overflow-x-hidden">
       <div className="flex min-h-screen">
         <AppSidebar />
-        <div className="flex min-h-screen flex-1 flex-col">
-          <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-6 md:px-8 md:py-8 lg:px-10">
+        <div className="flex min-h-screen flex-1 flex-col min-w-0">
+          <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 pt-20 pb-8 md:px-8 md:py-8 lg:px-10">
             {children}
           </main>
         </div>

@@ -59,7 +59,7 @@ export function SupplierStatsSummary({ className = "", refreshTrigger = 0 }: Sup
   }
 
   return (
-    <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-4 ${className}`}>
+    <div className={`grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${className}`}>
       {/* 1. Convites Respondidos */}
       <div className="relative overflow-hidden border border-slate-200 bg-white/80 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
         <div className="flex justify-between items-start">

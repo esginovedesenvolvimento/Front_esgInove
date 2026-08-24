@@ -6,7 +6,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Building2,
-  Lock
+  Lock,
+  X
 } from 'lucide-react';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -56,6 +57,18 @@ export function AppSidebar() {
     });
   }, [isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasCompletedDiagnostic, hasEvidenceAccess, hasActivePlan, hasPreDiagnosticAccess, hasInviteAccess]);
 
+  // Lock body scroll on mobile when menu is open
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 768) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   // Auto-open sidebar on desktop
   useEffect(() => {
     const handleResize = () => {
@@ -87,35 +100,52 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile hamburger button */}
-      {!isOpen && (
+      {/* Top Header Bar for Mobile Devices */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 z-30 px-4 flex items-center justify-between md:hidden shadow-xs">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-xs">
+            <Building2 className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800 text-sm">Área da Empresa</span>
+            {company?.tradeName && (
+              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[150px]">
+                {company.tradeName}
+              </span>
+            )}
+          </div>
+        </div>
+
         <button
           onClick={toggleSidebar}
-          className="fixed top-6 right-6 z-50 p-3 rounded-lg bg-white/10 backdrop-blur-sm text-black md:hidden hover:bg-white/20 transition-all duration-200"
-          aria-label="Toggle sidebar"
+          className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+          aria-label="Alternar menu de navegação"
         >
-          <Menu className="h-5 w-5" />
+          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-      )}
+      </header>
 
-      {/* Mobile overlay */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300" 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300" 
           onClick={toggleSidebar} 
         />
       )}
 
-      {/* Sidebar */}
+      {/* Desktop layout spacer */}
+      <div className={`hidden md:block shrink-0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`} />
+
+      {/* Sidebar Drawer */}
       <div
         className={`
-          fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-40 transition-all duration-300 ease-in-out flex flex-col
+          fixed top-0 left-0 h-screen bg-white border-r border-slate-200 z-50 md:z-30 transition-all duration-300 ease-in-out flex flex-col
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           ${isCollapsed ? "w-20" : "w-72"}
-          md:translate-x-0 md:sticky md:top-0 md:h-screen md:z-auto
+          md:translate-x-0
         `}
       >
-        {/* Header with logo and collapse button */}
+        {/* Header with logo and collapse / close button */}
         <div className={`flex items-center border-b border-slate-200 bg-slate-50/60 ${isCollapsed ? 'flex-col space-y-2 p-3 justify-center' : 'justify-between p-5'}`}>
           {!isCollapsed && (
             <div className="flex items-center space-x-2.5">
@@ -145,6 +175,15 @@ export function AppSidebar() {
             ) : (
               <ChevronLeft className="h-4 w-4 text-slate-500" />
             )}
+          </button>
+
+          {/* Mobile close button inside drawer header */}
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-200/60 transition-colors"
+            aria-label="Fechar menu"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
@@ -228,7 +267,7 @@ export function AppSidebar() {
                     {!isCollapsed && (
                       <div className="flex items-center justify-between w-full">
                         <span className={`text-sm ${isActive ? "font-medium" : "font-normal"} ${isLocked ? "text-slate-700 font-medium" : ""}`}>{item.label}</span>
-                        {isLocked && <Lock className="h-3.5 w-3.5 text-slate-600 flex-shrink-0 ml-1.5" />}
+                        {isLocked && <Lock className="hidden sm:inline-block h-3.5 w-3.5 text-slate-600 flex-shrink-0 ml-1.5" />}
                       </div>
                     )}
 

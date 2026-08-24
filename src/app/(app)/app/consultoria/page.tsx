@@ -18,6 +18,14 @@ export default function CompanyConsultingPage() {
   const isScheduled = appointment?.status === "REQUESTED" || appointment?.status === "CONFIRMED";
   const isCompleted = appointment?.status === "COMPLETED";
 
+  const appointmentStartDate = appointment?.startsAt ? new Date(appointment.startsAt) : null;
+  const appointmentEndDate = appointment?.endsAt 
+    ? new Date(appointment.endsAt) 
+    : appointmentStartDate 
+      ? new Date(appointmentStartDate.getTime() + 60 * 60 * 1000) 
+      : null;
+  const isAppointmentPast = appointmentEndDate ? appointmentEndDate < new Date() : false;
+
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
       <Link href="/app" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900">
@@ -36,17 +44,19 @@ export default function CompanyConsultingPage() {
         ) : isScheduled && appointment?.startsAt ? (
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Agendamento confirmado</p>
+              <p className={`text-xs font-bold uppercase tracking-wider ${isAppointmentPast ? "text-amber-600" : "text-emerald-600"}`}>
+                Agendamento confirmado
+              </p>
               <h2 className="mt-2 text-xl font-bold text-slate-900">Sua sessão está marcada</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
-                <Calendar className="h-5 w-5 text-emerald-600" />
-                <span className="text-sm font-semibold text-slate-700">{new Date(appointment.startsAt).toLocaleString("pt-BR", { dateStyle: "long", timeZone: appointment.timezone })}</span>
+                <Calendar className={`h-5 w-5 ${isAppointmentPast ? "text-amber-600" : "text-emerald-600"}`} />
+                <span className="text-sm font-semibold text-slate-700">{new Date(appointment.startsAt).toLocaleString("pt-BR", { dateStyle: "long", timeZone: appointment.timezone || "America/Sao_Paulo" })}</span>
               </div>
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
-                <Clock className="h-5 w-5 text-emerald-600" />
-                <span className="text-sm font-semibold text-slate-700">{new Date(appointment.startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: appointment.timezone })} — 1 hora</span>
+                <Clock className={`h-5 w-5 ${isAppointmentPast ? "text-amber-600" : "text-emerald-600"}`} />
+                <span className="text-sm font-semibold text-slate-700">{new Date(appointment.startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: appointment.timezone || "America/Sao_Paulo" })} — 1 hora</span>
               </div>
             </div>
             {appointment.meetingUrl && (

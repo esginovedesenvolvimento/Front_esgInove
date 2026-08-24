@@ -15,7 +15,7 @@ export function SectionHeading({ eyebrow, title, description, action }: SectionH
         <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{title}</h1>
         {description ? <p className="max-w-3xl text-sm text-foreground/70">{description}</p> : null}
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex shrink-0 items-center gap-2 flex-wrap sm:flex-nowrap">{action}</div> : null}
     </header>
   );
 }

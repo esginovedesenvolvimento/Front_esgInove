@@ -154,6 +154,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   };
 
   const handleDownload = async () => {
+    console.log("[handleDownload] Botão de download clicado");
     const reportWindow = window.open("about:blank", "_blank");
 
     if (reportWindow) {
@@ -172,11 +173,14 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
     try {
       setDownloading(true);
       const token = getCookie("inoveesg_token") as string;
+      console.log("[handleDownload] Token obtido do cookie:", token ? `${token.substring(0, 15)}...` : "NULO");
       if (!token) {
         reportWindow?.close();
+        alert("Sessão não encontrada. Por favor, faça login novamente.");
         return;
       }
       const blob = await diagnosticService.downloadReport(token);
+      console.log("[handleDownload] Report blob recebido com sucesso, tamanho:", blob.size);
       const url = window.URL.createObjectURL(blob);
       if (reportWindow) {
         window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
@@ -185,10 +189,11 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
         window.URL.revokeObjectURL(url);
         alert("Não foi possível abrir a aba do relatório. Permita pop-ups para este site.");
       }
-    } catch (err) {
+    } catch (err: unknown) {
       reportWindow?.close();
-      console.error("Erro ao baixar o relatório:", err);
-      alert("Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.");
+      console.error("[handleDownload] Erro capturado no download:", err);
+      const msg = err instanceof Error ? err.message : "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.";
+      alert(msg);
     } finally {
       setDownloading(false);
     }

@@ -482,19 +482,19 @@ Agradecemos a parceria de sempre!`;
       )}
 
       {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative w-full max-w-5xl p-8 overflow-hidden rounded-2xl border border-white/20 bg-white/60 backdrop-blur-xl shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="relative w-full max-w-5xl p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto rounded-2xl border border-white/20 bg-white/95 backdrop-blur-xl shadow-2xl my-auto">
             {/* Liquid Glass Background effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-white/10 -z-10" />
             
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-start gap-4 mb-6">
               <div>
-                <h3 className="text-2xl font-semibold text-slate-800">Convidar Fornecedor</h3>
-                <p className="text-sm text-slate-500 mt-1">Gerencie o convite e envie as instruções para sua cadeia.</p>
+                <h3 className="text-xl sm:text-2xl font-semibold text-slate-800">Convidar Fornecedor</h3>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">Gerencie o convite e envie as instruções para sua cadeia.</p>
               </div>
               <button 
                 onClick={() => setIsInviteModalOpen(false)}
-                className="text-slate-500 hover:text-slate-700 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                className="text-slate-500 hover:text-slate-700 transition-colors p-2 hover:bg-slate-100 rounded-full shrink-0"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -504,7 +504,7 @@ Agradecemos a parceria de sempre!`;
               {/* Left Column: Instructions + Link */}
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4">Instruções de Uso</h4>
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-700 uppercase tracking-wider mb-4">Instruções de Uso</h4>
                   
                   <div className="space-y-4">
                     <div className="flex gap-3">
@@ -537,7 +537,7 @@ Agradecemos a parceria de sempre!`;
                   <h4 className="text-sm font-semibold text-slate-700 mb-2">Link de Convite</h4>
                   <p className="text-xs text-slate-500 mb-4">Compartilhe este link com os fornecedores que deseja homologar.</p>
                   
-                  <div className="relative">
+                  <div className="relative flex flex-col sm:block">
                     <input 
                       type="text" 
                       readOnly 
@@ -545,7 +545,7 @@ Agradecemos a parceria de sempre!`;
                       className="w-full text-xs p-3 pr-20 bg-emerald-600 border border-emerald-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white font-mono font-bold shadow-inner"
                     />
                     <button 
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white hover:bg-slate-100 text-emerald-700 text-xs px-3 py-1.5 rounded-md transition-colors font-bold shadow-sm"
+                      className="mt-2 sm:mt-0 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 bg-white hover:bg-slate-100 text-emerald-700 text-xs px-3 py-2 sm:py-1.5 rounded-md transition-colors font-bold shadow-sm"
                       onClick={() => {
                         navigator.clipboard.writeText(inviteUrl);
                         setCopiedLink(true);
@@ -571,7 +571,7 @@ Agradecemos a parceria de sempre!`;
                   
                   <textarea 
                     readOnly 
-                    rows={10}
+                    rows={8}
                     value={readyMessage}
                     className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-600 resize-none"
                   />
@@ -583,7 +583,7 @@ Agradecemos a parceria de sempre!`;
                     O link já está incluso na mensagem.
                   </div>
                   
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
                     <div>
                       {copiedMessage && (
                         <p className="text-xs text-emerald-600 font-medium">
@@ -606,16 +606,16 @@ Agradecemos a parceria de sempre!`;
               </div>
             </div>
             
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
                 onClick={() => setIsInviteModalOpen(false)}
-                className="text-slate-600 border-slate-200"
+                className="text-slate-600 border-slate-200 w-full sm:w-auto"
               >
                 Fechar
               </Button>
               <Button 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
                 onClick={() => {
                   navigator.clipboard.writeText(inviteUrl);
                   setIsInviteModalOpen(false);

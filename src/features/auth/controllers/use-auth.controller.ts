@@ -9,6 +9,119 @@ import { authService } from "../services/auth.service";
 
 type Status = "idle" | "loading" | "success" | "error";
 
+function sanitizeAuthError(message: string, context: "login" | "adminLogin" | "register"): string {
+  if (!message) {
+    if (context === "register") return "Ocorreu um erro no cadastro. Tente novamente.";
+    if (context === "adminLogin") return "Não foi possível realizar o login administrativo.";
+    return "Não foi possível realizar o login. Tente novamente mais tarde.";
+  }
+
+  // Tentativa de extrair mensagem específica do Zod em formato JSON
+  try {
+    if (message.includes("[") && message.includes("message")) {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed[0]?.message) {
+        return parsed[0].message;
+      }
+    }
+  } catch (e) {
+    /* fallback */
+  }
+
+  const lower = message.toLowerCase();
+
+  // 1. Erros de Banco de Dados / Prisma / Código Interno (Vazamento de Schema/Stack Trace)
+  if (
+    lower.includes("prisma") ||
+    lower.includes("findunique") ||
+    lower.includes("findfirst") ||
+    lower.includes("findmany") ||
+    lower.includes("database") ||
+    lower.includes("table") ||
+    lower.includes("column") ||
+    lower.includes("invocation") ||
+    lower.includes("internal server error") ||
+    lower.includes("unexpected error") ||
+    lower.includes("syntaxerror") ||
+    lower.includes("typeerror") ||
+    lower.includes("uncaught") ||
+    lower.includes("sql") ||
+    lower.includes(".ts:") ||
+    lower.includes(".js:") ||
+    lower.includes("/home/") ||
+    lower.includes("/app/")
+  ) {
+    if (context === "register") {
+      return "Erro interno ao processar seu cadastro. Tente novamente em alguns instantes.";
+    }
+    return "Ocorreu um erro interno. Tente novamente em alguns instantes.";
+  }
+
+  // 2. Falhas de Rede
+  if (lower.includes("fetch failed") || lower.includes("failed to fetch")) {
+    return "Não foi possível conectar ao servidor. Tente novamente mais tarde.";
+  }
+
+  // 3. Configuração de Chave API
+  if (lower.includes("invalid api key")) {
+    return "Erro na configuração do serviço de autenticação.";
+  }
+
+  // 4. E-mail/CPF/CNPJ já cadastrado (Específico de Cadastro)
+  if (context === "register") {
+    if (
+      lower.includes("user already exists") ||
+      lower.includes("already registered") ||
+      lower.includes("email address already registered") ||
+      lower.includes("já está cadastrado")
+    ) {
+      return message.includes("já está cadastrado") ? message : "Este e-mail já está cadastrado.";
+    }
+  }
+
+  // 5. Restrição de Admin
+  if (lower.includes("acesso restrito ao painel administrativo")) {
+    return "Acesso restrito ao painel administrativo";
+  }
+
+  // 6. Credenciais de Login Incorretas
+  if (
+    lower === "unauthorized" ||
+    lower.includes("401") ||
+    lower.includes("invalid login credentials") ||
+    lower.includes("invalid credentials") ||
+    lower.includes("e-mail ou senha incorretos") ||
+    lower.includes("usuário não encontrado")
+  ) {
+    if (context === "adminLogin") {
+      return "Acesso restrito ou credenciais incorretas";
+    }
+    return "E-mail ou senha incorretos";
+  }
+
+  // 7. Erros de Validação dos Campos
+  if (lower.includes("[") || lower.includes("validation") || lower.includes("code")) {
+    if (context === "register") {
+      return "Verifique se todos os campos foram preenchidos corretamente";
+    }
+    return "E-mail ou senha inválidos";
+  }
+
+  // 8. Mensagem limpa enviada pelo backend sem código/JSON
+  if (
+    message.length < 120 &&
+    !message.includes("{") &&
+    !message.includes("-->") &&
+    !message.includes("\n")
+  ) {
+    return message;
+  }
+
+  return context === "register"
+    ? "Ocorreu um erro no cadastro. Tente novamente."
+    : "Não foi possível realizar o login. Tente novamente mais tarde.";
+}
+
 export function useAuthController() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -24,29 +137,7 @@ export function useAuthController() {
     } catch (error) {
       setStatus("error");
       const message = error instanceof Error ? error.message : "";
-      
-      // Tentativa de extrair mensagem específica do Zod
-      try {
-        if (message.includes("[") && message.includes("message")) {
-          const parsed = JSON.parse(message);
-          if (Array.isArray(parsed) && parsed[0]?.message) {
-            setErrorMessage(parsed[0].message);
-            throw error;
-          }
-        }
-      } catch (e) { /* fallback */ }
-
-      if (message.includes("[") || message.includes("validation") || message.includes("code")) {
-        setErrorMessage("E-mail ou senha inválidos");
-      } else if (message === "Unauthorized" || message.includes("401") || message.includes("Invalid login credentials")) {
-        setErrorMessage("E-mail ou senha incorretos");
-      } else if (message.includes("Invalid API key")) {
-        setErrorMessage("Erro na configuração do serviço de autenticação.");
-      } else if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
-        setErrorMessage("Não foi possível conectar ao servidor. Tente novamente mais tarde.");
-      } else {
-        setErrorMessage(message || "Falha no login");
-      }
+      setErrorMessage(sanitizeAuthError(message, "login"));
       throw error;
     }
   }
@@ -62,28 +153,7 @@ export function useAuthController() {
     } catch (error) {
       setStatus("error");
       const message = error instanceof Error ? error.message : "";
-
-      try {
-        if (message.includes("[") && message.includes("message")) {
-          const parsed = JSON.parse(message);
-          if (Array.isArray(parsed) && parsed[0]?.message) {
-            setErrorMessage(parsed[0].message);
-            throw error;
-          }
-        }
-      } catch (e) { /* fallback */ }
-
-      if (message.includes("[") || message.includes("validation") || message.includes("code")) {
-        setErrorMessage("E-mail ou senha inválidos");
-      } else if (message === "Unauthorized" || message.includes("401") || message.includes("Invalid login credentials")) {
-        setErrorMessage("Acesso restrito ao painel administrativo");
-      } else if (message.includes("Invalid API key")) {
-        setErrorMessage("Erro na configuração do serviço de autenticação.");
-      } else if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
-        setErrorMessage("Não foi possível conectar ao servidor. Tente novamente mais tarde.");
-      } else {
-        setErrorMessage(message || "Falha no login");
-      }
+      setErrorMessage(sanitizeAuthError(message, "adminLogin"));
       throw error;
     }
   }
@@ -99,42 +169,7 @@ export function useAuthController() {
     } catch (error) {
       setStatus("error");
       const message = error instanceof Error ? error.message : "";
-
-      // Tentativa de extrair mensagem específica do Zod
-      try {
-        if (message.includes("[") && message.includes("message")) {
-          const parsed = JSON.parse(message);
-          if (Array.isArray(parsed) && parsed[0]?.message) {
-            setErrorMessage(parsed[0].message);
-            throw error;
-          }
-        }
-      } catch (e) { /* fallback */ }
-      
-      if (message.includes("fetch failed") || message.includes("Failed to fetch")) {
-        setErrorMessage("Não foi possível conectar ao servidor. Tente novamente mais tarde.");
-      } else if (
-        message.toLowerCase().includes("prisma") ||
-        message.toLowerCase().includes("database") ||
-        message.toLowerCase().includes("table") ||
-        message.toLowerCase().includes("invocation") ||
-        message.toLowerCase().includes("internal server error") ||
-        message.toLowerCase().includes("unexpected error")
-      ) {
-        setErrorMessage("Erro interno ao processar seu cadastro. Tente novamente em alguns instantes.");
-      } else if (message.includes("[") || message.includes("validation") || message.includes("code")) {
-        setErrorMessage("Verifique se todos os campos foram preenchidos corretamente");
-      } else if (
-        message.toLowerCase().includes("user already exists") ||
-        message.toLowerCase().includes("already registered") ||
-        message.toLowerCase().includes("email address already registered")
-      ) {
-        setErrorMessage("Este e-mail já está cadastrado.");
-      } else if (message) {
-        setErrorMessage(message);
-      } else {
-        setErrorMessage("Ocorreu um erro no cadastro. Verifique os dados e tente novamente.");
-      }
+      setErrorMessage(sanitizeAuthError(message, "register"));
       throw error;
     }
   }
