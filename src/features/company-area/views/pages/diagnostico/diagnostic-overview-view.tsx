@@ -16,7 +16,10 @@ import {
   AlertCircle, 
   ArrowRight, 
   ClipboardCheck,
-  Award
+  Award,
+  Download,
+  FileCheck,
+  Loader2
 } from "lucide-react";
 
 type OverviewQuestion = Omit<DiagnosticStartPayload["questions"][number], "axis"> & {
@@ -36,6 +39,7 @@ interface DiagnosticOverviewViewProps {
       socialScore?: number | null;
       governanceScore?: number | null;
       overallScore?: number | null;
+      maturityLevel?: string | null;
     } | null;
     _count?: {
       responses: number;
@@ -102,6 +106,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
   const [questions, setQuestions] = useState<OverviewQuestion[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function loadQuestions() {
@@ -129,7 +134,9 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
         setQuestions(mapped);
       } catch (error) {
         console.error("Failed to load diagnostic questions:", error);
-        setLoadError("Não foi possível carregar a estrutura do diagnóstico.");
+        if (!isCompleted) {
+          setLoadError("Não foi possível carregar a estrutura do diagnóstico.");
+        }
       } finally {
         setIsLoadingQuestions(false);
       }
@@ -137,6 +144,49 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
 
     loadQuestions();
   }, [isCompleted]);
+
+  const handleDownload = async () => {
+    console.log("[handleDownload] Download do relatório a partir do painel de diagnóstico");
+    const reportWindow = window.open("about:blank", "_blank");
+
+    if (reportWindow) {
+      reportWindow.document.write(`
+        <!doctype html>
+        <html lang="pt-BR">
+          <head><meta charset="utf-8"><title>Gerando relatório</title></head>
+          <body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f8fafc;font-family:Arial,sans-serif;color:#334155">
+            <div style="text-align:center"><div style="font-size:18px;font-weight:700;margin-bottom:8px">Gerando relatório ESG</div><div style="font-size:14px;color:#64748b">Aguarde enquanto o PDF é preparado...</div></div>
+          </body>
+        </html>
+      `);
+      reportWindow.document.close();
+    }
+
+    try {
+      setDownloading(true);
+      const token = getCookie("inoveesg_token") as string;
+      if (!token) {
+        reportWindow?.close();
+        alert("Sessão não encontrada. Por favor, faça login novamente.");
+        return;
+      }
+      const blob = await diagnosticService.downloadReport(token);
+      const url = window.URL.createObjectURL(blob);
+      if (reportWindow) {
+        window.setTimeout(() => window.URL.revokeObjectURL(url), 60_000);
+        reportWindow.location.replace(url);
+      } else {
+        window.URL.revokeObjectURL(url);
+        alert("Não foi possível abrir a aba do relatório. Permita pop-ups para este site.");
+      }
+    } catch (err: unknown) {
+      reportWindow?.close();
+      const msg = err instanceof Error ? err.message : "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.";
+      alert(msg);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (isLoadingQuestions) {
     return (
@@ -146,7 +196,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
     );
   }
 
-  if (loadError) {
+  if (loadError && !isCompleted) {
     return (
       <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
         <p className="text-lg font-semibold text-slate-900">Erro de carregamento</p>
@@ -208,7 +258,17 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
   ];
 
   const savedResponses = dbDiagnostic?.responses ?? [];
-  const totalQuestions = questions.length;
+  const savedCountByAxis = {
+    E: savedResponses.filter(r => r.axis === "ENVIRONMENTAL").length,
+    B: savedResponses.filter(r => r.axis === "BIOECONOMY_CIRCULAR").length,
+    S: savedResponses.filter(r => r.axis === "SOCIAL").length,
+    G: savedResponses.filter(r => r.axis === "GOVERNANCE").length,
+  };
+
+  const totalQuestions = questions.length > 0
+    ? questions.length
+    : Object.values(savedCountByAxis).reduce((a, b) => a + b, 0);
+
   const answeredByAxis = savedResponses.reduce(
     (acc, response) => {
       if (response.axis === "ENVIRONMENTAL") acc.E += 1;
@@ -222,7 +282,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
 
   const pillars = pillarsConfig.map((p) => {
     const axisQuestions = questions.filter((q) => q.axis === p.key);
-    const totalCount = axisQuestions.length;
+    const totalCount = axisQuestions.length > 0 ? axisQuestions.length : savedCountByAxis[p.key as keyof typeof savedCountByAxis];
     const scoreMap: Record<string, number | null | undefined> = {
       E: dbDiagnostic?.score?.environmentalScore,
       B: dbDiagnostic?.score?.bioeconomyCircularScore,
@@ -242,12 +302,12 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
         answeredCount: totalCount
       };
     } else {
-      const answeredCount = answeredByAxis[p.key as keyof typeof answeredByAxis];
-      const percentage = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
+      const answeredCount = isCompleted ? totalCount : answeredByAxis[p.key as keyof typeof answeredByAxis];
+      const percentage = isCompleted ? 100 : (totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0);
       
-      let status = "not_started";
-      let labelText = "Não Iniciado";
-      if (answeredCount > 0 && answeredCount < totalCount) {
+      let status = isCompleted ? "finished" : "not_started";
+      let labelText = isCompleted ? "Concluído" : "Não Iniciado";
+      if (!isCompleted && answeredCount > 0 && answeredCount < totalCount) {
         status = "in_progress";
         labelText = `${answeredCount} de ${totalCount} resp.`;
       } else if (answeredCount > 0 && answeredCount === totalCount) {
@@ -273,15 +333,88 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
   const overallProgress = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
   const allPillarsFinished = pillars.every((p) => p.status === "finished" || p.status === "completed");
 
+  const overallScore = dbDiagnostic?.score?.overallScore != null
+    ? Math.round(Number(dbDiagnostic.score.overallScore))
+    : 0;
+
+  function getMaturityLabelFromScore(score: number) {
+    const stars = score / 20;
+    if (stars >= 4.5) return "Nível 5 — Transformador";
+    if (stars >= 4.0) return "Nível 4 — Estratégico";
+    if (stars >= 3.0) return "Nível 3 — Gerencial";
+    if (stars >= 2.0) return "Nível 2 — Não Integrado";
+    return "Nível 1 — Elementar";
+  }
+
+  const maturityTitle = dbDiagnostic?.score?.maturityLevel
+    ? dbDiagnostic.score.maturityLevel
+    : getMaturityLabelFromScore(overallScore);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <SectionHeading
-        eyebrow="Painel ESG"
-        title="Painel de Provas do Diagnóstico"
-        description="O diagnóstico está dividido em 4 provas independentes. Complete cada eixo para liberar o envio final."
-      />
+      {!isCompleted && (
+        <SectionHeading
+          eyebrow="Painel ESG"
+          title="Painel de Provas do Diagnóstico"
+          description="O diagnóstico está dividido em 4 provas independentes. Complete cada eixo para liberar o envio final."
+        />
+      )}
 
-      {/* ── Progresso Geral ── */}
+      {/* ── Status Banner for Completed Diagnostic ── */}
+      {isCompleted && (
+        <div className="relative overflow-hidden rounded-[28px] border border-emerald-200/80 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 p-6 sm:p-8 text-white shadow-md">
+          <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+            <Award className="w-80 h-80 text-white" />
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold uppercase tracking-wider">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                Relatório Concluído
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                Pontuação Geral: {overallScore}%
+              </h2>
+              <p className="text-sm text-emerald-100/90 max-w-xl leading-relaxed">
+                Maturidade ESG: <span className="font-bold text-white">{maturityTitle}</span>. Todas as 4 provas do diagnóstico foram finalizadas e o relatório completo está disponível para download.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <Button
+                onClick={handleDownload}
+                disabled={downloading}
+                size="lg"
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold gap-2.5 shadow-lg border-none cursor-pointer rounded-2xl h-12 px-6"
+              >
+                {downloading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Gerando...
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="w-5 h-5" /> Baixar Relatório PDF
+                  </>
+                )}
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="border-emerald-400/40 bg-emerald-950/40 text-emerald-100 hover:bg-emerald-800/60 hover:text-white font-bold gap-2 rounded-2xl h-12 px-6"
+              >
+                <Link href="/app/resultados">
+                  Ver Resultados Detalhados <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Progresso Geral (para diagnostics em andamento) ── */}
       {!isCompleted && (
         <div className="relative rounded-[28px] border border-slate-200/90 bg-white p-6 shadow-sm overflow-hidden">
           <div className="absolute top-0 left-0 h-1.5 w-full bg-slate-100">
@@ -393,7 +526,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
         })}
       </div>
 
-      {/* ── Declaração Final Card ── */}
+      {/* ── Declaração Final (apenas para diagnósticos em andamento) ── */}
       {!isCompleted && (
         <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-6 sm:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">

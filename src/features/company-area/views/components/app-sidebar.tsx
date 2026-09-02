@@ -5,11 +5,11 @@ import {
   Menu, 
   ChevronLeft, 
   ChevronRight,
-  Building2,
   Lock,
   X
 } from 'lucide-react';
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { companyNavItems } from "./navigation";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
@@ -102,19 +102,24 @@ export function AppSidebar() {
     <>
       {/* Top Header Bar for Mobile Devices */}
       <header className="fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 z-30 px-4 flex items-center justify-between md:hidden shadow-xs">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-xs">
-            <Building2 className="h-4 w-4 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 text-sm">Área da Empresa</span>
+        <Link href="/" className="flex items-center space-x-2.5 hover:opacity-80 transition-opacity">
+          <Image
+            src="/logo_inove_transparent.png"
+            alt="Inove ESG"
+            width={1472}
+            height={832}
+            className="h-8 w-auto object-contain"
+            priority
+          />
+          <div className="flex flex-col border-l border-slate-200 pl-2.5">
+            <span className="font-semibold text-slate-800 text-xs">Área da Empresa</span>
             {company?.tradeName && (
-              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[150px]">
+              <span className="text-[10px] text-slate-500 font-medium truncate max-w-[130px]">
                 {company.tradeName}
               </span>
             )}
           </div>
-        </div>
+        </Link>
 
         <button
           onClick={toggleSidebar}
@@ -146,22 +151,34 @@ export function AppSidebar() {
         `}
       >
         {/* Header with logo and collapse / close button */}
-        <div className={`flex items-center border-b border-slate-200 bg-slate-50/60 ${isCollapsed ? 'flex-col space-y-2 p-3 justify-center' : 'justify-between p-5'}`}>
+        <div className={`flex items-center border-b border-slate-200 bg-slate-50/60 ${isCollapsed ? 'flex-col space-y-2 p-3 justify-center' : 'justify-between p-4'}`}>
           {!isCollapsed && (
-            <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
-                <Building2 className="h-5 w-5 text-white" />
+            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+              <Image
+                src="/logo_inove_transparent.png"
+                alt="Inove ESG"
+                width={1472}
+                height={832}
+                className="h-8 w-auto object-contain"
+                priority
+              />
+              <div className="flex flex-col border-l border-slate-200 pl-2.5">
+                <span className="font-semibold text-slate-800 text-sm leading-tight">Área da Empresa</span>
               </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-slate-800 text-base">Área da Empresa</span>
-              </div>
-            </div>
+            </Link>
           )}
 
           {isCollapsed && (
-            <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
+            <Link href="/" className="flex items-center justify-center p-1 hover:opacity-80 transition-opacity" title="Inove ESG">
+              <Image
+                src="/logo_inove_transparent.png"
+                alt="Inove ESG"
+                width={1472}
+                height={832}
+                className="h-7 w-auto max-w-[44px] object-contain"
+                priority
+              />
+            </Link>
           )}
 
           {/* Desktop collapse button */}

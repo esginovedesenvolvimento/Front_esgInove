@@ -45,13 +45,17 @@ const interesseOptions = [
 ];
 
 const BUSINESS_CATEGORIES = [
-  { code: "AGRONEGOCIO", name: "Agronegócio" }
+  { code: "AGRONEGOCIO", name: "Agronegócio" },
+  { code: "OLEO_E_GAS", name: "Óleo e Gás" }
 ];
 
 const BUSINESS_SEGMENTS: Record<string, { code: string; name: string }[]> = {
   AGRONEGOCIO: [
     { code: "AGROINDUSTRIA", name: "Agroindústria" },
     { code: "PRODUCAO", name: "Produção" }
+  ],
+  OLEO_E_GAS: [
+    { code: "OLEO_E_GAS", name: "Óleo e Gás" }
   ]
 };
 

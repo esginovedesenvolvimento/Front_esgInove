@@ -100,4 +100,14 @@ export const authService = {
       body: JSON.stringify(payload),
     });
   },
+
+  uploadCompanyLogo(token: string, payload: { fileName: string; mimeType: string; base64Data: string; sizeBytes: number }) {
+    return request<{ success: boolean; logoUrl: string; logoStoragePath: string }>("/auth/profile/logo", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
 };

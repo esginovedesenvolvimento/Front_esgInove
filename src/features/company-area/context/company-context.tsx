@@ -80,6 +80,7 @@ interface UserProfile {
       legalName: string;
       tradeName: string;
       cnpj?: string;
+      logoUrl?: string | null;
       phone?: string | null;
       primaryEmail?: string;
       industrySegment?: string;

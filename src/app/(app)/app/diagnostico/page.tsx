@@ -47,13 +47,7 @@ export default function DiagnosticPage() {
     }
   }, [isLoading, company]);
 
-  useEffect(() => {
-    if (!isLoading && !isFetchingDiag && isCompletedDiagnostic) {
-      router.replace("/app/resultados");
-    }
-  }, [isLoading, isFetchingDiag, isCompletedDiagnostic, router]);
-
-  if (isLoading || isFetchingDiag || isCompletedDiagnostic) {
+  if (isLoading || isFetchingDiag) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
