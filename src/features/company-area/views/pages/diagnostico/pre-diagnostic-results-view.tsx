@@ -39,7 +39,7 @@ interface OpenBudget {
 }
 
 export function PreDiagnosticResultsView() {
-  const { user, hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess, hasConsultingAccess } = useCompany();
+  const { user, hasInviteAccess, hasEvidenceAccess, company, isSupplierOnly, hasPreDiagnosticAccess, hasConsultingAccess } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<DBDiagnostic | null>(null);
   const [realSuppliers, setRealSuppliers] = useState<SupplierInvite[]>([]);
   const [consultingAppointment, setConsultingAppointment] = useState<CompanyConsultingAppointment | null>(null);
@@ -789,7 +789,7 @@ export function PreDiagnosticResultsView() {
           </CardHeader>
           <CardContent className="relative min-h-[300px] flex flex-col justify-between pt-4">
             {/* Lista desfocada de evidências */}
-            <div className="space-y-3 blur-[3px] select-none pointer-events-none opacity-50">
+            <div className={hasEvidenceAccess ? "space-y-3" : "space-y-3 blur-[3px] select-none pointer-events-none opacity-50"}>
               {[
                 { title: "Relatório de consumo energético anual", axis: "Ambiental (E)", status: "Pendente" },
                 { title: "Comprovantes de circularidade de insumos", axis: "Bioeconomia Circular (B)", status: "Pendente" },
@@ -814,21 +814,30 @@ export function PreDiagnosticResultsView() {
               ))}
             </div>
 
-            {/* Overlay Lock de Upgrade */}
-            <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
-              <div className="hidden sm:inline-block bg-white p-3 rounded-2xl shadow-md border border-slate-100 mb-3 animate-bounce">
-                <Lock className="h-6 w-6 text-slate-800" />
+            {hasEvidenceAccess ? (
+              <div className="mt-4 flex justify-end">
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-6 shadow-sm">
+                  <Link href="/app/evidencias" className="flex items-center justify-center gap-1.5">
+                    Gerenciar Evidências <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </div>
-              <h5 className="font-bold text-slate-900 text-sm mb-1">Upgrade Necessário</h5>
-              <p className="text-slate-600 text-xs leading-relaxed max-w-sm mb-4">
-                A comprovação por evidências está disponível apenas no plano completo para auditoria e homologação das respostas do diagnóstico.
-              </p>
-              <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-6 shadow-sm">
-                <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
-                  Fazer Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
+            ) : (
+              <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                <div className="hidden sm:inline-block bg-white p-3 rounded-2xl shadow-md border border-slate-100 mb-3 animate-bounce">
+                  <Lock className="h-6 w-6 text-slate-800" />
+                </div>
+                <h5 className="font-bold text-slate-900 text-sm mb-1">Upgrade Necessário</h5>
+                <p className="text-slate-600 text-xs leading-relaxed max-w-sm mb-4">
+                  A comprovação por evidências está disponível apenas no plano completo para auditoria e homologação das respostas do diagnóstico.
+                </p>
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-6 shadow-sm">
+                  <Link href="/app/upgrade" className="flex items-center justify-center gap-1.5">
+                    Fazer Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

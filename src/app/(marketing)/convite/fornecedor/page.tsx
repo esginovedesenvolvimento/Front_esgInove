@@ -8,7 +8,7 @@ import { Eye, EyeOff, Building2, CheckCircle2, LogIn, UserPlus } from "lucide-re
 import { authService } from "@/features/auth/services/auth.service";
 import { inviteService } from "@/features/company-area/services/invite.service";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 function SupplierInvitePage() {
   const searchParams = useSearchParams();

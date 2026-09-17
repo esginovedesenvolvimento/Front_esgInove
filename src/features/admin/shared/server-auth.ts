@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const API_URL = process.env.BACKEND_URL
+  ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/api`
+  : "http://localhost:4000/api";
 
 export type AdminSessionUser = {
   id: string;

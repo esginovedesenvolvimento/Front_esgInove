@@ -181,7 +181,7 @@ export function useAuthController() {
   const router = useRouter();
 
   async function logout(redirectTo = "/") {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"}/auth/logout`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "/api"}/auth/logout`, {
       method: "POST",
       credentials: "include",
     }).catch(() => undefined);

@@ -282,7 +282,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
     setActionError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
       const body: { startsAt?: string; reason?: string; orderId?: string } = {
         orderId: detailsClient.orderId,
       };
@@ -351,7 +351,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
       const [hourStr, minStr] = selectedBookingTime.split(":");
       const startsAtDate = new Date(modalYear, modalMonth, selectedBookingDay, Number(hourStr), Number(minStr));
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
       const response = await fetch(`${API_URL}/admin/consultoria/${bookingClient.id}/schedule`, {
         method: "POST",
         headers: {

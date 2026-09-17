@@ -82,7 +82,7 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
 
       const proposalValueCents = Math.round(numericVal * 100);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
       const response = await fetch(`${API_URL}/admin/budgets/${selectedRequest.id}/respond`, {
         method: "POST",
         headers: {
