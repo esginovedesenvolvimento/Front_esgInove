@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { companyNavItems } from "./navigation";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { useCompany } from "@/features/company-area/context/company-context";
+import { canAccessEvidenceRoute } from "../../access/route-access";
 
 export function AppSidebar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,7 +49,7 @@ export function AppSidebar() {
         } else if (item.href === "/app/ranking") {
           isLocked = !hasInviteAccess;
         } else if (item.href === "/app/evidencias") {
-          isLocked = !hasEvidenceAccess;
+          isLocked = !canAccessEvidenceRoute({ hasEvidenceAccess, hasPreDiagnosticAccess });
         } else if (item.href === "/app/resultados") {
           isLocked = !hasCompletedDiagnostic && !hasActivePlan;
         }
@@ -228,7 +229,7 @@ export function AppSidebar() {
                 } else if (item.href === "/app/ranking") {
                   isLocked = !hasInviteAccess;
                 } else if (item.href === "/app/evidencias") {
-                  isLocked = !hasEvidenceAccess;
+                  isLocked = !canAccessEvidenceRoute({ hasEvidenceAccess, hasPreDiagnosticAccess });
                 } else if (item.href === "/app/resultados") {
                   isLocked = !hasCompletedDiagnostic && !hasActivePlan;
                 }

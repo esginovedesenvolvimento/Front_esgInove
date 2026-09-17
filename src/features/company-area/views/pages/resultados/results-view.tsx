@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import type { getResultsViewModel } from "../../../controllers/results.controller";
@@ -172,7 +172,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
 
     try {
       setDownloading(true);
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       console.log("[handleDownload] Token obtido do cookie:", token ? `${token.substring(0, 15)}...` : "NULO");
       if (!token) {
         reportWindow?.close();
@@ -202,7 +202,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
   useEffect(() => {
     async function fetchInvites() {
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setLoadingInvites(false);
           return;
@@ -323,7 +323,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
             </div>
             {!isSupplierOrg && (
               <Button asChild size="sm" className="shrink-0 ml-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 text-xs font-semibold">
-                <Link href="/app/upgrade">
+                <Link href="/app/evidencias">
                   <Sparkles className="w-3.5 h-3.5" /> Comprovar Score
                 </Link>
               </Button>
@@ -418,6 +418,9 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
               <>
                 <p className="text-3xl font-extrabold text-emerald-700 mt-1">{globalProvenScore}%</p>
                 <p className="text-xs text-emerald-600/80 mt-1">Evidências validadas e auditadas</p>
+                <p className="text-xs font-semibold text-slate-600 mt-2">
+                  Maturidade comprovada: {isSupplierOrg ? getSupplierRiskLabelFromStars(globalProvenScore / 20) : getMaturityLabelFromStars(globalProvenScore / 20)}
+                </p>
                 <span className="mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-55 text-emerald-850 border border-emerald-200">
                   <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" /> Verificado InoveESG
                 </span>
@@ -426,7 +429,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
               <>
                 <p className="text-3xl font-extrabold text-slate-400 mt-1">0%</p>
                 <p className="text-xs text-slate-500 mt-1">Sem evidências verificadas</p>
-                <Link href="/app/upgrade" className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+                <Link href="/app/evidencias" className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
                   Enviar evidências <ArrowRight className="w-2.5 h-2.5" />
                 </Link>
               </>

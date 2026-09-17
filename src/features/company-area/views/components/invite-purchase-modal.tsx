@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Sparkles, AlertCircle, ShoppingBag, Loader2 } from "lucide-react";
-import { getCookie } from "cookies-next";
+
 import { inviteService } from "../../services/invite.service";
 import { checkoutService } from "../../services/checkout.service";
 import { SupplierStatsSummary } from "./supplier-stats-summary";
@@ -75,7 +75,7 @@ export function InvitePurchaseModal({
 
     setLoading(true);
     setError(null);
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
     try {
       if (!token) {

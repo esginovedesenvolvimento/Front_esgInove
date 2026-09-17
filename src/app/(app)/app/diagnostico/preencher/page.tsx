@@ -1,6 +1,6 @@
 "use client";
 
-import { getCookie } from "cookies-next";
+
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -112,7 +112,7 @@ function DiagnosticRunContent() {
         }
 
         if (!payload) {
-          const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
           if (!token) {
             setError("Nenhum token de autenticação encontrado.");
             return;

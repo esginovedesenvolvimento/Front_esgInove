@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
-import { setCookie } from "cookies-next";
 
 import { Button } from "@/components/ui/button";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
@@ -29,12 +28,7 @@ export function AdminLoginScreen() {
     try {
       const response = await adminLogin({ email, password });
 
-      if (response?.accessToken) {
-        setCookie("inoveesg_token", response.accessToken, {
-          maxAge: 60 * 60 * 24 * 7,
-          path: "/",
-        });
-
+      if (response?.user) {
         router.replace("/admin");
         router.refresh();
       }

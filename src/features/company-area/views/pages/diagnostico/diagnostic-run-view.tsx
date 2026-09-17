@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { getDiagnosticRunViewModel } from "../../../controllers/diagnostic.controller";
@@ -152,7 +152,7 @@ export function DiagnosticRunView({
     if (!isComplete || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       const responsesPayload = buildResponsesPayload();
 
       await diagnosticService.submitDiagnostic(token, diagnosticId, false, false, responsesPayload);
@@ -193,7 +193,7 @@ export function DiagnosticRunView({
     if (!isComplete || !declarationAccepted || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
       await diagnosticService.submitDiagnostic(token, diagnosticId, declarationAccepted, true);
       if (typeof window !== "undefined") {

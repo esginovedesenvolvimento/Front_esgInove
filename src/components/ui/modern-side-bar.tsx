@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteCookie } from 'cookies-next';
 import { 
   Home, 
   User, 
@@ -261,8 +260,10 @@ export function Sidebar({ className = "" }: SidebarProps) {
           <div className="p-3">
             <button
               onClick={() => {
-                deleteCookie("inoveesg_token");
-                router.push("/?auth=true");
+                void fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"}/auth/logout`, {
+                  method: "POST",
+                  credentials: "include",
+                }).finally(() => router.push("/?auth=true"));
               }}
               className={`
                 w-full flex items-center rounded-md text-left transition-all duration-200 group

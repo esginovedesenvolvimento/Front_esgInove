@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getCookie } from 'cookies-next';
 import { 
   Trophy, 
   Search, 
@@ -148,7 +147,7 @@ export default function RankingPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setError("Usuário não autenticado");
           setLoading(false);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "../../components/section-heading";
 import { diagnosticService, type DiagnosticStartPayload } from "@/features/company-area/services/diagnostic.service";
@@ -111,7 +111,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
   useEffect(() => {
     async function loadQuestions() {
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setLoadError("Sessão expirada. Faça login novamente.");
           return;
@@ -164,7 +164,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
 
     try {
       setDownloading(true);
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (!token) {
         reportWindow?.close();
         alert("Sessão não encontrada. Por favor, faça login novamente.");
@@ -337,18 +337,6 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
     ? Math.round(Number(dbDiagnostic.score.overallScore))
     : 0;
 
-  function getMaturityLabelFromScore(score: number) {
-    const stars = score / 20;
-    if (stars >= 4.5) return "Nível 5 — Transformador";
-    if (stars >= 4.0) return "Nível 4 — Estratégico";
-    if (stars >= 3.0) return "Nível 3 — Gerencial";
-    if (stars >= 2.0) return "Nível 2 — Não Integrado";
-    return "Nível 1 — Elementar";
-  }
-
-  const maturityTitle = dbDiagnostic?.score?.maturityLevel
-    ? dbDiagnostic.score.maturityLevel
-    : getMaturityLabelFromScore(overallScore);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -368,17 +356,10 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold uppercase tracking-wider">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Relatório Concluído
-              </div>
+            <div>
               <h2 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
                 Pontuação Geral: {overallScore}%
               </h2>
-              <p className="text-sm text-emerald-100/90 max-w-xl leading-relaxed">
-                Maturidade ESG: <span className="font-bold text-white">{maturityTitle}</span>. Todas as 4 provas do diagnóstico foram finalizadas e o relatório completo está disponível para download.
-              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">

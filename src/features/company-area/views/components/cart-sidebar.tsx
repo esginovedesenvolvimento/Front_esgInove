@@ -8,7 +8,7 @@ import { useCompany } from "../../context/company-context";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { BudgetModal } from "./budget-modal";
 import { diagnosticService } from "../../services/diagnostic.service";
-import { getCookie } from "cookies-next";
+
 
 export function CartSidebar() {
   const { items, removeItem, total, itemCount } = useCart();
@@ -32,7 +32,7 @@ export function CartSidebar() {
     } else {
       setCheckoutLoading(true);
       setError(null);
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
       try {
         if (!token) {

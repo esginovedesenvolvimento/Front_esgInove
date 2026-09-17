@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { inviteService, type InviteStats } from "../../services/invite.service";
 import { Users, Mail, Award, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -17,7 +17,7 @@ export function SupplierStatsSummary({ className = "", refreshTrigger = 0 }: Sup
 
   useEffect(() => {
     async function loadStats() {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (!token) {
         setLoading(false);
         return;

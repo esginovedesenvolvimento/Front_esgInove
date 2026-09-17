@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { deleteCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 
 import type { LoginInput, RegisterInput } from "../models/auth.types";
@@ -181,8 +180,11 @@ export function useAuthController() {
 
   const router = useRouter();
 
-  function logout(redirectTo = "/") {
-    deleteCookie("inoveesg_token");
+  async function logout(redirectTo = "/") {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => undefined);
     router.push(redirectTo);
     router.refresh();
   }

@@ -22,9 +22,21 @@ export interface StagedEvidenceFile {
   rawFile?: File;
 }
 
+export interface EvidenceRequirementMetadata {
+  expectedDocument: string;
+  acceptedTypes: string[];
+  primaryAxis: string;
+  scoringAxes: string[];
+  points: number;
+  strategicObjectives: string[];
+  gapIfMissing: string;
+  recommendedService: string;
+}
+
 export interface UploadedEvidenceFile {
   id: string;
   fileName: string;
+  documentType?: string;
   filePath: string;
   fileUrl?: string | null;
   storageBucket: string;
@@ -34,6 +46,11 @@ export interface UploadedEvidenceFile {
   mimeType: string;
   uploadStatus: "PENDING" | "UPLOADING" | "COMPLETED" | "FAILED";
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+  reviews?: Array<{
+    reviewedAt: string;
+    newStatus: "PENDING" | "VERIFIED" | "REJECTED";
+    reviewer: { fullName?: string | null; email?: string | null };
+  }>;
 }
 
 export const EVIDENCE_STORAGE_BUCKET = "diagnostic-evidences";
@@ -126,6 +143,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -133,7 +151,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   });
 
   if (response.status === 401 && typeof window !== "undefined") {
-    document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
     window.location.href = "/?auth=true";
     return new Promise(() => {});
   }
@@ -159,16 +177,50 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export async function uploadEvidenceFiles(token: string, diagnosticId: string, groupCode: EvidenceGroupCode, files: File[]) {
+async function compressImageFile(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || typeof createImageBitmap === "undefined") {
+    return file;
+  }
+
+  const image = await createImageBitmap(file);
+  const maxDimension = 1920;
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  image.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+  if (!blob || blob.size >= file.size) return file;
+
+  const compressedName = file.name.replace(/\.[^.]+$/, ".jpg");
+  return new File([blob], compressedName, {
+    type: "image/jpeg",
+    lastModified: file.lastModified,
+  });
+}
+
+export async function uploadEvidenceFiles(
+  diagnosticId: string,
+  groupCode: EvidenceGroupCode,
+  files: Array<{ file: File; documentType: string; requirementCode: string; metadata: EvidenceRequirementMetadata }>
+) {
   const payload = {
     groupCode,
     files: await Promise.all(
-      files.map(async (file) => ({
-        fileName: file.name,
-        mimeType: file.type || "application/octet-stream",
-        base64Data: await fileToBase64(file),
-        sizeBytes: file.size,
-      }))
+      files.map(async ({ file, documentType, requirementCode, metadata }) => {
+        const optimizedFile = await compressImageFile(file);
+        return {
+          fileName: optimizedFile.name,
+          mimeType: optimizedFile.type || "application/octet-stream",
+          base64Data: await fileToBase64(optimizedFile),
+          sizeBytes: optimizedFile.size,
+          documentType,
+          requirementCode,
+          ...metadata,
+        };
+      })
     ),
   };
 
@@ -182,9 +234,6 @@ export async function uploadEvidenceFiles(token: string, diagnosticId: string, g
     evidences: UploadedEvidenceFile[];
   }>(`/diagnostic/${diagnosticId}/evidences`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(payload),
   });
 }

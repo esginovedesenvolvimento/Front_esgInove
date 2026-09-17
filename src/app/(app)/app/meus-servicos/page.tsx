@@ -24,9 +24,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { getCookie } from "cookies-next";
+
 import { inviteService } from "@/features/company-area/services/invite.service";
 import { budgetService } from "@/features/company-area/services/budget.service";
+import { getBudgetDisplayPrice } from "@/features/company-area/access/budget-card";
 
 interface PurchasedService {
   id: string;
@@ -140,7 +141,7 @@ export default function MeusServicosPage() {
       }
 
       // Consulta o saldo real de convites e orçamentos no banco de dados
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (token) {
         try {
           const stats = await inviteService.getStats(token);
@@ -185,9 +186,7 @@ export default function MeusServicosPage() {
               name: b.product?.name ?? "Solicitação de Orçamento",
               code: b.product?.code,
               description: b.product?.description ?? "",
-              priceFormatted: b.product?.service?.basePriceCents 
-                ? `R$ ${(b.product.service.basePriceCents / 100).toFixed(2).replace(".", ",")}`
-                : "Sob consulta",
+              priceFormatted: getBudgetDisplayPrice(b.status, b.proposedPriceCents),
               requestedAt: b.createdAt,
               status: b.status,
             }));
@@ -310,7 +309,7 @@ export default function MeusServicosPage() {
   };
 
   const handleAcceptProposal = async (budgetId: string) => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
     
     setIsSubmittingAction(true);
@@ -338,7 +337,7 @@ export default function MeusServicosPage() {
   };
 
   const handleDeclineProposal = async (budgetId: string) => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
     
     setIsSubmittingAction(true);

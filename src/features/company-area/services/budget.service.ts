@@ -1,4 +1,4 @@
-import { getCookie } from "cookies-next";
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -24,6 +24,7 @@ export interface BudgetInput {
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -32,7 +33,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 
   if (response.status === 401) {
     if (typeof window !== "undefined") {
-      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
       window.location.href = "/?auth=true";
       return new Promise(() => {});
     }
@@ -51,8 +52,9 @@ export const budgetService = {
   createRequest(payload: BudgetInput, token: string) {
     return request<any>("/budget", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify(payload),
     });
@@ -61,8 +63,9 @@ export const budgetService = {
   listRequests(token: string) {
     return request<any[]>("/budget", {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -70,8 +73,9 @@ export const budgetService = {
   acceptRequest(id: string, token: string) {
     return request<any>(`/budget/${id}/accept`, {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -79,8 +83,9 @@ export const budgetService = {
   declineRequest(id: string, token: string) {
     return request<any>(`/budget/${id}/decline`, {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },

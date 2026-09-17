@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -11,7 +12,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 
   if (response.status === 401) {
     if (typeof window !== "undefined") {
-      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
       window.location.href = "/?auth=true";
       return new Promise(() => {});
     }
@@ -29,13 +30,14 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 export const checkoutService = {
   createPreference(
     token: string,
-    productCode: "PRE_DIAGNOSTIC" | "PRE_DIAGNOSTIC_PLUS" | "INVITE_PACK" | "LIVRO_ESG",
+    productCode: "PRE_DIAGNOSTIC" | "PRE_DIAGNOSTIC_PLUS" | "INVITE_PACK" | "LIVRO_ESG" | "CONSULTING_1H",
     quantity = 1
   ) {
     return request<{ checkoutUrl: string; orderId?: string; diagnosticId?: string }>("/checkout/preference", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ productCode, quantity }),
     });

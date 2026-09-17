@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getCookie } from "cookies-next";
 import { authService } from "@/features/auth/services/auth.service";
 import type { AuthAccessContext } from "@/features/auth/models/auth.types";
 
@@ -144,18 +143,10 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async () => {
-    const token = getCookie("inoveesg_token") as string;
-
-    if (!token) {
-      setServiceAccess(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const [profileResult, accessResult] = await Promise.allSettled([
-        authService.getMe(token),
-        authService.getAccessContext(token),
+        authService.getMe(),
+        authService.getAccessContext(),
       ]);
 
       if (profileResult.status === "fulfilled") {

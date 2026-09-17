@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -11,7 +12,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 
   if (response.status === 401) {
     if (typeof window !== "undefined") {
-      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
       window.location.href = "/?auth=true";
       return new Promise(() => {});
     }
@@ -114,8 +115,9 @@ export const inviteService = {
   getStats(token: string) {
     return request<InviteStats>("/invite/stats", {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -123,8 +125,9 @@ export const inviteService = {
   simulateInvitePurchase(token: string, quantity: number) {
     return request<{ checkoutUrl: string; orderId: string; totalCents: number; productCode: string }>("/checkout/preference", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ productCode: "INVITE_PACK", quantity }),
     });
@@ -133,8 +136,9 @@ export const inviteService = {
   confirmPayment(token: string, orderId: string, simulateStatus: "success" | "failure") {
     return request<{ success: boolean; orderId: string }>("/invite/confirm-payment", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ orderId, simulateStatus }),
     });
@@ -143,8 +147,9 @@ export const inviteService = {
   listInvites(token: string) {
     return request<SupplierInvite[]>("/invite", {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -152,8 +157,9 @@ export const inviteService = {
   getRanking(token: string) {
     return request<RankingSupplier[]>("/invite/ranking", {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -161,18 +167,20 @@ export const inviteService = {
   createInvite(token: string, supplierEmail: string, message?: string) {
     return request<{ invite: SupplierInvite; inviteLink: string }>("/invite", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ supplierEmail, message }),
     });
   },
 
-  acceptInvite(token: string, inviteToken?: string, buyerOrganizationId?: string) {
+  acceptInvite(inviteToken?: string, buyerOrganizationId?: string) {
     return request<{ buyerOrganization: { id: string; tradeName: string | null; legalName: string }; status: string }>("/invite/accept", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ token: inviteToken, ref: buyerOrganizationId }),
     });
@@ -181,8 +189,9 @@ export const inviteService = {
   terminateRelationship(token: string, supplierOrganizationId: string, endedReason?: string) {
     return request<unknown>("/invite/relationship/terminate", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ supplierOrganizationId, endedReason }),
     });
@@ -191,8 +200,9 @@ export const inviteService = {
   reactivateRelationship(token: string, supplierOrganizationId: string) {
     return request<unknown>("/invite/relationship/reactivate", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ supplierOrganizationId }),
     });

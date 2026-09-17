@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { CreditCard, QrCode, ShieldCheck, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { diagnosticService } from "@/features/company-area/services/diagnostic.service";
@@ -45,7 +45,7 @@ function CheckoutSimulateContent() {
     if (!diagnosticId && !orderId) return;
     setLoading(true);
     setError(null);
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
     try {
       if (!token) {

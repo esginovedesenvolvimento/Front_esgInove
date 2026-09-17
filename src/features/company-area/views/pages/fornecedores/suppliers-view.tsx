@@ -2,17 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import type { getSuppliersViewModel } from "../../../controllers/suppliers.controller";
 import { SectionHeading } from "../../components/section-heading";
 import { StatusPill } from "../../components/status-pill";
 import { ChevronDown, ChevronUp, CheckCircle2, X, Loader2, Users, MoreVertical, Leaf, Recycle, Heart, Scale } from "lucide-react";
 import { SupplierStatsSummary } from "../../components/supplier-stats-summary";
 import { InvitePurchaseModal } from "../../components/invite-purchase-modal";
-import { getCookie } from "cookies-next";
+
 import { inviteService, type SupplierInvite } from "../../../services/invite.service";
 import { useCompany } from "../../../context/company-context";
 
-export function SuppliersView({ model: _model }: { model: ReturnType<typeof getSuppliersViewModel> }) {
+export function SuppliersView() {
   const { company } = useCompany();
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +33,7 @@ export function SuppliersView({ model: _model }: { model: ReturnType<typeof getS
     const reason = prompt("Por favor, informe o motivo do encerramento do vínculo (opcional):");
     if (reason === null) return; // User canceled
 
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
 
     setIsTerminating(supplierOrganizationId);
@@ -51,7 +50,7 @@ export function SuppliersView({ model: _model }: { model: ReturnType<typeof getS
   };
 
   const handleReactivate = async (supplierOrganizationId: string) => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
 
     setIsReactivating(supplierOrganizationId);
@@ -84,7 +83,7 @@ Agradecemos a parceria de sempre!`;
 
   useEffect(() => {
     async function loadInvites() {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (!token) {
         setIsLoading(false);
         setHasLoadedInviteBalance(true);

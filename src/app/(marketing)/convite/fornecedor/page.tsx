@@ -7,7 +7,6 @@ import { RegisterForm } from "@/features/auth/views/components/register-form";
 import { Eye, EyeOff, Building2, CheckCircle2, LogIn, UserPlus } from "lucide-react";
 import { authService } from "@/features/auth/services/auth.service";
 import { inviteService } from "@/features/company-area/services/invite.service";
-import { setCookie } from "cookies-next";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -28,7 +27,6 @@ function SupplierInvitePage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
@@ -86,9 +84,7 @@ function SupplierInvitePage() {
     setLoginError(null);
 
     try {
-      const response = await authService.login({ email: loginEmail, password: loginPassword });
-      setCookie("inoveesg_token", response.accessToken, { maxAge: 60 * 60 * 24 * 7, path: "/" });
-      setAccessToken(response.accessToken);
+      await authService.login({ email: loginEmail, password: loginPassword });
       setConfirmationOpen(true);
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "E-mail ou senha inválidos");
@@ -98,17 +94,13 @@ function SupplierInvitePage() {
   }
 
   async function handleAcceptInvite() {
-    if (!accessToken) {
-      setLoginError("Sua sessão expirou. Faça login novamente para confirmar o vínculo.");
-      return;
-    }
     setAcceptLoading(true);
     setLoginError(null);
     try {
       if (!token && !resolvedRef) {
         throw new Error("Este link de convite não possui uma referência válida");
       }
-      await inviteService.acceptInvite(accessToken, token ?? undefined, resolvedRef ?? undefined);
+      await inviteService.acceptInvite(token ?? undefined, resolvedRef ?? undefined);
       setConfirmationOpen(false);
       setAccepted(true);
     } catch (error) {

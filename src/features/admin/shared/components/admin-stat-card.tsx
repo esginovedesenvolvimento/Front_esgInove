@@ -2,11 +2,12 @@ import { cn } from "@/lib/utils";
 import type { AdminMetric } from "../types";
 import {
   BookOpen,
-  FileSpreadsheet,
-  Users2,
-  ShieldAlert,
   Building2,
+  DollarSign,
+  FileSpreadsheet,
+  ShieldAlert,
   TrendingUp,
+  Users2,
 } from "lucide-react";
 
 const iconBgTones = {
@@ -25,6 +26,9 @@ const badgeTones = {
 
 function getIconForMetric(label: string) {
   const normalized = label.toLowerCase();
+  if (normalized.includes("faturamento") || normalized.includes("receita") || normalized.includes("revenue")) {
+    return DollarSign;
+  }
   if (normalized.includes("orçamento") || normalized.includes("budget")) {
     return FileSpreadsheet;
   }

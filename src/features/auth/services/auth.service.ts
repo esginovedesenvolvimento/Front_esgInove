@@ -1,6 +1,7 @@
 import type {
   AuthAccessContext,
   LoginInput,
+  AdminLoginResponse,
   LoginResponse,
   RegisterInput,
   RegisterResponse,
@@ -8,9 +9,10 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-async function request<T>(path: string, init: RequestInit): Promise<T> {
+  async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -21,7 +23,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     const isAuthAction = path === "/auth/login" || path === "/auth/admin/login" || path === "/auth/register";
     if (!isAuthAction) {
       if (typeof window !== "undefined") {
-        document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
         window.location.href = "/?auth=true";
         return new Promise(() => {});
       }
@@ -46,7 +48,7 @@ export const authService = {
   },
 
   adminLogin(payload: LoginInput) {
-    return request<LoginResponse>("/auth/admin/login", {
+    return request<AdminLoginResponse>("/auth/admin/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -73,30 +75,22 @@ export const authService = {
     });
   },
   
-  getMe(token: string) {
+  getMe(_token?: string) {
     return request<any>("/auth/me", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
   },
 
-  getAccessContext(token: string) {
+  getAccessContext(_token?: string) {
     return request<AuthAccessContext>("/auth/me/access", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
   },
 
   updateProfile(token: string, payload: any) {
     return request<any>("/auth/profile", {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
       body: JSON.stringify(payload),
     });
   },
@@ -104,9 +98,7 @@ export const authService = {
   uploadCompanyLogo(token: string, payload: { fileName: string; mimeType: string; base64Data: string; sizeBytes: number }) {
     return request<{ success: boolean; logoUrl: string; logoStoragePath: string }>("/auth/profile/logo", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
       body: JSON.stringify(payload),
     });
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { AdminBoardLoading } from "@/features/admin/shared/components/admin-board-loading";
 import type { AdminEvidenceBoardModel } from "@/features/admin/shared/types";
 import { getEvidenceBoardModel } from "../../services/evidences.service";
@@ -15,26 +15,21 @@ export function AdminEvidencesPageClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    let active = true;
-    setIsLoading(true);
+  const loadModel = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     setError(null);
-
-    getEvidenceBoardModel(page, PAGE_SIZE)
-      .then((data) => {
-        if (active) setModel(data);
-      })
-      .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : "Erro ao carregar evidências");
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+    try {
+      setModel(await getEvidenceBoardModel(page, PAGE_SIZE));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar evidências");
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
   }, [page]);
+
+  useEffect(() => {
+    void loadModel();
+  }, [loadModel]);
 
   const handlePageChange = (nextPage: number) => {
     startTransition(() => setPage(nextPage));
@@ -59,6 +54,6 @@ export function AdminEvidencesPageClient() {
   }
 
   return model ? (
-    <AdminEvidencesView model={model} isLoading={isLoading || isPending} onPageChange={handlePageChange} />
+    <AdminEvidencesView model={model} isLoading={isLoading || isPending} onPageChange={handlePageChange} onRefresh={() => loadModel(false)} />
   ) : null;
 }

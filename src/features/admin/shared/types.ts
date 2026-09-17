@@ -119,6 +119,8 @@ export interface AdminEvidencePillarSummary {
   label: string;
   score: number;
   provenScore: number;
+  approvedPoints: number;
+  totalAvailablePoints: number;
   evidenceTotal: number;
   verifiedEvidence: number;
   pendingEvidence: number;
@@ -136,10 +138,23 @@ export interface AdminEvidenceCompanySummary {
   diagnosticStatus: "CONTRACTED" | "DRAFT" | "COMPLETED";
   score: number;
   provenScore: number;
+  icebScore: number;
   evidencePending: number;
   evidenceVerified: number;
+  evidenceAnalyzed: number;
   lastDiagnosticAt: string;
   pillars: AdminEvidencePillarSummary[];
+  documents: Array<{
+    id: string;
+    evidenceName: string;
+    documentType: string;
+    fileName: string;
+    axis: "E" | "B" | "S" | "G";
+    status: AdminEvidenceSummary["status"];
+    uploadDate: string;
+    reviewedBy: string | null;
+    reviewedAt: string | null;
+  }>;
 }
 
 export interface AdminAxisInsight {

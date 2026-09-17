@@ -24,6 +24,7 @@ export async function adminFetch<T>(
       "Content-Type": "application/json",
       Authorization: token ? `Bearer ${token}` : "",
     },
+    credentials: "include",
     cache: "no-store",
   });
 

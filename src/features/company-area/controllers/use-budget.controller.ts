@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { budgetService, type BudgetInput } from "../services/budget.service";
 
 type Status = "idle" | "loading" | "success" | "error";
@@ -15,7 +15,7 @@ export function useBudgetController() {
       setStatus("loading");
       setErrorMessage(null);
 
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (!token) {
         throw new Error("Usuário não autenticado. Faça login para continuar.");
       }

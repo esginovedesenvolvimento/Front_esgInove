@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { getDiagnosticReviewViewModel } from "@/features/company-area/controllers/diagnostic.controller";
 import { DiagnosticReviewView } from "@/features/company-area/views/pages/diagnostico/diagnostic-review-view";
@@ -17,7 +17,7 @@ export default function DiagnosticReviewPage() {
   useEffect(() => {
     async function checkReviewAccess() {
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setIsBlocked(true);
           return;

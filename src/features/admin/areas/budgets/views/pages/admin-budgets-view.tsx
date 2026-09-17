@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getCookie } from "cookies-next";
 import { 
   Clock3, 
   Phone, 
@@ -18,12 +17,12 @@ import {
   Loader2,
   CalendarDays
 } from "lucide-react";
-import { AdminSectionHeading } from "@/features/admin/shared/components/admin-section-heading";
 import { AdminPagination } from "@/features/admin/shared/components/admin-pagination";
 import { AdminStatCard } from "@/features/admin/shared/components/admin-stat-card";
 import { AdminStatusBadge } from "@/features/admin/shared/components/admin-status-badge";
 import type { AdminBudgetBoardModel, AdminBudgetRequest, BudgetRequestStatus } from "@/features/admin/shared/types";
 import { Button } from "@/components/ui/button";
+import { parseBrazilianCurrency } from "../../budget-currency";
 
 type Props = {
   model: AdminBudgetBoardModel;
@@ -65,8 +64,7 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
   const handleOpenDetails = (req: AdminBudgetRequest) => {
     setSelectedRequest(req);
     // Parse proposal value if it is present, remove currency tags
-    const numericStr = req.proposalValue.replace("R$ ", "").replace(/\./g, "").replace(",", ".");
-    const numericVal = parseFloat(numericStr);
+    const numericVal = parseBrazilianCurrency(req.proposalValue);
     setProposalValue(isNaN(numericVal) ? "" : String(numericVal));
     setMessage(null);
   };
@@ -77,8 +75,7 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
     setMessage(null);
 
     try {
-      const token = getCookie("inoveesg_token");
-      const numericVal = parseFloat(proposalValue.replace(",", "."));
+      const numericVal = parseBrazilianCurrency(proposalValue);
       if (isNaN(numericVal) || numericVal < 0) {
         throw new Error("Por favor, insira um valor numérico válido.");
       }
@@ -90,8 +87,8 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ proposalValueCents }),
       });
 
@@ -132,7 +129,7 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
 
       updatedRequests.forEach((r) => {
         if (r.status === "PENDING" || r.status === "IN_REVIEW") {
-          const val = parseFloat(r.proposalValue.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+          const val = parseBrazilianCurrency(r.proposalValue);
           if (!isNaN(val)) {
             openValueCents += val * 100;
           }
@@ -215,12 +212,6 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
 
   return (
     <div className="space-y-8">
-      <AdminSectionHeading
-        eyebrow="Orçamentos"
-        title="Fila comercial e pedidos de proposta"
-        description="Acompanhe a entrada de novos leads, o estado da revisão e o valor potencial da carteira comercial."
-      />
-
       {/* KPI Cards on Top */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {model.metrics.map((metric) => (
@@ -310,7 +301,7 @@ export function AdminBudgetsView({ model: initialModel, isLoading = false, onPag
                     variant="outline"
                     className="rounded-full px-4 py-1.5 h-8 text-xs font-semibold border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-colors"
                   >
-                    {request.status === "APPROVED" || request.status === "ACTIVE" ? "Visualizar" : "Responder"}
+                    {request.status === "PROPOSAL_SENT" || request.status === "APPROVED" || request.status === "ACTIVE" ? "Visualizar" : "Responder"}
                   </Button>
                 </div>
               </div>

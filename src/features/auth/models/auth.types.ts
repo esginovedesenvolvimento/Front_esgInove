@@ -90,15 +90,17 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
+  expiresIn: number;
+  user: AuthUser | null;
+}
+
+
+export interface AdminLoginResponse {
   expiresIn: number;
   user: AuthUser | null;
 }
 
 export interface RegisterResponse {
-  accessToken: string;
-  refreshToken: string;
   expiresIn: number;
   user: AuthUser;
   organization: AuthOrganization;

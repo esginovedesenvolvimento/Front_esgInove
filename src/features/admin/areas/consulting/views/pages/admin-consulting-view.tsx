@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useMemo, Fragment, useEffect } from "react";
-import { getCookie } from "cookies-next";
 import { 
   Users2, 
   FileText, 
   TrendingUp, 
   Calendar, 
-  Sparkles,
-  Building2,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  X,
-  Clock,
-  Check
+  Sparkles, 
+  Building2, 
+  ArrowUp, 
+  ArrowDown, 
+  ArrowUpDown, 
+  X, 
+  Clock, 
+  Check,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { AdminSectionHeading } from "@/features/admin/shared/components/admin-section-heading";
 import { AdminPagination } from "@/features/admin/shared/components/admin-pagination";
@@ -41,6 +42,10 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
   useEffect(() => {
     setLocalClients(model.clients);
   }, [model.clients]);
+
+  // Calendar Navigation States
+  const [dashboardCalendarDate, setDashboardCalendarDate] = useState(() => new Date());
+  const [modalCalendarDate, setModalCalendarDate] = useState(() => new Date());
 
   // Modal States
   const [bookingClient, setBookingClient] = useState<AdminClientSummary | null>(null);
@@ -75,14 +80,40 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
     },
   ];
 
-  // Dynamic calendar values for rendering current month
+  // Dashboard Month Navigation Handlers
+  const handlePrevDashboardMonth = () => {
+    setDashboardCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedDayNum(null);
+  };
+
+  const handleNextDashboardMonth = () => {
+    setDashboardCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedDayNum(null);
+  };
+
+  // Modal Month Navigation Handlers
+  const handlePrevModalMonth = () => {
+    setModalCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedBookingDay(null);
+  };
+
+  const handleNextModalMonth = () => {
+    setModalCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedBookingDay(null);
+  };
+
+  // Dashboard calendar computed values
+  const dashboardMonthName = useMemo(() => {
+    return dashboardCalendarDate.toLocaleString("pt-BR", { month: "long" }).replace(/^\w/, (c) => c.toUpperCase());
+  }, [dashboardCalendarDate]);
+
+  const dashboardYear = dashboardCalendarDate.getFullYear();
+  const dashboardMonth = dashboardCalendarDate.getMonth();
+
   const calendarDays = useMemo(() => {
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const firstDay = new Date(dashboardYear, dashboardMonth, 1).getDay();
+    const numDays = new Date(dashboardYear, dashboardMonth + 1, 0).getDate();
 
     const days: Array<{ dayNum: number | null; isToday: boolean; isAppointment: boolean }> = [];
 
@@ -94,19 +125,48 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
     const appointmentDays = localClients
       .filter((client) => client.consultingStatus === "SCHEDULED" || client.consultingStatus === "COMPLETED")
       .map((client) => client.consultingStartsAt ? new Date(client.consultingStartsAt) : null)
-      .filter((date): date is Date => date !== null && date.getMonth() === currentMonth && date.getFullYear() === currentYear)
+      .filter((date): date is Date => date !== null && date.getMonth() === dashboardMonth && date.getFullYear() === dashboardYear)
       .map((date) => date.getDate());
 
     for (let d = 1; d <= numDays; d++) {
       days.push({
         dayNum: d,
-        isToday: d === today.getDate(),
+        isToday: d === today.getDate() && dashboardMonth === today.getMonth() && dashboardYear === today.getFullYear(),
         isAppointment: appointmentDays.includes(d)
       });
     }
 
     return days;
-  }, [localClients]);
+  }, [localClients, dashboardYear, dashboardMonth]);
+
+  // Modal calendar computed values
+  const modalMonthName = useMemo(() => {
+    return modalCalendarDate.toLocaleString("pt-BR", { month: "long" }).replace(/^\w/, (c) => c.toUpperCase());
+  }, [modalCalendarDate]);
+
+  const modalYear = modalCalendarDate.getFullYear();
+  const modalMonth = modalCalendarDate.getMonth();
+
+  const modalCalendarDays = useMemo(() => {
+    const today = new Date();
+    const firstDay = new Date(modalYear, modalMonth, 1).getDay();
+    const numDays = new Date(modalYear, modalMonth + 1, 0).getDate();
+
+    const days: Array<{ dayNum: number | null; isToday: boolean }> = [];
+
+    for (let i = 0; i < firstDay; i++) {
+      days.push({ dayNum: null, isToday: false });
+    }
+
+    for (let d = 1; d <= numDays; d++) {
+      days.push({
+        dayNum: d,
+        isToday: d === today.getDate() && modalMonth === today.getMonth() && modalYear === today.getFullYear(),
+      });
+    }
+
+    return days;
+  }, [modalYear, modalMonth]);
 
   const nextAppointment = useMemo(() => {
     return localClients
@@ -116,26 +176,14 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
 
   const appointmentsForSelectedDay = useMemo(() => {
     if (selectedDayNum === null) return [];
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
     return localClients.filter((client) => {
       if (!client.consultingStartsAt) return false;
       const date = new Date(client.consultingStartsAt);
       return date.getDate() === selectedDayNum && 
-             date.getMonth() === currentMonth && 
-             date.getFullYear() === currentYear;
+             date.getMonth() === dashboardMonth && 
+             date.getFullYear() === dashboardYear;
     });
-  }, [selectedDayNum, localClients]);
-
-  const monthName = useMemo(() => {
-    const today = new Date();
-    return today.toLocaleString("pt-BR", { month: "long" }).replace(/^\w/, (c) => c.toUpperCase());
-  }, []);
-
-  const currentYear = useMemo(() => {
-    return new Date().getFullYear();
-  }, []);
+  }, [selectedDayNum, localClients, dashboardMonth, dashboardYear]);
 
   const handleSort = (field: "name" | "score") => {
     if (sortField === field) {
@@ -186,6 +234,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
   // Modal Handlers
   const handleOpenBookingModal = (client: AdminClientSummary) => {
     setBookingClient(client);
+    setModalCalendarDate(new Date());
     setSelectedBookingDay(null);
     setSelectedBookingTime(null);
     setIsSuccess(false);
@@ -198,6 +247,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
 
   const handleOpenDetailsModal = (client: AdminClientSummary) => {
     setDetailsClient(client);
+    setModalCalendarDate(new Date());
     setActionError(null);
     setIsRescheduling(false);
     setSelectedBookingDay(null);
@@ -232,18 +282,16 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
     setActionError(null);
 
     try {
-      const token = getCookie("inoveesg_token");
       const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
       const body: { startsAt?: string; reason?: string; orderId?: string } = {
         orderId: detailsClient.orderId,
       };
 
       if (action === "reschedule") {
-        const today = new Date();
         const [hour, minute] = selectedBookingTime!.split(":").map(Number);
         body.startsAt = new Date(
-          today.getFullYear(),
-          today.getMonth(),
+          modalYear,
+          modalMonth,
           selectedBookingDay!,
           hour,
           minute,
@@ -254,8 +302,8 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(body),
       });
 
@@ -300,20 +348,16 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
     setErrorMsg(null);
 
     try {
-      const token = getCookie("inoveesg_token");
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
       const [hourStr, minStr] = selectedBookingTime.split(":");
-      const startsAtDate = new Date(currentYear, currentMonth, selectedBookingDay, Number(hourStr), Number(minStr));
+      const startsAtDate = new Date(modalYear, modalMonth, selectedBookingDay, Number(hourStr), Number(minStr));
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
       const response = await fetch(`${API_URL}/admin/consultoria/${bookingClient.id}/schedule`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           startsAt: startsAtDate.toISOString(),
           orderId: bookingClient.orderId,
@@ -329,7 +373,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
       const scheduledStatus = appointment.status === "CONFIRMED" || appointment.status === "REQUESTED"
         ? "SCHEDULED"
         : "PENDING";
-      const formattedDate = `${selectedBookingDay} de ${monthName}, ${currentYear} às ${selectedBookingTime}`;
+      const formattedDate = `${selectedBookingDay} de ${modalMonthName}, ${modalYear} às ${selectedBookingTime}`;
       setLocalClients((prev) =>
         prev.map((c) => {
           if (c.id === bookingClient.id && (!bookingClient.orderId || c.orderId === bookingClient.orderId)) {
@@ -348,8 +392,8 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
       setTimeout(() => {
         setBookingClient(null);
       }, 1500);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Erro inesperado ao realizar o agendamento");
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Erro inesperado");
     } finally {
       setIsSubmitting(false);
     }
@@ -406,7 +450,27 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Calendário de Consultorias</span>
-              <span className="text-xs font-bold text-slate-900">{monthName} de {currentYear}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handlePrevDashboardMonth}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-xs font-bold text-slate-900 min-w-[120px] text-center">
+                  {dashboardMonthName} de {dashboardYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextDashboardMonth}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  title="Próximo mês"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -649,7 +713,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
                 <h3 className="text-xl font-bold text-slate-900">Consulta Agendada!</h3>
                 <p className="mt-2 text-sm text-slate-500">
                   A consultoria com <strong>{bookingClient.tradeName}</strong> foi confirmada para o dia{" "}
-                  <strong>{selectedBookingDay} de {monthName} às {selectedBookingTime}</strong>.
+                  <strong>{selectedBookingDay} de {modalMonthName} às {selectedBookingTime}</strong>.
                 </p>
               </div>
             ) : (
@@ -668,9 +732,29 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
 
                 {/* Body / Calendar Content */}
                 <div className="mt-6 border-t border-slate-100 pt-6 space-y-6">
-                  {/* Month / Year header */}
+                  {/* Month / Year header with navigation */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900">{monthName} {currentYear}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handlePrevModalMonth}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        title="Mês anterior"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="text-sm font-bold text-slate-900 min-w-[130px] text-center">
+                        {modalMonthName} {modalYear}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleNextModalMonth}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        title="Próximo mês"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                     <span className="text-xs text-slate-400 font-medium">Fuso: America/Sao_Paulo</span>
                   </div>
 
@@ -687,7 +771,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
                     </div>
 
                     <div className="grid grid-cols-7 gap-1">
-                      {calendarDays.map((day, idx) => {
+                      {modalCalendarDays.map((day, idx) => {
                         if (day.dayNum === null) {
                           return <div key={`empty-${idx}`} className="h-10" />;
                         }
@@ -718,28 +802,88 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
 
                   {/* Time Selector (Visible when a day is selected) */}
                   {selectedBookingDay && (
-                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        Horários Disponíveis
-                      </label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"].map((time) => {
-                          const isSelectedTime = selectedBookingTime === time;
-                          return (
-                            <button
-                              key={time}
-                              onClick={() => setSelectedBookingTime(time)}
-                              className={`py-2 px-3 text-center rounded-xl text-xs font-bold transition-all border ${
-                                isSelectedTime
-                                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-extrabold"
-                                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                              }`}
-                            >
-                              {time}
-                            </button>
-                          );
-                        })}
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-indigo-600" />
+                          Horário da Consultoria
+                        </label>
+                        {selectedBookingTime && (
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            Selecionado: {selectedBookingTime}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Custom Hour and Minute Pickers */}
+                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            Hora
+                          </label>
+                          <select
+                            value={selectedBookingTime ? selectedBookingTime.split(":")[0] : ""}
+                            onChange={(e) => {
+                              const h = e.target.value;
+                              const m = selectedBookingTime ? selectedBookingTime.split(":")[1] : "00";
+                              if (h) setSelectedBookingTime(`${h}:${m}`);
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                          >
+                            <option value="" disabled>Hora</option>
+                            {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                              <option key={h} value={h}>{h}h</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <span className="text-slate-400 font-bold text-base mt-4">:</span>
+
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            Minuto
+                          </label>
+                          <select
+                            value={selectedBookingTime ? selectedBookingTime.split(":")[1] : ""}
+                            onChange={(e) => {
+                              const m = e.target.value;
+                              const h = selectedBookingTime ? selectedBookingTime.split(":")[0] : "09";
+                              if (m) setSelectedBookingTime(`${h}:${m}`);
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                          >
+                            <option value="" disabled>Minuto</option>
+                            {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                              <option key={m} value={m}>{m} min</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Quick presets */}
+                      <div>
+                        <span className="text-[11px] font-semibold text-slate-400 block mb-2">
+                          Sugestões de horários comuns:
+                        </span>
+                        <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                          {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"].map((time) => {
+                            const isSelectedTime = selectedBookingTime === time;
+                            return (
+                              <button
+                                key={time}
+                                type="button"
+                                onClick={() => setSelectedBookingTime(time)}
+                                className={`py-1.5 px-2 text-center rounded-xl text-xs font-bold transition-all border ${
+                                  isSelectedTime
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                {time}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -805,7 +949,7 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
                 Agendamentos do Dia
               </span>
               <h3 className="mt-3 text-xl font-bold tracking-tight text-slate-900">
-                {selectedDayNum} de {monthName}, {currentYear}
+                {selectedDayNum} de {dashboardMonthName}, {dashboardYear}
               </h3>
             </div>
 
@@ -909,9 +1053,32 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
 
             {isRescheduling && (
               <div className="mt-5 space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">Escolha o novo horário</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">Escolha o novo horário</p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handlePrevModalMonth}
+                      className="p-1 rounded text-indigo-400 hover:text-indigo-800 hover:bg-indigo-100/60"
+                      title="Mês anterior"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="text-xs font-bold text-indigo-900">
+                      {modalMonthName} {modalYear}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleNextModalMonth}
+                      className="p-1 rounded text-indigo-400 hover:text-indigo-800 hover:bg-indigo-100/60"
+                      title="Próximo mês"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-7 gap-1">
-                  {calendarDays.map((day, index) => day.dayNum === null ? (
+                  {modalCalendarDays.map((day, index) => day.dayNum === null ? (
                     <div key={`reschedule-empty-${index}`} className="h-8" />
                   ) : (
                     <button
@@ -927,16 +1094,65 @@ export function AdminConsultingView({ model, isLoading = false, onPageChange }: 
                   ))}
                 </div>
                 {selectedBookingDay && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"].map((time) => (
-                      <button
-                        key={`reschedule-time-${time}`}
-                        onClick={() => setSelectedBookingTime(time)}
-                        className={`rounded-lg border px-2 py-2 text-xs font-bold ${selectedBookingTime === time ? "border-indigo-300 bg-white text-indigo-700" : "border-slate-200 bg-white text-slate-600"}`}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                          Hora
+                        </label>
+                        <select
+                          value={selectedBookingTime ? selectedBookingTime.split(":")[0] : ""}
+                          onChange={(e) => {
+                            const h = e.target.value;
+                            const m = selectedBookingTime ? selectedBookingTime.split(":")[1] : "00";
+                            if (h) setSelectedBookingTime(`${h}:${m}`);
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="" disabled>Hora</option>
+                          {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                            <option key={h} value={h}>{h}h</option>
+                          ))}
+                        </select>
+                      </div>
+                      <span className="text-slate-400 font-bold mt-4">:</span>
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                          Minuto
+                        </label>
+                        <select
+                          value={selectedBookingTime ? selectedBookingTime.split(":")[1] : ""}
+                          onChange={(e) => {
+                            const m = e.target.value;
+                            const h = selectedBookingTime ? selectedBookingTime.split(":")[0] : "09";
+                            if (m) setSelectedBookingTime(`${h}:${m}`);
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="" disabled>Min</option>
+                          {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                            <option key={m} value={m}>{m} min</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"].map((time) => (
+                        <button
+                          key={`reschedule-time-${time}`}
+                          type="button"
+                          onClick={() => setSelectedBookingTime(time)}
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
+                            selectedBookingTime === time 
+                              ? "border-indigo-600 bg-indigo-600 text-white shadow-sm" 
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

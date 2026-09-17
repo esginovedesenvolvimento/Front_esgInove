@@ -79,6 +79,7 @@ export interface DiagnosticCurrentResponse {
     }>;
     evidences?: Array<{
       id: string;
+      requestId?: string | null;
       verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
       evidenceCategory?: string | null;
       fileName?: string | null;
@@ -87,6 +88,12 @@ export interface DiagnosticCurrentResponse {
       fileSizeBytes?: number | null;
       mimeType?: string | null;
       storageBucket?: string | null;
+      documentType?: string | null;
+      reviews?: Array<{
+        reviewedAt: string;
+        newStatus: "PENDING" | "VERIFIED" | "REJECTED";
+        reviewer: { fullName?: string | null; email?: string | null };
+      }>;
       uploadStatus?: "PENDING" | "UPLOADING" | "COMPLETED" | "FAILED";
       uploadedAt?: string | null;
     }>;
@@ -106,6 +113,7 @@ export interface DiagnosticSubmitResponse {
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -114,7 +122,7 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 
   if (response.status === 401) {
     if (typeof window !== "undefined") {
-      document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
       window.location.href = "/?auth=true";
       return new Promise(() => {});
     }
@@ -133,8 +141,9 @@ export const diagnosticService = {
   startDiagnostic(token: string) {
     return request<DiagnosticStartPayload>("/diagnostic/start", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -142,8 +151,9 @@ export const diagnosticService = {
   simulatePreDiagnosticPurchase(token: string) {
     return request<{ checkoutUrl: string; diagnosticId?: string; orderId: string; productCode: string; totalCents: number }>("/checkout/preference", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ productCode: "PRE_DIAGNOSTIC", quantity: 1 }),
     });
@@ -152,27 +162,27 @@ export const diagnosticService = {
   confirmPayment(token: string, diagnosticId: string, simulateStatus: "success" | "failure") {
     return request<{ success: boolean; diagnosticId: string }>("/diagnostic/confirm-payment", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({ diagnosticId, simulateStatus }),
     });
   },
 
-  getCurrentDiagnostic(token: string) {
+  getCurrentDiagnostic(_token?: string) {
     return request<DiagnosticCurrentResponse>("/diagnostic/current", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
     });
   },
 
   getDiagnosticHistory(token: string) {
     return request<DiagnosticHistoryItem[]>("/diagnostic/history", {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
   },
@@ -194,8 +204,9 @@ export const diagnosticService = {
   ) {
     return request<DiagnosticSubmitResponse>(`/diagnostic/${diagnosticId}/submit`, {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
       body: JSON.stringify({
         ...(responses ? { responses } : {}),
@@ -209,8 +220,9 @@ export const diagnosticService = {
     console.log("[diagnosticService.downloadReport] Iniciando download do relatório, token length:", token?.length);
     const response = await fetch(`${API_URL}/diagnostic/current/report`, {
       method: "GET",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${token}`,
+
       },
     });
 
@@ -219,7 +231,7 @@ export const diagnosticService = {
     if (response.status === 401) {
       console.warn("[diagnosticService.downloadReport] 401 Unauthorized recebido do backend!");
       if (typeof window !== "undefined") {
-        document.cookie = "inoveesg_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    void fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
         window.location.href = "/?auth=true";
       }
       throw new Error("Sua sessão expirou. Por favor, faça login novamente.");

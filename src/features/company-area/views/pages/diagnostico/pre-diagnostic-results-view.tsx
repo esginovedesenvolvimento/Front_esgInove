@@ -3,16 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { 
   ArrowUpRight, ShieldCheck, 
-  Leaf, Users, Scale, Lock, FileText, Recycle, Calendar
+  Leaf, Users, Scale, Lock, FileText, Recycle, Calendar, Clock, CheckCircle2, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { getCookie } from "cookies-next";
+
 import { diagnosticService } from "../../../services/diagnostic.service";
 import { getCurrentConsultingAppointment, type CompanyConsultingAppointment } from "../../../services/consulting.service";
 import { inviteService, type SupplierInvite } from "../../../services/invite.service";
 import { useCompany } from "../../../context/company-context";
+import { budgetService } from "../../../services/budget.service";
+import { getBudgetDisplayPrice, getInitialCardRotationIndex, hasOpenBudget, isBudgetOwnedByUser, shouldShowBudgetCard } from "../../../access/budget-card";
 
 interface DBDiagnostic {
   status: string;
@@ -25,17 +27,33 @@ interface DBDiagnostic {
   } | null;
 }
 
+interface OpenBudget {
+  id: string;
+  name: string;
+  description: string;
+  priceFormatted: string;
+  requestedAt: string;
+  status: string;
+  requestedByUserId?: string | null;
+  proposedPriceCents?: number | null;
+}
+
 export function PreDiagnosticResultsView() {
-  const { hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess, hasConsultingAccess } = useCompany();
+  const { user, hasInviteAccess, company, isSupplierOnly, hasPreDiagnosticAccess, hasConsultingAccess } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<DBDiagnostic | null>(null);
   const [realSuppliers, setRealSuppliers] = useState<SupplierInvite[]>([]);
   const [consultingAppointment, setConsultingAppointment] = useState<CompanyConsultingAppointment | null>(null);
+  const [openBudget, setOpenBudget] = useState<OpenBudget | null>(null);
+  const [cardRotationIndex, setCardRotationIndex] = useState(0);
+  const [isCardPaused, setIsCardPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
+      setOpenBudget(null);
+      setCardRotationIndex(0);
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setIsLoading(false);
           return;
@@ -59,6 +77,31 @@ export function PreDiagnosticResultsView() {
             console.error("Failed to load consulting appointment:", e);
           }
         }
+        try {
+          const budgetResponse: any = await budgetService.listRequests(token);
+          const budgets = Array.isArray(budgetResponse) ? budgetResponse : budgetResponse?.data;
+          const latestOpenBudget = Array.isArray(budgets)
+            ? budgets
+                .filter((budget: any) => isBudgetOwnedByUser(budget, user?.id ?? ""))
+                .filter((budget: any) => hasOpenBudget(String(budget.status ?? "")))
+                .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+            : null;
+          if (latestOpenBudget) {
+            setCardRotationIndex(getInitialCardRotationIndex(true));
+            setOpenBudget({
+              id: latestOpenBudget.id,
+              name: latestOpenBudget.product?.name ?? "Orçamento em andamento",
+              description: latestOpenBudget.product?.description ?? "Sua solicitação está em acompanhamento pela equipe InoveESG.",
+              priceFormatted: getBudgetDisplayPrice(latestOpenBudget.status, latestOpenBudget.proposedPriceCents),
+              requestedAt: latestOpenBudget.createdAt,
+              status: latestOpenBudget.status,
+              requestedByUserId: latestOpenBudget.requestedByUserId,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load open budgets:", e);
+          setOpenBudget(null);
+        }
       } catch (err) {
         console.error("Failed to load pre-diagnostic results:", err);
       } finally {
@@ -66,7 +109,13 @@ export function PreDiagnosticResultsView() {
       }
     }
     loadData();
-  }, [hasInviteAccess, hasConsultingAccess]);
+  }, [hasInviteAccess, hasConsultingAccess, user?.id]);
+
+  useEffect(() => {
+    if (!openBudget || !(hasConsultingAccess || consultingAppointment) || isCardPaused) return;
+    const interval = window.setInterval(() => setCardRotationIndex((current) => current + 1), 6000);
+    return () => window.clearInterval(interval);
+  }, [openBudget, hasConsultingAccess, consultingAppointment, isCardPaused]);
 
   if (isLoading) {
     return (
@@ -98,6 +147,8 @@ export function PreDiagnosticResultsView() {
       ? new Date(appointmentStartDate.getTime() + 60 * 60 * 1000) 
       : null;
   const isAppointmentPast = appointmentEndDate ? appointmentEndDate < new Date() : false;
+  const hasConsultingCard = Boolean(hasConsultingAccess || consultingAppointment);
+  const showBudgetCard = shouldShowBudgetCard(Boolean(openBudget), hasConsultingCard, cardRotationIndex);
 
   const getPillarDescription = (score: number, pillar: "E" | "B" | "S" | "G") => {
     if (pillar === "E") {
@@ -413,10 +464,10 @@ export function PreDiagnosticResultsView() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           
           {/* Banner Principal (2 cols) */}
-          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col justify-between min-h-[220px]">
+          <div className="lg:col-span-2 relative overflow-hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex h-[340px] flex-col justify-between overflow-hidden">
             <div className="absolute top-0 right-0 w-[40%] h-[150%] bg-gradient-to-l from-emerald-600/20 to-transparent blur-3xl animate-pulse" />
             <div className="absolute bottom-0 left-0 w-[20%] h-[80%] bg-gradient-to-r from-teal-600/10 to-transparent blur-2xl" />
             
@@ -456,8 +507,44 @@ export function PreDiagnosticResultsView() {
           </div>
 
           {/* Card de Consultoria (1 col) */}
-          {hasConsultingAccess || consultingAppointment ? (
-            <Card className="border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white min-h-[220px]">
+          <div
+            className="relative group/card h-[340px] min-h-[340px]"
+            onMouseEnter={() => setIsCardPaused(true)}
+            onMouseLeave={() => setIsCardPaused(false)}
+          >
+          {showBudgetCard && openBudget ? (
+            <Card className="h-full min-h-0 border border-blue-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full inline-block">
+                    Orçamento em andamento
+                  </span>
+                  <FileText className="h-4 w-4 text-blue-600" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">Seu Orçamento</h3>
+                <p className="text-slate-500 text-xs leading-relaxed">
+                  {openBudget.name} está em acompanhamento pela equipe InoveESG.
+                </p>
+                <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                    <Clock className="h-4 w-4" />
+                    {openBudget.status === "RESPONDIDO" || openBudget.status === "PROPOSTA_ENVIADA" ? "Proposta disponível" : "Solicitação recebida"}
+                  </div>
+                    <p className="text-sm font-bold text-slate-800">{openBudget.priceFormatted}</p>
+                  <p className="text-[10px] text-slate-500 line-clamp-2">{openBudget.description}</p>
+                </div>
+              </div>
+              <div className="pt-4">
+                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs h-9 transition-all">
+                  <Link href="/app/meus-servicos" className="flex items-center justify-center gap-1.5">
+                    Acompanhar Orçamento
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          ) : hasConsultingAccess || consultingAppointment ? (
+            <Card className="h-full min-h-0 border border-slate-100 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-white">
               <div className="space-y-3">
                 <span className={`${
                   isConsultingCompleted
@@ -542,7 +629,7 @@ export function PreDiagnosticResultsView() {
               </div>
             </Card>
           ) : (
-            <Card className="border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50 min-h-[220px]">
+            <Card className="h-full min-h-0 border border-slate-200 shadow-xl rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-slate-50/50">
               {/* Background pattern */}
               <div className="absolute inset-0 bg-slate-900/5 backdrop-blur-[1px] z-10" />
               
@@ -571,6 +658,28 @@ export function PreDiagnosticResultsView() {
               </div>
             </Card>
           )}
+
+          {openBudget && hasConsultingCard && (
+            <>
+              <button
+                type="button"
+                aria-label="Mostrar card anterior"
+                onClick={() => setCardRotationIndex((current) => current - 1)}
+                className="absolute left-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 text-slate-500 opacity-0 shadow-sm backdrop-blur transition-all hover:bg-white hover:text-slate-800 group-hover/card:opacity-100 focus-visible:opacity-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Mostrar próximo card"
+                onClick={() => setCardRotationIndex((current) => current + 1)}
+                className="absolute right-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 text-slate-500 opacity-0 shadow-sm backdrop-blur transition-all hover:bg-white hover:text-slate-800 group-hover/card:opacity-100 focus-visible:opacity-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          </div>
 
         </div>
       )}
@@ -821,26 +930,6 @@ export function PreDiagnosticResultsView() {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Upgrade Premium */}
-          <Card className="border-emerald-100 bg-emerald-50/20 shadow-sm rounded-2xl">
-            <CardContent className="pt-6 space-y-4">
-              <div className="bg-white p-3 rounded-xl shadow-sm border border-emerald-100 inline-block">
-                <ShieldCheck className="h-6 w-6 text-emerald-600" />
-              </div>
-              <div className="space-y-1">
-                <h5 className="font-bold text-slate-800 text-sm">Pronto para emitir o Selo?</h5>
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Com o **Plano Corporativo**, você pode fazer o upload de evidências estruturadas e emitir o selo de conformidade ESG.
-                </p>
-              </div>
-              <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 shadow-sm">
-                <Link href="/app/upgrade" className="flex items-center justify-center gap-1">
-                  Fazer Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
             </CardContent>
           </Card>
         </div>

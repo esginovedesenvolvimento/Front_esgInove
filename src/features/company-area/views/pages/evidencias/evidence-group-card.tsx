@@ -8,13 +8,11 @@ import type {
   EvidenceGroupCode,
   EvidenceUploadGroup,
   StagedEvidenceFile,
-  UploadedEvidenceFile,
 } from "../../../services/evidence-upload.service";
 
 interface EvidenceGroupCardProps {
   group: EvidenceUploadGroup;
   draftFiles: StagedEvidenceFile[];
-  persistedFiles: UploadedEvidenceFile[];
   onAddFiles: (groupCode: EvidenceGroupCode, documentType: string, files: FileList) => void;
   onRemoveFile: (groupCode: EvidenceGroupCode, fileId: string) => void;
   onClearGroup: (groupCode: EvidenceGroupCode) => void;
@@ -33,7 +31,6 @@ const toneStyles = {
 export function EvidenceGroupCard({
   group,
   draftFiles,
-  persistedFiles,
   onAddFiles,
   onRemoveFile,
   onClearGroup,
@@ -202,30 +199,6 @@ export function EvidenceGroupCard({
         )}
       </div>
 
-      <div className="mt-4 space-y-2">
-        <p className="text-sm font-medium text-slate-900">Arquivos já enviados</p>
-        {persistedFiles.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            Nenhum arquivo enviado nesta categoria.
-          </div>
-        ) : (
-          persistedFiles.map((file) => (
-            <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-white p-2 text-emerald-700">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900">{file.fileName}</p>
-                  <p className="text-xs text-slate-500">
-                    Enviado em {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(file.uploadedAt))}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
     </article>
   );
 }

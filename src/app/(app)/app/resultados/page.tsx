@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { getResultsViewModel } from "@/features/company-area/controllers/results.controller";
 import { ResultsView } from "@/features/company-area/views/pages/resultados/results-view";
 import { diagnosticService, type DiagnosticHistoryItem } from "@/features/company-area/services/diagnostic.service";
@@ -19,7 +19,7 @@ export default function ResultsPage() {
   useEffect(() => {
     async function loadResults() {
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setIsLoading(false);
           return;
@@ -74,11 +74,11 @@ export default function ResultsPage() {
     const socScore = scoreObj ? Math.round(Number(scoreObj.socialScore || 0)) : 0;
     const govScore = scoreObj ? Math.round(Number(scoreObj.governanceScore || 0)) : 0;
 
-    const globalProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenOverallScore || 0));
-    const envProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenEnvironmentalScore || 0));
-    const bioProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenBioeconomyCircularScore || 0));
-    const socProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenSocialScore || 0));
-    const govProven = isPreDiagnostic ? 0 : Math.round(Number(scoreObj?.provenGovernanceScore || 0));
+    const globalProven = Math.round(Number(scoreObj?.provenOverallScore || 0));
+    const envProven = Math.round(Number(scoreObj?.provenEnvironmentalScore || 0));
+    const bioProven = Math.round(Number(scoreObj?.provenBioeconomyCircularScore || 0));
+    const socProven = Math.round(Number(scoreObj?.provenSocialScore || 0));
+    const govProven = Math.round(Number(scoreObj?.provenGovernanceScore || 0));
 
     baseModel.globalScore = overallScore;
     baseModel.globalProvenScore = globalProven;

@@ -6,7 +6,6 @@ import { Eye, EyeOff, Check, X, AlertTriangle, User, Phone, Building2, ShieldChe
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
-import { setCookie } from "cookies-next";
 import { formatCPF, formatCNPJ, validateCPF, validateCNPJ } from "@/lib/cpfCnpjValidator";
 import { City, Country, State } from "country-state-city";
 
@@ -14,7 +13,7 @@ type RegisterFormProps = {
   refCode?: string;
   initialEmail?: string;
   submitButtonText?: string;
-  onSuccess?: (accessToken: string) => void;
+  onSuccess?: () => void;
 };
 
 const jaPossuiOptions = [
@@ -251,14 +250,9 @@ export function RegisterForm({ refCode, initialEmail, submitButtonText = "Criar 
         esgInteresse,
       });
       
-      if (response?.accessToken) {
-        setCookie("inoveesg_token", response.accessToken, { 
-          maxAge: 60 * 60 * 24 * 7,
-          path: "/",
-        });
-        
+      if (response?.user) {
         if (onSuccess) {
-          onSuccess(response.accessToken);
+          onSuccess();
         } else {
           router.push("/app");
         }

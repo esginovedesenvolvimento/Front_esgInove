@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthController } from "@/features/auth/controllers/use-auth.controller";
 import { RegisterForm } from "@/features/auth/views/components/register-form";
-import { setCookie } from "cookies-next";
 
 type AuthModalProps = {
   isOpen: boolean;
@@ -54,12 +53,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
     if (!emailValid || !password) return;
     try {
       const response = await login({ email, password });
-      if (response?.accessToken) {
-        setCookie("inoveesg_token", response.accessToken, { 
-          maxAge: 60 * 60 * 24 * 7,
-          path: "/",
-        });
-        
+      if (response?.user) {
         if (response.user?.role === "ADMIN") {
           router.push("/admin");
         } else {

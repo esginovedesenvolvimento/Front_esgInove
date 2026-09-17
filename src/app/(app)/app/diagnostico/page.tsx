@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { useRouter } from "next/navigation";
 import { getDiagnosticOverviewViewModel } from "@/features/company-area/controllers/diagnostic.controller";
 import { DiagnosticOverviewView } from "@/features/company-area/views/pages/diagnostico/diagnostic-overview-view";
@@ -23,7 +23,7 @@ export default function DiagnosticPage() {
 
   useEffect(() => {
     async function loadCurrentDiagnostic() {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (!token) {
         setIsFetchingDiag(false);
         return;
@@ -60,7 +60,7 @@ export default function DiagnosticPage() {
   const handleStart = async () => {
     setIsStarting(true);
     try {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
       const session = await diagnosticService.startDiagnostic(token);
 

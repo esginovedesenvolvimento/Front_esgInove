@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import {
@@ -100,7 +100,7 @@ export function DiagnosticCompletedView({
   useEffect(() => {
     async function fetchInvites() {
       try {
-        const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
         if (!token) {
           setLoadingInvites(false);
           return;

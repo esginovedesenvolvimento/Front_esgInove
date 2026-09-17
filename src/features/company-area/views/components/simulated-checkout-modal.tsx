@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getCookie } from "cookies-next";
+
 import { Button } from "@/components/ui/button";
 import { CreditCard, QrCode, CheckCircle2, ShieldCheck, Loader2, X } from "lucide-react";
 import { diagnosticService } from "../../services/diagnostic.service";
@@ -29,7 +29,7 @@ export function SimulatedCheckoutModal({
   const handleSimulatePayment = async () => {
     setLoading(true);
     setError(null);
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
 
     try {
       if (!token) {

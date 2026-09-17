@@ -34,7 +34,7 @@ import {
 import { InvitePurchaseModal } from "../../components/invite-purchase-modal";
 import { LogoCropModal } from "../../components/logo-crop-modal";
 import { useCompany } from "@/features/company-area/context/company-context";
-import { getCookie } from "cookies-next";
+
 import { inviteService } from "@/features/company-area/services/invite.service";
 import { authService } from "@/features/auth/services/auth.service";
 import { formatCPF, formatCNPJ, validateCPF, validateCNPJ } from "@/lib/cpfCnpjValidator";
@@ -124,7 +124,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
   };
 
   const handleConfirmCroppedLogo = async (croppedBase64: string) => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
 
     setIsUploadingLogo(true);
@@ -188,7 +188,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
   };
 
   const handleSaveCompany = async () => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
     if (companyForm.cnpj && !validateCNPJ(companyForm.cnpj)) {
       alert("CNPJ inválido (dígitos verificadores incorretos). Por favor verifique o número preenchido.");
@@ -226,7 +226,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
   };
 
   const handleSaveRespondent = async () => {
-    const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
     if (!token) return;
     if (respondentForm.cpf && !validateCPF(respondentForm.cpf)) {
       alert("CPF inválido (dígitos verificadores incorretos). Por favor verifique o número preenchido.");
@@ -245,7 +245,7 @@ export function ProfileView({ model }: { model: ProfileViewModel }) {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const token = getCookie("inoveesg_token") as string;
+    const token = "cookie-session";
       if (token) {
         try {
           const res = await inviteService.getStats(token);
