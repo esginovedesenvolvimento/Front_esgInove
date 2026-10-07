@@ -5,7 +5,8 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "../../components/section-heading";
-import { diagnosticService, type DiagnosticStartPayload } from "@/features/company-area/services/diagnostic.service";
+import { ApiError, diagnosticService, type DiagnosticStartPayload } from "@/features/company-area/services/diagnostic.service";
+import { useErrorModal } from "@/components/ui/error-modal-provider";
 import {
   Leaf, 
   Recycle, 
@@ -102,6 +103,7 @@ function ScoreRing({
 }
 
 export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewProps) {
+  const { showError } = useErrorModal();
   const isCompleted = dbDiagnostic?.status === "COMPLETED";
   const [questions, setQuestions] = useState<OverviewQuestion[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
@@ -167,7 +169,7 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
     const token = "cookie-session";
       if (!token) {
         reportWindow?.close();
-        alert("Sessão não encontrada. Por favor, faça login novamente.");
+        showError({ title: "Sessão não encontrada", message: "Por favor, faça login novamente." });
         return;
       }
       const blob = await diagnosticService.downloadReport(token);
@@ -177,12 +179,19 @@ export function DiagnosticOverviewView({ dbDiagnostic }: DiagnosticOverviewViewP
         reportWindow.location.replace(url);
       } else {
         window.URL.revokeObjectURL(url);
-        alert("Não foi possível abrir a aba do relatório. Permita pop-ups para este site.");
+        showError({
+          title: "Não foi possível abrir o relatório",
+          message: "Permita pop-ups para este site e tente novamente.",
+        });
       }
     } catch (err: unknown) {
       reportWindow?.close();
-      const msg = err instanceof Error ? err.message : "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.";
-      alert(msg);
+      const apiError = err instanceof ApiError ? err : null;
+      showError({
+        code: apiError?.code,
+        message: apiError?.status === 503 ? undefined : err instanceof Error ? err.message : undefined,
+        retry: () => window.location.reload(),
+      });
     } finally {
       setDownloading(false);
     }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Building2, ChevronDown, FileCheck2, FileClock, FileText, Leaf, Recycle, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Building2, ChevronDown, FileCheck2, FileClock, FileText, Leaf, LoaderCircle, MessageCircle, Recycle, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { AdminStatCard } from "@/features/admin/shared/components/admin-stat-card";
-import { getEvidencePreview, reviewEvidence } from "../../services/evidences.service";
+import { createEvidenceNote, getEvidenceNotes, getEvidencePreview, reviewEvidence } from "../../services/evidences.service";
 import type {
   AdminEvidenceBoardModel,
   AdminEvidenceCompanySummary,
+  AdminEvidenceNote,
   AdminEvidenceSummary,
 } from "@/features/admin/shared/types";
 
@@ -122,6 +123,13 @@ function CompanyEvidenceDetail({
   const [reviewLoading, setReviewLoading] = useState(false);
   const [openEvidenceGroups, setOpenEvidenceGroups] = useState<Record<string, boolean>>({});
   const [comment, setComment] = useState("");
+  const [expandedNotesId, setExpandedNotesId] = useState<string | null>(null);
+  const [evidenceNotes, setEvidenceNotes] = useState<Record<string, AdminEvidenceNote[]>>({});
+  const [notesLoading, setNotesLoading] = useState<Record<string, boolean>>({});
+  const [notesError, setNotesError] = useState<Record<string, string>>({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [noteSaving, setNoteSaving] = useState<Record<string, boolean>>({});
+  const [noteSaveError, setNoteSaveError] = useState<Record<string, string>>({});
   const documents = company.documents ?? [];
   const documentsByPillar = (Object.keys(pillarLabels) as Array<keyof typeof pillarLabels>).map((axis) => ({
     axis,
@@ -171,6 +179,56 @@ function CompanyEvidenceDetail({
       await onRefresh?.();
     } finally {
       setReviewLoading(false);
+    }
+  }
+
+  async function loadEvidenceNotes(evidenceId: string, retry = false) {
+    if (!retry && (Object.prototype.hasOwnProperty.call(evidenceNotes, evidenceId) || notesLoading[evidenceId])) return;
+    setNotesLoading((current) => ({ ...current, [evidenceId]: true }));
+    setNotesError((current) => ({ ...current, [evidenceId]: "" }));
+    try {
+      const notes = await getEvidenceNotes(evidenceId);
+      setEvidenceNotes((current) => ({ ...current, [evidenceId]: notes }));
+    } catch (error) {
+      setNotesError((current) => ({
+        ...current,
+        [evidenceId]: error instanceof Error ? error.message : "Não foi possível carregar as observações.",
+      }));
+    } finally {
+      setNotesLoading((current) => ({ ...current, [evidenceId]: false }));
+    }
+  }
+
+  function handleToggleEvidenceNotes(evidenceId: string) {
+    if (expandedNotesId === evidenceId) {
+      setExpandedNotesId(null);
+      return;
+    }
+    setExpandedNotesId(evidenceId);
+    setNoteSaveError((current) => ({ ...current, [evidenceId]: "" }));
+    void loadEvidenceNotes(evidenceId);
+  }
+
+  async function handleSaveEvidenceNote(evidenceId: string) {
+    const content = (noteDrafts[evidenceId] ?? "").trim();
+    if (!content || content.length > 2000 || noteSaving[evidenceId]) return;
+
+    setNoteSaving((current) => ({ ...current, [evidenceId]: true }));
+    setNoteSaveError((current) => ({ ...current, [evidenceId]: "" }));
+    try {
+      const note = await createEvidenceNote(evidenceId, content);
+      setEvidenceNotes((current) => ({
+        ...current,
+        [evidenceId]: [...(current[evidenceId] ?? []), note],
+      }));
+      setNoteDrafts((current) => ({ ...current, [evidenceId]: "" }));
+    } catch (error) {
+      setNoteSaveError((current) => ({
+        ...current,
+        [evidenceId]: error instanceof Error ? error.message : "Não foi possível salvar a observação. Tente novamente.",
+      }));
+    } finally {
+      setNoteSaving((current) => ({ ...current, [evidenceId]: false }));
     }
   }
 
@@ -309,30 +367,121 @@ function CompanyEvidenceDetail({
                       </div>
                       {openEvidenceGroups[`${pillar.axis}-${evidenceName}`] !== false ? group.map((document) => {
                         const status = document.status as AdminEvidenceSummary["status"];
+                        const notesOpen = expandedNotesId === document.id;
+                        const notes = evidenceNotes[document.id] ?? [];
                         return (
-                        <button key={document.id} type="button" onClick={() => void handleOpenDocument(document)} className="group flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 text-left transition hover:bg-slate-100">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-slate-800">{getEvidenceTypeLabel(document)}</p>
-                              <p className="truncate text-xs text-slate-500">Arquivo: {document.fileName} · {document.uploadDate}</p>
-                              {document.reviewedBy && document.reviewedAt ? (
-                                <p className="truncate text-[11px] text-emerald-700">
-                                  Aprovado por {document.reviewedBy} em {formatReviewDate(document.reviewedAt)}
-                                </p>
-                              ) : null}
-                            </div>
+                          <div key={document.id} className="space-y-2">
+                            <article className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 transition hover:bg-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => void handleOpenDocument(document)}
+                                aria-label={`Abrir arquivo ${document.fileName}`}
+                                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
+                              >
+                                <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                                <span className="min-w-0">
+                                  <span className="block truncate text-sm font-semibold text-slate-800">{getEvidenceTypeLabel(document)}</span>
+                                  <span className="block truncate text-xs text-slate-500">Arquivo: {document.fileName} · {document.uploadDate}</span>
+                                  {document.reviewedBy && document.reviewedAt ? (
+                                    <span className="block truncate text-[11px] text-emerald-700">
+                                      Aprovado por {document.reviewedBy} em {formatReviewDate(document.reviewedAt)}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </button>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleEvidenceNotes(document.id)}
+                                  aria-expanded={notesOpen}
+                                  aria-controls={`evidence-notes-${document.id}`}
+                                  aria-label={`${notesOpen ? "Recolher" : "Abrir"} observações de ${getEvidenceTypeLabel(document)}${Object.prototype.hasOwnProperty.call(evidenceNotes, document.id) ? `, ${notes.length} observações` : ""}`}
+                                  className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                                    notesOpen
+                                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                      : "border-transparent text-slate-400 hover:border-slate-200 hover:bg-white hover:text-emerald-700"
+                                  }`}
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                  {Object.prototype.hasOwnProperty.call(evidenceNotes, document.id) ? <span className="text-xs font-semibold">{notes.length}</span> : null}
+                                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${notesOpen ? "rotate-180" : ""}`} />
+                                </button>
+                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                                  status === "PENDING" || status === "UNDER_REVIEW"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : status === "VERIFIED"
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-rose-100 text-rose-700"
+                                }`}>
+                                  {status === "PENDING" ? "Pendente" : status === "UNDER_REVIEW" ? "Em análise" : status === "VERIFIED" ? "Validado" : "Rejeitado"}
+                                </span>
+                              </div>
+                            </article>
+
+                            {notesOpen ? (
+                              <section id={`evidence-notes-${document.id}`} aria-label={`Observações de ${getEvidenceTypeLabel(document)}`} className="ml-3 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:ml-7">
+                                {notesLoading[document.id] ? (
+                                  <p className="flex items-center gap-2 py-2 text-sm text-slate-500" role="status">
+                                    <LoaderCircle className="h-4 w-4 animate-spin" /> Carregando observações...
+                                  </p>
+                                ) : notesError[document.id] ? (
+                                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-rose-50 px-3 py-2.5">
+                                    <p className="text-sm text-rose-700" role="alert">{notesError[document.id]}</p>
+                                    <button type="button" onClick={() => void loadEvidenceNotes(document.id, true)} className="text-xs font-bold text-rose-700 underline underline-offset-2">Tentar novamente</button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {notes.length ? (
+                                      <ol className="space-y-3">
+                                        {notes.map((note) => (
+                                          <li key={note.id} className="rounded-lg bg-slate-50 px-3 py-3">
+                                            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{note.content}</p>
+                                            <p className="mt-2 text-[11px] font-medium text-slate-400">
+                                              {note.authorName} · {formatReviewDate(note.createdAt)}
+                                            </p>
+                                          </li>
+                                        ))}
+                                      </ol>
+                                    ) : (
+                                      <p className="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-sm text-slate-400">Nenhuma observação registrada para este documento.</p>
+                                    )}
+
+                                    <form
+                                      className="mt-3 border-t border-slate-100 pt-3"
+                                      onSubmit={(event) => {
+                                        event.preventDefault();
+                                        void handleSaveEvidenceNote(document.id);
+                                      }}
+                                    >
+                                      <label htmlFor={`evidence-note-input-${document.id}`} className="mb-1.5 block text-xs font-semibold text-slate-600">Nova observação</label>
+                                      <textarea
+                                        id={`evidence-note-input-${document.id}`}
+                                        value={noteDrafts[document.id] ?? ""}
+                                        onChange={(event) => setNoteDrafts((current) => ({ ...current, [document.id]: event.target.value }))}
+                                        maxLength={2000}
+                                        rows={3}
+                                        placeholder="Escreva uma observação visível somente para administradores..."
+                                        className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
+                                        disabled={noteSaving[document.id]}
+                                      />
+                                      {noteSaveError[document.id] ? <p className="mt-1.5 text-xs text-rose-600" role="alert">{noteSaveError[document.id]}</p> : null}
+                                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                                        <span className="text-[11px] text-slate-400">{(noteDrafts[document.id] ?? "").length}/2.000</span>
+                                        <button
+                                          type="submit"
+                                          disabled={noteSaving[document.id] || !(noteDrafts[document.id] ?? "").trim()}
+                                          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          {noteSaving[document.id] ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                                          {noteSaving[document.id] ? "Salvando..." : "Salvar observação"}
+                                        </button>
+                                      </div>
+                                    </form>
+                                  </>
+                                )}
+                              </section>
+                            ) : null}
                           </div>
-                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                            status === "PENDING" || status === "UNDER_REVIEW"
-                              ? "bg-amber-100 text-amber-700"
-                            : status === "VERIFIED"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-rose-100 text-rose-700"
-                          }`}>
-                            {status === "PENDING" ? "Pendente" : status === "UNDER_REVIEW" ? "Em análise" : status === "VERIFIED" ? "Validado" : "Rejeitado"}
-                          </span>
-                        </button>
                         );
                       }) : null}
                     </div>

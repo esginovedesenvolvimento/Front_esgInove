@@ -28,9 +28,15 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 export const checkoutService = {
+  getCatalogPrices() {
+    return request<{ prices: Record<string, number> }>("/checkout/catalog-prices", {
+      method: "GET",
+    });
+  },
+
   createPreference(
     token: string,
-    productCode: "PRE_DIAGNOSTIC" | "PRE_DIAGNOSTIC_PLUS" | "INVITE_PACK" | "LIVRO_ESG" | "CONSULTING_1H",
+    productCode: "PRE_DIAGNOSTIC" | "PRE_DIAGNOSTIC_PLUS" | "FULL_DIAGNOSTIC" | "FULL_DIAGNOSTIC_PLUS" | "INVITE_PACK" | "LIVRO_ESG" | "CONSULTING_1H",
     quantity = 1
   ) {
     return request<{ checkoutUrl: string; orderId?: string; diagnosticId?: string }>("/checkout/preference", {

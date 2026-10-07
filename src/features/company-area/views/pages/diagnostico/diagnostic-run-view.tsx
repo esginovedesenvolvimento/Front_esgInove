@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import type { getDiagnosticRunViewModel } from "../../../controllers/diagnostic.controller";
 import { diagnosticService } from "../../../services/diagnostic.service";
 import { useCompany } from "@/features/company-area/context/company-context";
+import { useErrorModal } from "@/components/ui/error-modal-provider";
+import { ApiError } from "../../../services/diagnostic.service";
 import { ArrowLeft, ArrowRight, CircleCheckBig, CircleDashed, ShieldCheck, Eye, ChevronUp, Edit2 } from "lucide-react";
 
 type DiagnosticRunViewModel = ReturnType<typeof getDiagnosticRunViewModel>;
@@ -25,6 +27,7 @@ export function DiagnosticRunView({
   isFinalFlow?: boolean;
 }) {
   const { refreshProfile } = useCompany();
+  const { showError } = useErrorModal();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(() => {
     return isFinalFlow ? model.questions.length : 0;
@@ -160,7 +163,13 @@ export function DiagnosticRunView({
       router.push("/app/diagnostico");
     } catch (err) {
       console.error("Failed to save diagnostic axis:", err);
-      alert("Erro ao salvar as respostas. Por favor, tente novamente.");
+      const apiError = err instanceof ApiError ? err : null;
+      showError({
+        code: apiError?.code,
+        title: apiError?.status === 503 ? undefined : "Não foi possível salvar as respostas",
+        message: apiError?.status === 503 ? undefined : "Erro ao salvar as respostas. Por favor, tente novamente.",
+        retry: () => window.location.reload(),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -204,7 +213,13 @@ export function DiagnosticRunView({
       router.push("/app/resultados");
     } catch (err) {
       console.error("Failed to submit diagnostic:", err);
-      alert("Erro ao salvar o diagnóstico. Por favor, tente novamente.");
+      const apiError = err instanceof ApiError ? err : null;
+      showError({
+        code: apiError?.code,
+        title: apiError?.status === 503 ? undefined : "Não foi possível salvar o diagnóstico",
+        message: apiError?.status === 503 ? undefined : "Erro ao salvar o diagnóstico. Por favor, tente novamente.",
+        retry: () => window.location.reload(),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -332,7 +347,7 @@ export function DiagnosticRunView({
                 das informações.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">98. Declaração de Ciência e Concordância</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Declaração de Ciência e Concordância</p>
                 <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
                   <input
                     type="checkbox"

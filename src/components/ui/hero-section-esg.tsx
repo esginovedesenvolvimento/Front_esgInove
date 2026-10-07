@@ -115,6 +115,7 @@ function ProgressRow({
 function HeroHeader({ onLoginClick }: { onLoginClick: () => void }) {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const navItems = [
+    { label: "Categorias", href: "#categorias" },
     { label: "Problema", href: "#problema" },
     { label: "Features", href: "#features" },
     { label: "Prova social", href: "#prova-social" },

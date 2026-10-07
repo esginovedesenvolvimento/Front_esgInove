@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import { getResultsViewModel } from "@/features/company-area/controllers/results.controller";
 import { ResultsView } from "@/features/company-area/views/pages/resultados/results-view";
 import { diagnosticService, type DiagnosticHistoryItem } from "@/features/company-area/services/diagnostic.service";
+import { ApiError } from "@/features/company-area/services/diagnostic.service";
+import { useErrorModal } from "@/components/ui/error-modal-provider";
 import { useCompany } from "@/features/company-area/context/company-context";
 
 import { useRouter } from "next/navigation";
 
 export default function ResultsPage() {
   const router = useRouter();
+  const { showError } = useErrorModal();
   const { isLoading: companyLoading, isSupplierOnly } = useCompany();
   const [dbDiagnostic, setDbDiagnostic] = useState<any>(null);
   const [history, setHistory] = useState<DiagnosticHistoryItem[]>([]);
@@ -28,6 +31,8 @@ export default function ResultsPage() {
           diagnosticService.getCurrentDiagnostic(token),
           diagnosticService.getDiagnosticHistory(token).catch(err => {
             console.error("Failed to load diagnostic history:", err);
+            const apiError = err instanceof ApiError ? err : null;
+            showError({ code: apiError?.code, retry: () => window.location.reload() });
             return [];
           })
         ]);
@@ -38,12 +43,14 @@ export default function ResultsPage() {
         }
       } catch (err) {
         console.error("Failed to load results:", err);
+        const apiError = err instanceof ApiError ? err : null;
+        showError({ code: apiError?.code, retry: () => window.location.reload() });
       } finally {
         setIsLoading(false);
       }
     }
     loadResults();
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     if (!isLoading && (!dbDiagnostic || dbDiagnostic.status !== "COMPLETED")) {

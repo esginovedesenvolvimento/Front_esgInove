@@ -8,12 +8,15 @@ import { DiagnosticOverviewView } from "@/features/company-area/views/pages/diag
 import { DiagnosticStartView } from "@/features/company-area/views/pages/diagnostico/diagnostic-start-view";
 import { useCompany } from "@/features/company-area/context/company-context";
 import { diagnosticService, type DiagnosticCurrentResponse } from "@/features/company-area/services/diagnostic.service";
+import { ApiError } from "@/features/company-area/services/diagnostic.service";
+import { useErrorModal } from "@/components/ui/error-modal-provider";
 
 const DIAGNOSTIC_START_CACHE_KEY = "inoveesg:diagnostic-start";
 
 export default function DiagnosticPage() {
   const { company, user, isLoading, hasActivePlan } = useCompany();
   const router = useRouter();
+  const { showError } = useErrorModal();
   
   const [dbDiagnostic, setDbDiagnostic] = useState<DiagnosticCurrentResponse["diagnostic"]>(null);
   const [isFetchingDiag, setIsFetchingDiag] = useState(true);
@@ -35,6 +38,12 @@ export default function DiagnosticPage() {
         }
       } catch (err) {
         console.error("Failed to load current diagnostic:", err);
+        const apiError = err instanceof ApiError ? err : null;
+        showError({
+          code: apiError?.code,
+          message: apiError?.status === 503 ? undefined : "Não foi possível carregar o diagnóstico.",
+          retry: () => window.location.reload(),
+        });
       } finally {
         setIsFetchingDiag(false);
       }
@@ -45,7 +54,7 @@ export default function DiagnosticPage() {
     } else if (!isLoading && !company) {
       setIsFetchingDiag(false);
     }
-  }, [isLoading, company]);
+  }, [isLoading, company, showError]);
 
   if (isLoading || isFetchingDiag) {
     return (

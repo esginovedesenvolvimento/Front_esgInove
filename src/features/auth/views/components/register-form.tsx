@@ -45,7 +45,8 @@ const interesseOptions = [
 
 const BUSINESS_CATEGORIES = [
   { code: "AGRONEGOCIO", name: "Agronegócio" },
-  { code: "OLEO_E_GAS", name: "Óleo e Gás" }
+  { code: "OLEO_E_GAS", name: "Óleo e Gás" },
+  { code: "INFRAESTRUTURA", name: "Infraestrutura" }
 ];
 
 const BUSINESS_SEGMENTS: Record<string, { code: string; name: string }[]> = {
@@ -55,6 +56,9 @@ const BUSINESS_SEGMENTS: Record<string, { code: string; name: string }[]> = {
   ],
   OLEO_E_GAS: [
     { code: "OLEO_E_GAS", name: "Óleo e Gás" }
+  ],
+  INFRAESTRUTURA: [
+    { code: "INFRAESTRUTURA", name: "Infraestrutura" }
   ]
 };
 

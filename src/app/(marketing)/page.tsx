@@ -4,6 +4,7 @@ import { Container } from "@/components/container";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { FeatureCard } from "@/components/ui/feature-card";
 import { HeroSectionESG } from "@/components/ui/hero-section-esg";
+import { CategoriesSection } from "@/components/ui/categories-section";
 import { ClientsSection } from "@/components/ui/testimonial-card";
 import { landingContent } from "@/content/landing";
 import { AlertTriangle, BarChart3, FileWarning, CircleCheck, X } from "lucide-react";
@@ -114,6 +115,8 @@ function HomeContent() {
             setIsAuthModalOpen(true);
           }}
         />
+
+        <CategoriesSection onCardAction={handlePlanClick} />
 
         <section
           id="problema"

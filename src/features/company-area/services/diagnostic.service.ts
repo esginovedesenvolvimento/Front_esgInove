@@ -1,5 +1,16 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export interface DiagnosticHistoryItem {
   id: string;
   kind: "PRE_DIAGNOSTIC" | "FULL_DIAGNOSTIC" | "SUPPLIER_DIAGNOSTIC";
@@ -128,10 +139,10 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     }
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.message ?? "Request failed");
+    throw new ApiError(data?.message ?? "Request failed", response.status, data?.code);
   }
 
   return data as T;

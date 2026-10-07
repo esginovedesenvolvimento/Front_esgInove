@@ -114,6 +114,13 @@ export interface AdminEvidenceSummary {
   severity: "low" | "medium" | "high";
 }
 
+export interface AdminEvidenceNote {
+  id: string;
+  content: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export interface AdminEvidencePillarSummary {
   axis: AdminAxis;
   label: string;

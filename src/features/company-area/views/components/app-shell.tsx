@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "./app-sidebar";
 import { useCompany } from "../../context/company-context";
-import { canAccessEvidenceRoute } from "../../access/route-access";
+import { canAccessEvidenceRoute, canAccessSuppliersRoute } from "../../access/route-access";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isUnpaid, isSupplierOnly, hasOnlyPreDiagnostic, hasInviteAccess, hasEvidenceAccess, hasPreDiagnosticAccess, isLoading } = useCompany();
@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (pathname.startsWith("/app/fornecedores") && !hasPreDiagnosticAccess) {
+    if (pathname.startsWith("/app/fornecedores") && !canAccessSuppliersRoute({ hasInviteAccess })) {
       router.push("/app/upgrade");
       return;
     }
@@ -68,10 +68,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           "/app/upgrade",
           "/app/checkout",
           "/app/meus-servicos",
-          "/app/fornecedores", // Exceção temporária para teste do fluxo da cadeia
         ];
         if (hasInviteAccess) {
           allowedPaths.push("/app/convites");
+          allowedPaths.push("/app/fornecedores");
         }
         const isAllowed = allowedPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
         if (!isAllowed) {

@@ -6,7 +6,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { inviteService, type SupplierInvite } from "@/features/company-area/services/invite.service";
 import type { getResultsViewModel } from "../../../controllers/results.controller";
-import { diagnosticService, type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
+import { ApiError, diagnosticService, type DiagnosticHistoryItem } from "../../../services/diagnostic.service";
+import { checkoutService } from "../../../services/checkout.service";
+import { DemandServiceDetailModal, type DemandServiceItemData } from "../../components/demand-service-detail-modal";
+import { useErrorModal } from "@/components/ui/error-modal-provider";
 import { useCompany } from "@/features/company-area/context/company-context";
 import { SectionHeading } from "../../components/section-heading";
 import {
@@ -141,13 +144,48 @@ function getMaturityLabel(level?: string | null) {
 export function ResultsView({ model, history = [] }: { model: ResultsViewModel; history?: DiagnosticHistoryItem[] }) {
   const { globalScore, globalProvenScore, isPreDiagnostic, axisScores, isSupplierOrg } = model;
   const hasVerifiedScore = globalProvenScore > 0;
-  const { company } = useCompany();
+  const { company, hasEvidenceAccess } = useCompany();
+  const { showError } = useErrorModal();
 
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [errorInvites, setErrorInvites] = useState(false);
   const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [isStrategicDiagnosticModalOpen, setIsStrategicDiagnosticModalOpen] = useState(false);
+  const [isStrategicCheckoutLoading, setIsStrategicCheckoutLoading] = useState(false);
+  const [strategicCheckoutError, setStrategicCheckoutError] = useState<string | null>(null);
+
+  const strategicDiagnosticService: DemandServiceItemData = {
+    id: "diag-estrat",
+    name: "Diagnóstico Estratégico ESG",
+    description: "Maturidade, evidências e plano de evolução ESG em um relatório estratégico verificado.",
+    priceFormatted: "R$ 7.950,00",
+    productCode: "FULL_DIAGNOSTIC",
+    detailVariant: "strategic-diagnostic",
+    installmentLabel: "R$ 662,50 x12",
+    fullPriceLabel: "À vista: R$ 7.950,00",
+    type: "ONE_TIME",
+    requiresBudget: false,
+    icon: ShieldCheck,
+  };
+
+  const handleStrategicDiagnosticCheckout = async (service: DemandServiceItemData, includeConsulting = false) => {
+    setIsStrategicCheckoutLoading(true);
+    setStrategicCheckoutError(null);
+    try {
+      const response = await checkoutService.createPreference(
+        "cookie-session",
+        includeConsulting ? "FULL_DIAGNOSTIC_PLUS" : "FULL_DIAGNOSTIC",
+      );
+      if (!response.checkoutUrl) throw new Error("Falha ao gerar link de checkout.");
+      window.location.href = response.checkoutUrl;
+    } catch (error) {
+      setStrategicCheckoutError(error instanceof Error ? error.message : "Não foi possível iniciar a compra.");
+    } finally {
+      setIsStrategicCheckoutLoading(false);
+    }
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedDiagnosticId(prev => prev === id ? null : id);
@@ -176,7 +214,7 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
       console.log("[handleDownload] Token obtido do cookie:", token ? `${token.substring(0, 15)}...` : "NULO");
       if (!token) {
         reportWindow?.close();
-        alert("Sessão não encontrada. Por favor, faça login novamente.");
+        showError({ title: "Sessão não encontrada", message: "Por favor, faça login novamente." });
         return;
       }
       const blob = await diagnosticService.downloadReport(token);
@@ -187,13 +225,20 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
         reportWindow.location.replace(url);
       } else {
         window.URL.revokeObjectURL(url);
-        alert("Não foi possível abrir a aba do relatório. Permita pop-ups para este site.");
+        showError({
+          title: "Não foi possível abrir o relatório",
+          message: "Permita pop-ups para este site e tente novamente.",
+        });
       }
     } catch (err: unknown) {
       reportWindow?.close();
       console.error("[handleDownload] Erro capturado no download:", err);
-      const msg = err instanceof Error ? err.message : "Ocorreu um erro ao gerar o relatório. Por favor, tente novamente.";
-      alert(msg);
+      const apiError = err instanceof ApiError ? err : null;
+      showError({
+        code: apiError?.code,
+        message: apiError?.status === 503 ? undefined : err instanceof Error ? err.message : undefined,
+        retry: () => window.location.reload(),
+      });
     } finally {
       setDownloading(false);
     }
@@ -321,11 +366,9 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
                 </p>
               </div>
             </div>
-            {!isSupplierOrg && (
-              <Button asChild size="sm" className="shrink-0 ml-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 text-xs font-semibold">
-                <Link href="/app/evidencias">
-                  <Sparkles className="w-3.5 h-3.5" /> Comprovar Score
-                </Link>
+            {!isSupplierOrg && !hasEvidenceAccess && (
+              <Button type="button" size="sm" onClick={() => { setStrategicCheckoutError(null); setIsStrategicDiagnosticModalOpen(true); }} className="shrink-0 ml-auto bg-amber-600 hover:bg-amber-700 text-white gap-1.5 text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5" /> Comprovar Score
               </Button>
             )}
           </div>
@@ -1091,6 +1134,21 @@ export function ResultsView({ model, history = [] }: { model: ResultsViewModel; 
           </Button>
         </div>
       </section>
+
+      <DemandServiceDetailModal
+        isOpen={isStrategicDiagnosticModalOpen}
+        onClose={() => {
+          if (!isStrategicCheckoutLoading) {
+            setIsStrategicDiagnosticModalOpen(false);
+            setStrategicCheckoutError(null);
+          }
+        }}
+        service={strategicDiagnosticService}
+        displayPrice="R$ 7.950,00"
+        onConfirmCheckout={handleStrategicDiagnosticCheckout}
+        isLoading={isStrategicCheckoutLoading}
+        error={strategicCheckoutError}
+      />
 
       {/* ── Premium Services Marketplace ── */}
       <section className="space-y-5">

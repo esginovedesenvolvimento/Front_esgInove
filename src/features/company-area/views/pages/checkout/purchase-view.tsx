@@ -51,7 +51,12 @@ const planProducts: (CartItem & {
   }
 ];
 
-const demandServices: (CartItem & { features: string[], icon: React.ComponentType<{ className?: string }> })[] = [
+const demandServices: (CartItem & { 
+  features: string[]; 
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  highlight?: boolean;
+})[] = [
   {
     id: "pre-diag",
     name: "Diagnóstico Autodeclarável",
@@ -70,6 +75,8 @@ const demandServices: (CartItem & { features: string[], icon: React.ComponentTyp
     priceFormatted: "R$ 500",
     type: "ONE_TIME",
     icon: Users,
+    highlight: true,
+    badge: "Recomendado",
     features: ["Formulário ESG Autodeclarável", "1h Sessão Estratégica", "Relatório de Maturidade"]
   },
   {
@@ -333,11 +340,18 @@ export function PurchaseView() {
             renderItem={(service, idx) => {
               const Icon = service.icon;
               const inCart = isInCart(service.id);
+              const isSpecial = Boolean((service as any).highlight);
+              const badge = (service as any).badge;
               return (
-                <div key={`${service.id}-${idx}`} className="w-[260px] snap-start rounded-xl border border-slate-200 bg-white p-3 flex flex-col justify-between shadow-sm hover:border-emerald-300 hover:shadow-md transition-all shrink-0">
+                <div key={`${service.id}-${idx}`} className={`w-[260px] snap-start rounded-xl border bg-white p-3 flex flex-col justify-between shadow-sm transition-all shrink-0 relative overflow-hidden ${isSpecial ? 'border-emerald-500 ring-2 ring-emerald-500/15 shadow-md' : 'border-slate-200 hover:border-emerald-300 hover:shadow-md'}`}>
+                  {badge && (
+                    <div className="absolute top-2.5 right-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                      {badge}
+                    </div>
+                  )}
                   <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="p-1 rounded-lg bg-slate-100 text-slate-600">
+                    <div className={`flex items-center gap-2 mb-1.5 ${badge ? 'pr-20' : ''}`}>
+                      <div className={`p-1 rounded-lg transition-colors ${isSpecial ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                         <Icon className="h-3.5 w-3.5" />
                       </div>
                       <h4 className="text-xs font-bold text-slate-800">{service.name}</h4>
