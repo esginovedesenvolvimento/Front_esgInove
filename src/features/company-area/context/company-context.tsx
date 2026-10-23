@@ -208,7 +208,12 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const hasEvidenceAccess = (serviceAccess?.hasEvidenceAccess ?? false) &&
     !hasUnresolvedDeclaration && hasCompletedDeclaration;
   const hasPreDiagnosticAccess = serviceAccess?.hasPreDiagnosticAccess ?? false;
-  const consultingProductCodes = ["PRE_DIAGNOSTIC_PLUS", "DIAG_CONSULTORIA", "FULL_DIAGNOSTIC"];
+  const consultingProductCodes = [
+    "PRE_DIAGNOSTIC_PLUS",
+    "DIAG_CONSULTORIA",
+    "FULL_DIAGNOSTIC",
+    "FULL_DIAGNOSTIC_PLUS",
+  ];
   const hasConsultingAccess = serviceAccess?.purchasedProductCodes?.some((code) =>
     consultingProductCodes.includes(code.toUpperCase()),
   ) ?? company?.orders?.some((order) =>
